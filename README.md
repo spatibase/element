@@ -1,4 +1,12 @@
-# Element
+<h1>
+  <a href="https://elementeditor.dev">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/element-logo-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset=".github/assets/element-logo-light.svg">
+      <img alt="Element" src=".github/assets/element-logo-light.svg" height="56">
+    </picture>
+  </a>
+</h1>
 
 Professional map editing for React. Bring your Leaflet or MapLibre map — Element adds drawing, vertex editing, snapping, undo/redo, and data management on top.
 
