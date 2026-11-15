@@ -6,7 +6,8 @@ import { useShortcutConfig } from '../contexts/ShortcutConfigContext'
 import { useEmit } from '../contexts/EventContext'
 import { CopySimple, Trash, Resize, Scissors, Knife, Shapes, StackPlus, WaveSine, SquareLogo } from '@phosphor-icons/react'
 import { KbdDark } from './ui/Kbd'
-import { EditToolbarBtn, ToolbarDivider } from './ui/EditToolbarBtn'
+import { EditToolbarBtn } from './ui/EditToolbarBtn'
+import { RowDivider } from './ui/RowDivider'
 import { useBalancedWrap } from '../hooks/useBalancedWrap'
 
 // Lazy: defers loading the geometry worker client until the user multi-selects.
@@ -121,7 +122,7 @@ export default function EditingToolbar() {
             </EditToolbarBtn>
           )}
 
-          {showTransform && (showShapeGroup || showCombineGroup) && <ToolbarDivider />}
+          {showTransform && (showShapeGroup || showCombineGroup) && <RowDivider />}
 
           {/* Polygon-only geometry tools */}
           {showPolygonGroup && (
@@ -191,7 +192,7 @@ export default function EditingToolbar() {
             </>
           )}
 
-          {showShapeGroup && showCombineGroup && <ToolbarDivider />}
+          {showShapeGroup && showCombineGroup && <RowDivider />}
 
           {showBreakApart && (
             <EditToolbarBtn
@@ -209,7 +210,7 @@ export default function EditingToolbar() {
             </EditToolbarBtn>
           )}
 
-          {(showTransform || showShapeGroup || showCombineGroup) && <ToolbarDivider />}
+          {(showTransform || showShapeGroup || showCombineGroup) && <RowDivider />}
 
           {/* Duplicate / Delete — always shown when there is a selection */}
           <EditToolbarBtn

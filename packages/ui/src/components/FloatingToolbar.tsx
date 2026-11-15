@@ -15,6 +15,7 @@ import { useIsEventForEditor } from '../hooks/useKeyboardShortcuts'
 import { SearchDropdown, type SearchDropdownHandle } from './ui/SearchDropdown'
 import { Kbd } from './ui/Kbd'
 import { ToolButton, ToolbarDivider } from './ui/ToolButton'
+import { RowDivider } from './ui/RowDivider'
 
 /** The inline search box's width (`w-52`): what the compact toolbar would need to show it. */
 const SEARCH_BOX_WIDTH = 208
@@ -263,6 +264,10 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
     dropdownRef.current?.focusAdd(newIndex)
   }
 
+  // A vertical toolbar never wraps; a horizontal one does at narrow widths, where a
+  // divider must not be left alone at the start or end of a row.
+  const divider = isVertical ? <ToolbarDivider vertical /> : <RowDivider><ToolbarDivider /></RowDivider>
+
   // When `embedded` is true, ElementEditor.tsx renders us inside a layout
   // slot (config.ui.layout) — skip the outer absolute-positioned wrapper so
   // the slot's flex layout handles placement. Standalone (adapter users), we
@@ -358,11 +363,11 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
 
           {shouldShow('measure') && (
             <>
-              {!readonly && <ToolbarDivider vertical={isVertical} />}
+              {!readonly && divider}
               <ToolButton active={isMeasuring} onClick={() => setEditingMode(isMeasuring ? 'none' : 'measure')} label="Measure" shortcut={getKey('measure').toUpperCase()} shortcutId="measure">
                 <Ruler size={24} />
               </ToolButton>
-              {searchAsIcon && shouldShow('search') && <ToolbarDivider vertical={isVertical} />}
+              {searchAsIcon && shouldShow('search') && divider}
             </>
           )}
 
