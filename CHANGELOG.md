@@ -6,6 +6,10 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Floating windows no longer show a focus ring when opened with the mouse or a keyboard shortcut, even when the host page styles `:focus-visible`.
+
 ---
 
 ## [0.2.0] — 2026-11-15

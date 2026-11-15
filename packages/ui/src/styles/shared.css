@@ -561,3 +561,17 @@ dialog[open]:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu],
  * an outline around the whole map. Keyboard map panning/zoom still works. */
 [data-elm-theme] .leaflet-container:focus-visible,
 [data-elm-theme] .maplibregl-canvas:focus-visible { outline: none; }
+
+/* Containers the editor focuses itself (tabIndex -1: a floating window on open,
+ * so Escape and the focus trap work) never draw a ring. Chrome matches
+ * :focus-visible on a programmatic focus when the last input was a key, so
+ * opening the schema window with its shortcut outlined the whole window, and a
+ * host page's unlayered `:focus-visible { outline: … }` beats the layered
+ * `outline-none` utility. Unlayered here, and more specific than such a rule.
+ * Controls keep their own :focus-visible ring. The same host rule must not
+ * stack an outline on controls that draw their own ring (`outline-none` plus
+ * a ring or border on focus, e.g. form fields). */
+[data-elm-theme] [tabindex="-1"]:focus,
+[data-elm-theme] .outline-none:focus,
+[data-elm-theme] .focus\:outline-none:focus,
+[data-elm-theme] .focus-visible\:outline-none:focus-visible { outline-style: none; }
