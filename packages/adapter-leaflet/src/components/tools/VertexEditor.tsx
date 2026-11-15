@@ -877,7 +877,7 @@ export function VertexEditor({
                   type="text"
                   value={draftCoords.lat}
                   onChange={(e) => setDraftCoords((c) => ({ ...c, lat: e.target.value }))}
-                  className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-gray-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus:border-primary-400"
+                  className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-gray-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus-visible:border-elm-focus-ring"
                 />
               </label>
               <label className="flex items-center gap-2 text-xs text-(--elm-text-muted,var(--color-gray-500))">
@@ -886,7 +886,7 @@ export function VertexEditor({
                   type="text"
                   value={draftCoords.lng}
                   onChange={(e) => setDraftCoords((c) => ({ ...c, lng: e.target.value }))}
-                  className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-gray-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus:border-primary-400"
+                  className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-gray-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus-visible:border-elm-focus-ring"
                 />
               </label>
             </div>

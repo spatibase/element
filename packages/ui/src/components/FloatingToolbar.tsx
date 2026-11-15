@@ -376,7 +376,7 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
               press-scale only squeezes the inner row (icon + input + spinner/clear).
               The ⌘F hint sits OUTSIDE the animated row so it doesn't bounce with the press. */}
           {shouldShow('search') && !searchAsIcon && (
-            <div className="flex items-center gap-2 pl-2.5 pr-3 py-1.5 bg-(--elm-surface-sunken,var(--color-gray-100)) dark:bg-(--elm-surface-sunken,color-mix(in_oklab,var(--color-white)_7%,transparent)) hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-gray-200)_70%,transparent)) dark:hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-white)_10%,transparent)) rounded-elm-control transition-colors w-52 focus-within:ring-1 focus-within:ring-inset focus-within:ring-(--elm-border-strong,var(--color-gray-300)) dark:focus-within:ring-(--elm-border-strong,var(--color-gray-600))">
+            <div className="flex items-center gap-2 pl-2.5 pr-3 py-1.5 bg-(--elm-surface-sunken,var(--color-gray-100)) dark:bg-(--elm-surface-sunken,color-mix(in_oklab,var(--color-white)_7%,transparent)) hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-gray-200)_70%,transparent)) dark:hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-white)_10%,transparent)) rounded-elm-control transition-colors w-52 focus-within:ring-1 focus-within:ring-inset focus-within:ring-elm-focus-ring">
               <div
                 ref={searchRowRef}
                 className="flex items-center gap-2 flex-1 min-w-0"
@@ -441,7 +441,7 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
                       : popupSide === 'right' ? 'top-0 w-80 left-full ml-2' : 'top-0 w-80 right-full mr-2',
                   )}
                 >
-                  <div className="flex items-center gap-2 px-3 py-2">
+                  <div className="m-1 flex items-center gap-2 px-2 py-1 rounded-elm-control focus-within:ring-1 focus-within:ring-inset focus-within:ring-elm-focus-ring">
                     <MagnifyingGlass size={16} className="text-elm-text-subtle flex-shrink-0" />
                     <input
                       ref={inputRef}

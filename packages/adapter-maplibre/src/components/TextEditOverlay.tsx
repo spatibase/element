@@ -78,7 +78,7 @@ export default function TextEditOverlay({ map, feature, onDone }: Props) {
       onDoubleClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.stopPropagation()}
     >
-      <div className="grid items-center justify-items-center bg-white/95 backdrop-blur-md border border-slate-800 text-slate-800 rounded px-3 py-1.5 text-sm font-medium shadow-lg">
+      <div className="grid items-center justify-items-center bg-white/95 backdrop-blur-md border border-slate-800 text-slate-800 rounded px-3 py-1.5 text-sm font-medium shadow-lg focus-within:ring-2 focus-within:ring-elm-focus-ring">
         <div
           className="invisible whitespace-pre pointer-events-none col-start-1 row-start-1 min-w-[12px] px-[2px] leading-tight"
           aria-hidden

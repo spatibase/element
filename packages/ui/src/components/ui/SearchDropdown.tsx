@@ -70,7 +70,7 @@ export const SearchDropdown = forwardRef<SearchDropdownHandle, Props>(function S
         const actions = (
           <>
             <Tooltip content="Fly to location">
-              <button onClick={(e) => { e.stopPropagation(); onGo(r) }} className="flex-shrink-0 px-2 py-1 text-xs text-elm-text-muted hover:bg-(--elm-surface-hover,var(--color-gray-200)) dark:hover:bg-(--elm-surface-hover,var(--color-gray-700)) dark:hover:text-(--elm-text-secondary,var(--color-gray-300)) rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface">
+              <button onClick={(e) => { e.stopPropagation(); onGo(r) }} className="flex-shrink-0 px-2 py-1 text-xs text-elm-text-muted hover:bg-(--elm-surface-hover,var(--color-gray-200)) dark:hover:bg-(--elm-surface-hover,var(--color-gray-700)) dark:hover:text-(--elm-text-secondary,var(--color-gray-300)) rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface">
                 <ArrowUpRight size={12} /> Go
               </button>
             </Tooltip>
@@ -78,14 +78,14 @@ export const SearchDropdown = forwardRef<SearchDropdownHandle, Props>(function S
               <button
                 ref={(el) => { addButtonRefs.current[i] = el }}
                 onClick={(e) => { e.stopPropagation(); onAdd(r) }}
-                className="flex-shrink-0 px-2 py-1 text-xs bg-primary-500 text-white hover:bg-primary-600 rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface"
+                className="flex-shrink-0 px-2 py-1 text-xs bg-primary-500 text-white hover:bg-primary-600 rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface"
               >
                 <Plus size={12} /> Add
               </button>
             </Tooltip>}
             {hasShape && onAddShape && (
               <Tooltip content="Add as boundary shape">
-                <button onClick={(e) => { e.stopPropagation(); onAddShape(r) }} className="flex-shrink-0 px-2 py-1 text-xs bg-emerald-500 text-white hover:bg-emerald-600 rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface">
+                <button onClick={(e) => { e.stopPropagation(); onAddShape(r) }} className="flex-shrink-0 px-2 py-1 text-xs bg-emerald-500 text-white hover:bg-emerald-600 rounded-elm-card flex items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring focus-visible:ring-offset-1 focus-visible:ring-offset-elm-surface">
                   <Polygon size={12} /> Shape
                 </button>
               </Tooltip>

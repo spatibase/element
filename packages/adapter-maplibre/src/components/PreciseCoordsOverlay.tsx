@@ -91,7 +91,7 @@ export default function PreciseCoordsOverlay({ map, coords, onSave, onClose }: P
             inputMode="decimal"
             value={draftLat}
             onChange={(e) => setDraftLat(e.target.value)}
-            className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-slate-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus:border-primary-400"
+            className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-slate-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus-visible:border-elm-focus-ring"
           />
         </label>
         <label className="flex items-center gap-2 text-xs text-(--elm-text-muted,var(--color-slate-500))">
@@ -101,7 +101,7 @@ export default function PreciseCoordsOverlay({ map, coords, onSave, onClose }: P
             inputMode="decimal"
             value={draftLng}
             onChange={(e) => setDraftLng(e.target.value)}
-            className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-slate-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus:border-primary-400"
+            className="flex-1 w-full min-w-0 border border-(--elm-border,var(--color-slate-200)) rounded-elm-chip px-1.5 py-0.5 text-xs outline-none focus-visible:border-elm-focus-ring"
           />
         </label>
         <div className="flex items-center justify-end gap-1 mt-1">
