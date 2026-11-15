@@ -4,7 +4,11 @@ All notable changes to Element are documented here.
 
 ---
 
-## [0.2.0] — 2026-11-22
+## [Unreleased]
+
+---
+
+## [0.2.0] — 2026-11-15
 
 **First public release on npm.** Five packages, all at 0.2.0 and MIT-licensed:
 
