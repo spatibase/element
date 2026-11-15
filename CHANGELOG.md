@@ -6,10 +6,14 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `config.network.maplibreWorker` (`string | false`): where the MapLibre drop-in loads MapLibre GL JS 6's worker from. Default: the jsDelivr copy of the installed maplibre-gl version; `false` leaves `setWorkerUrl` to your app. Unused on MapLibre 5 and when your app has already called `setWorkerUrl`. See [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
+
 ### Changed
 
 - **Peer range widened to `maplibre-gl` `^5.5.0 || ^6.0.0`** (`@element-editor/react`, `@element-editor/adapter-maplibre`). Install commands are plain `npm i @element-editor/react maplibre-gl` again.
-- On MapLibre GL JS 6 the MapLibre drop-in loads MapLibre's worker (`maplibre-gl-worker.mjs`, a separate file since 6.0) from jsDelivr at the installed version when your app has not called `setWorkerUrl`; call it before the editor mounts to serve the file yourself. Adapter users set it in their own map setup. See [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker).
+- On MapLibre GL JS 6 the MapLibre drop-in passes MapLibre's worker URL (`maplibre-gl-worker.mjs`, a separate file since 6.0) to `setWorkerUrl` from `config.network.maplibreWorker`, so the map renders behind a bundler without app setup. Adapter users set it in their own map setup.
 
 ### Fixed
 

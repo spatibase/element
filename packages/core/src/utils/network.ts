@@ -25,6 +25,14 @@ export interface NetworkConfig {
   glyphs?: string
   /** Absolute URL prefix of the sprite files (without extension). Default: jsDelivr copy of the adapter's own. */
   sprite?: string
+  /**
+   * MapLibre GL JS 6's worker script (`maplibre-gl-worker.mjs`), which the MapLibre drop-in passes to
+   * MapLibre's `setWorkerUrl` before creating its map. Default: jsDelivr copy of the installed
+   * maplibre-gl version. `false`: leave it to the app (it calls `setWorkerUrl` itself). Not used on
+   * MapLibre 5 (worker built in), nor when the app already called `setWorkerUrl`. MapLibre has one
+   * worker URL per page, so the first editor that creates a map sets it.
+   */
+  maplibreWorker?: string | false
   /** The Picker's OpenStreetMap lookups. `false`: the Picker uses the basemap's vector tiles only (hidden on Leaflet). */
   overpass?: false | Omit<OverpassOptions, 'fetch' | 'signal'>
   /** The Route tool's road snapping. `false`: the Route tool is hidden. */

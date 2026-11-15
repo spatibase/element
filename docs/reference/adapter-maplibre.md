@@ -20,7 +20,7 @@ npm install @element-editor/adapter-maplibre maplibre-gl
 
 React 18 is not supported. `@element-editor/core` and `@element-editor/ui` are installed as regular dependencies (not bundled). To import from them directly, add them to your own `package.json` at the same version. The geometry worker is inlined, so no bundler configuration is needed.
 
-On MapLibre GL JS 6, MapLibre's own worker is a separate file: call `setWorkerUrl` before creating your map (see [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker)).
+On MapLibre GL JS 6, MapLibre's own worker is a separate file: call `setWorkerUrl` before creating your map (see [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker)).
 
 ### CSS imports
 

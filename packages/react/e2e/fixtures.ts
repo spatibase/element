@@ -38,8 +38,8 @@ declare global {
 
 /** Basemap / tile hosts the dev pages touch. Never hit them from tests. */
 export const OFFLINE = /tile\.openstreetmap\.org|tiles\.openfreemap\.org|tiles\.mapterhorn\.com|\.example\.test/
-/** The jsDelivr copy of MapLibre 6's worker the drop-in falls back to (maplibre/workerUrl.ts). */
-export const MAPLIBRE_WORKER = /^https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^/]+\/dist\/maplibre-gl-worker\.mjs/
+/** MapLibre 6's worker as the drop-in loads it (`config.network.maplibreWorker`): the jsDelivr default or the dev page's `?network=custom` host. */
+export const MAPLIBRE_WORKER = /^https:\/\/(cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^/]+\/dist|worker\.example\.test)\/maplibre-gl-worker\.mjs/
 const LOCAL_MAPLIBRE_WORKER = fileURLToPath(new URL('../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url))
 /** The map container on either engine. */
 export const MAP = ':is(.leaflet-container, .maplibregl-map)'
@@ -65,7 +65,8 @@ export const test = base.extend<{ engine: Engine }>({
         ? r.fulfill({ contentType: 'image/png', body: PIXEL })
         : r.abort(),
     )
-    // Served from the installed maplibre-gl (same version), not the CDN.
+    // Served from the installed maplibre-gl (same version), not the CDN. Registered after OFFLINE,
+    // so it wins for worker.example.test.
     await page.route(MAPLIBRE_WORKER, (r) =>
       r.fulfill({ path: LOCAL_MAPLIBRE_WORKER, contentType: 'text/javascript', headers: { 'Access-Control-Allow-Origin': '*' } }))
     // Most specs were written when tools returned to select after each shape.

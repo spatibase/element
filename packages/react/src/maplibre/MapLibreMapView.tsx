@@ -77,7 +77,7 @@ export default memo(function MapLibreMapView({ basemap, themeMode, attributionTa
     }).then((style) => {
       if (dead) return
       const view = resolveInitialView(setup, scope)
-      ensureWorkerUrl()
+      ensureWorkerUrl(scope.network?.maplibreWorker)
       const m = new maplibregl.Map({
         ...setup.mapOptions,
         container: el,

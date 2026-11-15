@@ -30,7 +30,7 @@ The same `config` works with the adapters: pass it to `ElementEditorUIProvider` 
 | Vector tiles (Streets, Terrain, Light, Dark) | OpenFreeMap `tiles.openfreemap.org/planet` | `vectorTiles` | Key in the URL if your provider needs one | OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Must be the **OpenMapTiles schema** (the built-in styles and the Picker read its layers). |
 | Glyphs (map fonts) | OpenFreeMap fonts | `glyphs` | Key in the URL | Must serve **Noto Sans Regular, Bold and Italic** (the styles ask for these). |
 | Sprite (map icons) | jsDelivr copy of `@element-editor/adapter-maplibre/basemaps/sprite` | `sprite` | none | Element's own files (MIT). |
-| MapLibre worker (MapLibre drop-in on MapLibre GL JS 6 only) | jsDelivr copy of the installed `maplibre-gl/dist/maplibre-gl-worker.mjs` | none: call MapLibre's `setWorkerUrl` (see [below](#maplibre-gl-js-6-worker)) | none | MapLibre GL JS (BSD-3-Clause). |
+| MapLibre worker (MapLibre drop-in, MapLibre GL JS 6 only) | jsDelivr copy of the installed `maplibre-gl/dist/maplibre-gl-worker.mjs` | `maplibreWorker` | none | MapLibre GL JS (BSD-3-Clause). See [below](#maplibre-gl-js-6-worker-maplibreworker). |
 | Elevation (hillshade on Streets / Terrain) | Mapterhorn `tiles.mapterhorn.com` | `dem` | Key in the URL | © Mapterhorn. **Terrarium** encoding, 512 px tiles; set `encoding` for another one. |
 | OSM raster (`'osm'` basemap, both engines) | `tile.openstreetmap.org` | `osmRaster` | Key in the URL (Leaflet loads tiles as images: no headers) | © OpenStreetMap contributors. The [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) rules out heavy production use. |
 | Overpass (Picker) | `overpass-api.de` | `overpass` | via `fetch` | OSM data, [ODbL](https://www.openstreetmap.org/copyright). The public server is often busy. |
@@ -43,22 +43,26 @@ The editor makes no other requests (`fetchSheetCsv` in `@element-editor/core` fe
 
 ---
 
-## MapLibre GL JS 6 worker
+## MapLibre GL JS 6 worker: `maplibreWorker`
 
-MapLibre GL JS 5 has its worker built in. Version 6 loads it from a separate file, `maplibre-gl-worker.mjs`, and bundlers (Vite, webpack, Turbopack) don't put that file where MapLibre looks for it. So when the MapLibre drop-in creates its map on MapLibre 6 and your app hasn't set a worker URL, it points MapLibre at the jsDelivr copy of the version you installed (`https://cdn.jsdelivr.net/npm/maplibre-gl@<version>/dist/maplibre-gl-worker.mjs`).
+MapLibre GL JS 5 has its worker built in. Version 6 loads it from a separate file, `maplibre-gl-worker.mjs`, and bundlers (Vite, webpack, Turbopack) don't put that file where MapLibre looks for it. So before the MapLibre drop-in creates its map on MapLibre 6, it passes `network.maplibreWorker` to MapLibre's `setWorkerUrl`. By default that is the jsDelivr copy of the version you installed (`https://cdn.jsdelivr.net/npm/maplibre-gl@<version>/dist/maplibre-gl-worker.mjs`).
 
-To serve the worker yourself (offline, intranet, strict CSP), call MapLibre's `setWorkerUrl` once before the editor mounts. The editor then leaves it alone. With Vite:
+To serve the worker yourself (offline, intranet, strict CSP), point `maplibreWorker` at your copy. With Vite:
 
 ```ts
-import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
-setWorkerUrl(workerUrl)
+network: { maplibreWorker: workerUrl }
 ```
 
-With webpack 5 (Next.js): `setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString())`. See MapLibre's [installation notes](https://maplibre.org/maplibre-gl-js/docs/) for other bundlers.
+With webpack 5 (Next.js): `maplibreWorker: new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString()`. See MapLibre's [installation notes](https://maplibre.org/maplibre-gl-js/docs/) for other bundlers.
 
-The adapters never create a map, so with `@element-editor/adapter-maplibre` on MapLibre 6 your own map setup calls `setWorkerUrl`, as MapLibre's docs describe.
+- `maplibreWorker: false`: the editor never calls `setWorkerUrl`. Your app sets it itself.
+- If your app has already called `setWorkerUrl`, the editor leaves that URL alone, whatever `maplibreWorker` says.
+- MapLibre has one worker URL per page, so with several editors the first one to create its map sets it.
+- On MapLibre 5 the setting is ignored (the worker is built in, nothing is requested).
+
+The adapters never create a map, so with `@element-editor/adapter-maplibre` on MapLibre 6 your own map setup calls MapLibre's `setWorkerUrl`, as MapLibre's docs describe.
 
 ---
 
@@ -131,10 +135,10 @@ If your site sends a `Content-Security-Policy` header, the editor needs:
 
 | Directive | Allow | Why |
 |---|---|---|
-| `worker-src` (and `child-src` for older Safari) | `blob:` | MapLibre GL starts its workers from `blob:` URLs (on MapLibre 6 when the worker file is on another origin, such as the jsDelivr default). Element's geometry worker (boolean operations, cut hole, slice, buffer / simplify / smooth previews) is inlined in the package and also starts from a `blob:` URL; only if creating that throws does it fall back to a `data:` URL. |
+| `worker-src` (and `child-src` for older Safari) | `blob:` | MapLibre GL starts its workers from `blob:` URLs (on MapLibre 6 when `maplibreWorker` is on another origin, such as the jsDelivr default). Element's geometry worker (boolean operations, cut hole, slice, buffer / simplify / smooth previews) is inlined in the package and also starts from a `blob:` URL; only if creating that throws does it fall back to a `data:` URL. |
 | `style-src` | `'unsafe-inline'` | The editor and its libraries (toasts, the CodeMirror GeoJSON inspector) add `<style>` elements at runtime. There is no nonce option. |
 | `img-src` | `data:` `blob:` | Basemap picker thumbnails are inlined as `data:` images; MapLibre decodes images through `blob:` URLs. Leaflet loads raster tiles as images, so its tile hosts go here too. |
-| `script-src` | `https://cdn.jsdelivr.net` | MapLibre GL JS 6 only, while the drop-in loads MapLibre's worker from jsDelivr (not needed when you call `setWorkerUrl` with a same-origin file). |
+| `script-src` | `https://cdn.jsdelivr.net` | MapLibre GL JS 6 with the default `maplibreWorker` only: MapLibre's worker is loaded from jsDelivr. Not needed with a same-origin `maplibreWorker` or `false`. |
 | `connect-src` | each service you keep | MapLibre fetches tiles, glyphs and the sprite; Element fetches Overpass, the router and the geocoder. |
 
 With every default left on, that is:
@@ -151,7 +155,7 @@ Content-Security-Policy:
     https://nominatim.openstreetmap.org;
 ```
 
-Drop the hosts of services you turn off or replace, and add your own servers (and the hosts of custom basemap styles). `api.openrouteservice.org` is used only with a routing `apiKey`, `router.project-osrm.org` only without one. Scripts need nothing extra (the editor uses no `eval`), except `script-src https://cdn.jsdelivr.net` for the MapLibre 6 worker default above.
+Drop the hosts of services you turn off or replace, and add your own servers (and the hosts of custom basemap styles). `api.openrouteservice.org` is used only with a routing `apiKey`, `router.project-osrm.org` only without one. Scripts need nothing extra (the editor uses no `eval`), except `script-src https://cdn.jsdelivr.net` for the default `maplibreWorker` on MapLibre 6.
 
 ---
 

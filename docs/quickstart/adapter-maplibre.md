@@ -44,7 +44,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 setWorkerUrl(workerUrl)
 ```
 
-For other bundlers see MapLibre's [installation notes](https://maplibre.org/maplibre-gl-js/docs/) and [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker).
+For other bundlers see MapLibre's [installation notes](https://maplibre.org/maplibre-gl-js/docs/) and [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
 
 ---
 
