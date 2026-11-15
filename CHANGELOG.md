@@ -6,6 +6,10 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.1] — 2026-11-15
+
 ### Added
 
 - `config.network.maplibreWorker` (`string | false`): where the MapLibre drop-in loads MapLibre GL JS 6's worker from. Default: the jsDelivr copy of the installed maplibre-gl version; `false` leaves `setWorkerUrl` to your app. Unused on MapLibre 5 and when your app has already called `setWorkerUrl`. See [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
