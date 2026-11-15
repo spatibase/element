@@ -1,5 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import maplibregl, { type MapOptions, type StyleSpecification } from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import type { MapOptions, StyleSpecification } from 'maplibre-gl'
+import { ensureWorkerUrl } from './workerUrl'
 import { ElementEditorControls, useBasemap, type FeatureStyleFn } from '@element-editor/adapter-maplibre'
 import { useServiceAttribution } from '@element-editor/ui/internal'
 import { loadBasemapStyle, resolveBasemap, type BasemapInput } from '@element-editor/adapter-maplibre/basemaps'
@@ -75,6 +77,7 @@ export default memo(function MapLibreMapView({ basemap, themeMode, attributionTa
     }).then((style) => {
       if (dead) return
       const view = resolveInitialView(setup, scope)
+      ensureWorkerUrl(scope.network?.maplibreWorker)
       const m = new maplibregl.Map({
         ...setup.mapOptions,
         container: el,

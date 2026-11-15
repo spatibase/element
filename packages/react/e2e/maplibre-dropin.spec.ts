@@ -208,5 +208,5 @@ test('config.network.sprite: the built-in style loads its sprite from the given 
   const origin = await page.evaluate(() => location.origin)
   expect(await page.evaluate(() => (window.__elementEditorTest!.map as MapLibreMap).getStyle().sprite)).toBe(origin + '/sprite')
   await expect.poll(() => urls.some((u) => u.startsWith(origin + '/sprite'))).toBe(true)
-  expect(urls.filter((u) => u.includes('cdn.jsdelivr.net'))).toEqual([])
+  expect(urls.filter((u) => u.includes('cdn.jsdelivr.net/npm/@element-editor/'))).toEqual([])
 })

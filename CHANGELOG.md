@@ -6,8 +6,20 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `config.network.maplibreWorker` (`string | false`): where the MapLibre drop-in loads MapLibre GL JS 6's worker from. Default: the jsDelivr copy of the installed maplibre-gl version; `false` leaves `setWorkerUrl` to your app. Unused on MapLibre 5 and when your app has already called `setWorkerUrl`. See [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
+
+### Changed
+
+- **Peer range widened to `maplibre-gl` `^5.5.0 || ^6.0.0`** (`@element-editor/react`, `@element-editor/adapter-maplibre`). Install commands are plain `npm i @element-editor/react maplibre-gl` again.
+- On MapLibre GL JS 6 the MapLibre drop-in passes MapLibre's worker URL (`maplibre-gl-worker.mjs`, a separate file since 6.0) to `setWorkerUrl` from `config.network.maplibreWorker`, so the map renders behind a bundler without app setup. Adapter users set it in their own map setup.
+
 ### Fixed
 
+- **Works with MapLibre GL JS 6.** The packages imported `maplibre-gl` through its default export, which 6.x (ESM-only) no longer has: bundlers failed with `"default" is not exported by maplibre-gl/dist/maplibre-gl.mjs`. They now use a namespace import, which works on 5.x and 6.x.
+- **Next.js with webpack on MapLibre GL JS 6.** `next/dynamic` made webpack resolve the CommonJS build, whose `require('maplibre-gl')` 6.x cannot satisfy (it ships no CommonJS). `@element-editor/react` and `@element-editor/adapter-maplibre` now give bundlers their ES build through the `module` export condition. Plain Node `require()` still gets the CommonJS build, which needs `maplibre-gl` 5 (MapLibre 6 can't be `require`d).
+- Click tools on MapLibre GL JS 6 keep their 8 px click tolerance, so a click whose pointer slips a few pixels still places a point instead of panning the map. MapLibre 6 moved the internal handler that this tolerance is set on.
 - Floating windows no longer show a focus ring when opened with the mouse or a keyboard shortcut, even when the host page styles `:focus-visible`.
 - Toolbar buttons show a focus ring for keyboard users; form inputs use the neutral focus colour.
 

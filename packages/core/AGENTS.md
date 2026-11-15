@@ -25,7 +25,7 @@ Peer: `react` `^19.2.0`. No CSS. Use the same version as your other `@element-ed
 | `FeaturePatch` | `Partial<Pick<GeoJSONFeature, 'properties' \| 'geometry' \| 'schemaId' \| 'hidden'>>` (for `ref.updateFeature`) |
 | `BBox` | `[west, south, east, north]` |
 | `FlyToOptions` | `{ center: [lng, lat]; zoom? }` |
-| `NetworkConfig` | `config.network`: `vectorTiles`, `dem`, `osmRaster`, `glyphs`, `sprite`, `overpass`, `routing`, `nominatim`, `fetch` |
+| `NetworkConfig` | `config.network`: `vectorTiles`, `dem`, `osmRaster`, `glyphs`, `sprite`, `maplibreWorker`, `overpass`, `routing`, `nominatim`, `fetch` |
 | `ErrorCode`, `ErrorSource` | closed unions, semver-covered; see the drop-in's `AGENTS.md` |
 | `DataStore`, `UIStore` | state + actions of the two zustand stores (`useDataStore` / `useUIStore` selectors, `useGeoStore().dataStore.getState()`); also `UndoEntry`, `PanelPrefs`, `DialogState`, `CompletedMeasurement`, `DataStoreOptions`, `UIStoreOptions` |
 

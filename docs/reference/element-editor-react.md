@@ -9,7 +9,7 @@
 ## Install
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5
+npm install @element-editor/react maplibre-gl
 ```
 
 ### Peer dependencies
@@ -18,10 +18,12 @@ npm install @element-editor/react maplibre-gl@^5
 |---|---|---|
 | `react` | `^19.2` | required |
 | `react-dom` | `^19.2` | required |
-| `maplibre-gl` | `^5.5` | optional peer, but required for the default (MapLibre) entry; the Leaflet entry never loads it |
+| `maplibre-gl` | 5.5 or 6 | optional peer, but required for the default (MapLibre) entry; the Leaflet entry never loads it |
 | `@element-editor/adapter-leaflet`, `leaflet` (`^1.9`), `react-leaflet` (`^5`) | | optional, only for `@element-editor/react/leaflet` |
 
 React 18 is not supported: the data table (`react-data-grid`) requires React 19.2 or newer.
+
+On MapLibre GL JS 6 the drop-in loads MapLibre's worker from `config.network.maplibreWorker` (default: jsDelivr, at the installed version) unless your app has already called MapLibre's `setWorkerUrl`. MapLibre 5 has the worker built in. See [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
 
 `@element-editor/react` installs `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` as regular dependencies (they are not bundled into it), so there is one copy of each store and context. The background geometry worker is inlined into the package, so no bundler configuration is needed. CommonJS builds are `.cjs` files; type declarations reference the other packages by name.
 
@@ -478,6 +480,7 @@ interface ElementEditorConfig {
     osmRaster?: NetworkSource     // the 'osm' raster basemap (both engines). Default: tile.openstreetmap.org
     glyphs?: string               // glyph URL template (Noto Sans Regular/Bold/Italic). Default: OpenFreeMap
     sprite?: string               // absolute sprite URL prefix. Default: jsDelivr copy of the adapter's
+    maplibreWorker?: string | false // MapLibre GL JS 6's worker script (drop-in only). Default: jsDelivr copy of the installed maplibre-gl; false: the app calls setWorkerUrl
     overpass?: false | { endpoint?: string; timeoutMs?: number }          // the Picker's OSM lookups
     routing?: false | { provider?: 'ors' | 'osrm'; url?: string; apiKey?: string; attribution?: string } // Route tool. Default: OSRM demo (car-only, not for production)
     nominatim?: false | { url?: string; email?: string; attribution?: string } // search box

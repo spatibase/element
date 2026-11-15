@@ -65,7 +65,8 @@ type BasemapInput = import('@element-editor/react').BasemapInput
 `
 // Modules a snippet may import that aren't installed here.
 const SHIMS = "declare module 'next/app' { export type AppProps = any }\n" + ['next/dynamic', 'next/router', '@maptiler/sdk', 'mapbox-gl', 'use-debounce']
-  .map((m) => `declare module '${m}'`).join('\n') // shorthand ambient modules: every import is any
+  .map((m) => `declare module '${m}'`).join('\n') + // shorthand ambient modules: every import is any
+  "\ndeclare module '*?worker&url' { const url: string; export default url }" // Vite asset-URL import
 
 // Tried in order until the block parses. A column-0 `return` means a component body excerpt.
 const WRAPS = [['', ''], ['export default (<>', '</>)'], ['export default (<ElementEditor', '/>)'], ['export default (', ')'],

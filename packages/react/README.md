@@ -8,7 +8,7 @@ A complete map editor in one React component: drawing tools, vertex editing, sna
 npm install @element-editor/react maplibre-gl
 ```
 
-Peer dependencies: `react` and `react-dom` `^19.2` (React 18 is not supported), `maplibre-gl` `^5.5`. If your app pins an older React (Next.js 15's `create-next-app` installs 19.1), upgrade it: `npm install react@^19.2 react-dom@^19.2`.
+Peer dependencies: `react` and `react-dom` `^19.2` (React 18 is not supported), `maplibre-gl` 5.5 or 6. If your app pins an older React (Next.js 15's `create-next-app` installs 19.1), upgrade it: `npm install react@^19.2 react-dom@^19.2`.
 
 ## Quick start
 

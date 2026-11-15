@@ -6,8 +6,12 @@
  * control over the map instance and layout.
  */
 import { useEffect, useRef, useState, useCallback, Suspense, type ReactNode } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+// MapLibre GL JS 6 loads its worker from a separate file; a bundled app points MapLibre at it
+// (MapLibre's Vite setup). The drop-in falls back to a CDN copy, but a host map like this one has
+// to set it itself.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { ElementToaster, ElementEditorConfigProvider, type ElementEditorConfig } from '@element-editor/ui'
 import { Table, TreeStructure, Code, Gear, Keyboard, Check } from '@phosphor-icons/react'
 import { GeoStoreProvider, ElementEditorControls, BasemapControl } from '@element-editor/adapter-maplibre'
@@ -44,6 +48,8 @@ import {
 } from '@element-editor/ui'
 
 // ─── Action buttons wired to UIStore ─────────────────────────────────────────
+
+maplibregl.setWorkerUrl(workerUrl)
 
 // Per-editor network settings (config.network): the ORS key for the Route tool, the sprite from this server.
 const DEMO_CONFIG: ElementEditorConfig = {

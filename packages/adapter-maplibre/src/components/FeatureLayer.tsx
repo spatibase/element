@@ -8,7 +8,7 @@
  * expressions respond without re-rendering React.
  */
 import { useEffect, useRef, useState } from 'react'
-import type { Map as MapLibreMap, ExpressionSpecification } from 'maplibre-gl'
+import type { Map as MapLibreMap, ExpressionSpecification, GeoJSONSource } from 'maplibre-gl'
 import { useDataStore, useUIStore } from '../store/StoreContext'
 import { emptyFC } from '../utils/geojson'
 import { setRenderedFeatures } from '../utils/liveFeatureSource'
@@ -254,7 +254,7 @@ export default function FeatureLayer({ map }: Props) {
   // culling: geojson-vt tiles the source, so culling here only forced a full
   // re-parse + re-tile on every pan.
   useEffect(() => {
-    const source = map.getSource(SOURCE) as maplibregl.GeoJSONSource | undefined
+    const source = map.getSource(SOURCE) as GeoJSONSource | undefined
     if (!source) return
 
     const hiddenGroupIds = new Set(groups.filter((g) => g.hidden).map((g) => g.id))

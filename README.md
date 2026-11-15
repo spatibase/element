@@ -10,6 +10,21 @@
 
 Professional map editing for React. Bring your Leaflet or MapLibre map — Element adds drawing, vertex editing, snapping, undo/redo, and data management on top.
 
+> [!TIP]
+> **Using an AI coding agent?** (Claude Code, Cursor, Codex, Copilot, …) Point it at these, in this order:
+>
+> 1. **https://elementeditor.dev/llms.txt** is the overview for agents. **https://elementeditor.dev/llms-full.txt** has all the docs in one file. Every docs page is also served as Markdown: add `.md` to its URL, e.g. https://elementeditor.dev/docs/quickstart/react.md.
+> 2. **`AGENTS.md` in the installed package** (`node_modules/@element-editor/react/AGENTS.md`, likewise for each `@element-editor/*` package) is a short guide checked against that version's types: which package to pick, install commands, the public API and common mistakes.
+>
+> A prompt to start with:
+>
+> ```text
+> Add a map editor to this React app with Element (@element-editor/react).
+> Read https://elementeditor.dev/llms.txt first, install the package with
+> `npm install @element-editor/react maplibre-gl@^5`, then follow
+> node_modules/@element-editor/react/AGENTS.md. Use only the public API it lists.
+> ```
+
 ---
 
 ## Packages
@@ -26,7 +41,7 @@ Professional map editing for React. Bring your Leaflet or MapLibre map — Eleme
 
 ## Requirements
 
-React and React DOM `^19.2` (React 18 is not supported; Next.js 15's `create-next-app` pins 19.1, so run `npm install react@^19.2 react-dom@^19.2` there first). `@element-editor/react` and the MapLibre adapter need `maplibre-gl` `^5.5` (the built-in Terrain basemap uses 5.5 hillshade options); the Leaflet adapter (and the Leaflet drop-in, `@element-editor/react/leaflet`) need `leaflet` `^1.9` and `react-leaflet` `^5`. Every peer of `@element-editor/react` except React is optional, so install the ones for the entry you use. The Leaflet drop-in never loads `maplibre-gl`.
+React and React DOM `^19.2` (React 18 is not supported; Next.js 15's `create-next-app` pins 19.1, so run `npm install react@^19.2 react-dom@^19.2` there first). `@element-editor/react` and the MapLibre adapter need `maplibre-gl` 5.5 or 6 (the built-in Terrain basemap needs 5.5+); the Leaflet adapter (and the Leaflet drop-in, `@element-editor/react/leaflet`) need `leaflet` `^1.9` and `react-leaflet` `^5`. Every peer of `@element-editor/react` except React is optional, so install the ones for the entry you use. The Leaflet drop-in never loads `maplibre-gl`.
 
 The packages ship ES modules plus CommonJS (`.cjs`) builds. `@element-editor/react` depends on `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` instead of bundling them. The geometry worker is inlined, so no bundler configuration is needed. The stylesheets don't reset your page: Tailwind's base styles apply only inside the editor (`[data-elm-theme]`). TypeScript users of the Leaflet entries also need `@types/leaflet`. Sites with a Content Security Policy need `worker-src blob:` and `style-src 'unsafe-inline'` plus the map and service hosts: see [CSP](./docs/guides/third-party-services.md#content-security-policy-csp).
 
@@ -39,7 +54,7 @@ The batteries-included editor. Owns its own MapLibre map, with built-in basemaps
 ### Install
 
 ```bash
-npm install @element-editor/react maplibre-gl
+npm install @element-editor/react maplibre-gl@^5
 ```
 
 ### Usage
@@ -164,14 +179,14 @@ Plug editing into an existing MapLibre GL map. Same API as the Leaflet adapter �
 ### Install
 
 ```bash
-npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
+npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
 ```
 
 ### Usage
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'

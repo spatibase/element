@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@element-editor/react": "^0.2.0",
-    "maplibre-gl": "^5.5.0",
+    "maplibre-gl": "^6.18.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

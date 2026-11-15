@@ -128,3 +128,60 @@ jobs:
 
       - name: Example apps from packed tarballs
         run: pnpm check:examples
+
+  # The low end of the maplibre-gl peer range. The workspace develops on maplibre-gl 6; this job
+  # swaps in 5.x, then type-checks and unit-tests the MapLibre packages, runs a MapLibre e2e smoke
+  # subset, and builds + loads the example apps from packed tarballs with maplibre-gl 5.
+  maplibre-5:
+    name: maplibre-gl 5 (types, unit, e2e smoke, examples)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Swap in maplibre-gl 5
+        run: |
+          pnpm --filter @element-editor/adapter-maplibre --filter @element-editor/react add -D maplibre-gl@^5.5.0
+          node scripts/assert-maplibre-version.mjs 5
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Type-check and unit-test the MapLibre packages
+        run: |
+          pnpm --filter @element-editor/adapter-maplibre typecheck
+          pnpm --filter @element-editor/react typecheck
+          pnpm --filter @element-editor/adapter-maplibre test
+          pnpm --filter @element-editor/react test:run
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @element-editor/react exec playwright install --with-deps chromium
+
+      - name: E2E smoke on the MapLibre drop-in
+        run: pnpm --filter @element-editor/react exec playwright test --project=chromium-maplibre smoke.spec.ts maplibre-dropin.spec.ts drawing.spec.ts vertex-editing.spec.ts transform.spec.ts measure.spec.ts style-repair.spec.ts
+        env:
+          CI: true
+
+      - name: Upload E2E report and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-maplibre-5
+          path: |
+            packages/react/playwright-report/
+            packages/react/test-results/
+          retention-days: 7
+
+      - name: Example apps with maplibre-gl 5, built and loaded headless
+        run: pnpm check:examples --smoke --maplibre=5 vite-maplibre nextjs-app-router

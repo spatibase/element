@@ -41,6 +41,7 @@ const network: NonNullable<ElementEditorConfig['network']> = {
     dem: { tiles: ['https://dem.example.test/{z}/{x}/{y}.png'], encoding: 'mapbox', attribution: 'Custom elevation' },
     glyphs: 'https://glyphs.example.test/{fontstack}/{range}.pbf',
     sprite: 'https://sprite.example.test/sprite',
+    maplibreWorker: 'https://worker.example.test/maplibre-gl-worker.mjs',
     osmRaster: { tiles: ['https://osmraster.example.test/{z}/{x}/{y}.png'], attribution: 'Custom raster tiles' },
     overpass: { endpoint: 'https://overpass.example.test/api/interpreter' },
     routing: { url: 'https://osrm.example.test/route/v1/foot' },
