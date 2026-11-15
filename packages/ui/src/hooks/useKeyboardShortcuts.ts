@@ -286,7 +286,7 @@ export function useKeyboardShortcuts(container?: HTMLElement | null) {
           emit({
             type: 'success',
             message: `Exported ${result.name}`,
-            description: `${count === 1 ? '1 feature' : `${count} features`} · ${(result.bytes / 1024).toFixed(1)} KB`,
+            description: `${count === 1 ? '1 feature' : `${count} features`}, ${(result.bytes / 1024).toFixed(1)} KB`,
           })
         })()
         return

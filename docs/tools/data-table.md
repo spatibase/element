@@ -20,7 +20,7 @@ The table opens as a resizable panel. Drag the panel divider to give the table m
 Each row is one feature. Which property columns show depends on the table's schema filter: with more than one schema, the table toolbar has a tab per schema plus **All**. A schema's tab lists only the features that use that schema, with that schema's fields as columns; **All** (the default) lists every feature, with the fields of every schema (a field key shared by several schemas is one column). The columns are, in order:
 
 - A checkbox column for selecting rows (bulk delete).
-- **Type**: the shape's type in plain words with its icon (Point, Points, Line, Lines, Area, Areas, Mixed) and its size ("4 points", "2 parts · 9 points").
+- **Type**: the shape's type in plain words with its icon (Point, Points, Line, Lines, Area, Areas, Mixed) and its size ("4 points", "2 parts, 9 points").
 - **Schema**: the feature's schema, editable, only when there is more than one schema.
 - **Lat** and **Lng**: only while the table lists at least one `Point`, and editable only on points (other shapes leave them empty).
 - The schema fields, in definition order.

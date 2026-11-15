@@ -48,10 +48,10 @@ function allFields(schemas: Schema[]): SchemaField[] {
   return out
 }
 
-/** "4 points", "2 parts · 9 points": a shape's size in plain words ('' for a point). */
+/** "4 points", "2 parts, 9 points": a shape's size in plain words ('' for a point). */
 function geometrySize(g: GeoJSONFeature['geometry']): string {
   const pts = (n: number) => `${n} point${n === 1 ? '' : 's'}`
-  const parts = (n: number, total: number) => `${n} part${n === 1 ? '' : 's'} · ${pts(total)}`
+  const parts = (n: number, total: number) => `${n} part${n === 1 ? '' : 's'}, ${pts(total)}`
   switch (g.type) {
     case 'Point': return ''
     case 'MultiPoint': return pts(g.coordinates.length)
