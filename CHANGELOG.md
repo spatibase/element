@@ -6,6 +6,8 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+A polish release. The editor looks tidier on phones, keyboard focus looks the same everywhere, and hover on MapLibre maps no longer lags behind your cursor.
+
 ### Fixed
 
 - **On narrow screens the toolbars wrap cleanly.** When the main toolbar or the toolbar for a selected shape wraps onto two rows, as it does on a phone, no row starts or ends with a stray divider.
