@@ -6,7 +6,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'] },
+  // Local-only checkouts that aren't part of this repo (git-ignored) have their own lint setups.
+  { ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'site/**', 'vault/**'] },
   {
     files: ['packages/*/src/**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
