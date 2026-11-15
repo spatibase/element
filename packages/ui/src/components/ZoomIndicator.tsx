@@ -122,7 +122,7 @@ export default function ZoomIndicator({ minZoom = 1, maxZoom = 22, fractional = 
         data-elm-shortcut="set-zoom"
         onClick={() => { if (!interactive) return; openedByClickRef.current = true; setEditing(true) }}
         disabled={!interactive}
-        className={`${baseClasses} ${interactive ? `${flat ? 'hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-gray-200)_70%,transparent)) dark:hover:bg-(--elm-control-hover,var(--color-gray-800))' : 'hover:bg-elm-surface-hover'} focus:outline-none cursor-pointer` : 'cursor-default'}`}
+        className={`${baseClasses} ${interactive ? `${flat ? 'hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-gray-200)_70%,transparent)) dark:hover:bg-(--elm-control-hover,var(--color-gray-800))' : 'hover:bg-elm-surface-hover'} focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring cursor-pointer` : 'cursor-default'}`}
       >
         {fractional ? (pendingZoom ?? zoom).toFixed(1) : Math.round(pendingZoom ?? zoom)}
       </button>

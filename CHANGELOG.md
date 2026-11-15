@@ -20,6 +20,8 @@ All notable changes to Element are documented here.
 - **Works with MapLibre GL JS 6.** The packages imported `maplibre-gl` through its default export, which 6.x (ESM-only) no longer has: bundlers failed with `"default" is not exported by maplibre-gl/dist/maplibre-gl.mjs`. They now use a namespace import, which works on 5.x and 6.x.
 - **Next.js with webpack on MapLibre GL JS 6.** `next/dynamic` made webpack resolve the CommonJS build, whose `require('maplibre-gl')` 6.x cannot satisfy (it ships no CommonJS). `@element-editor/react` and `@element-editor/adapter-maplibre` now give bundlers their ES build through the `module` export condition. Plain Node `require()` still gets the CommonJS build, which needs `maplibre-gl` 5 (MapLibre 6 can't be `require`d).
 - Click tools on MapLibre GL JS 6 keep their 8 px click tolerance, so a click whose pointer slips a few pixels still places a point instead of panning the map. MapLibre 6 moved the internal handler that this tolerance is set on.
+- Floating windows no longer show a focus ring when opened with the mouse or a keyboard shortcut, even when the host page styles `:focus-visible`.
+- Toolbar buttons show a focus ring for keyboard users; form inputs use the neutral focus colour.
 
 ---
 

@@ -55,7 +55,7 @@ export function ToolButton({ active, onClick, label, shortcut, shortcutId, color
         onClick={(e) => { onClick(); e.currentTarget.blur() }}
         disabled={disabled}
         className={clsx(
-          'p-1 text-sm rounded-elm-control flex items-center justify-center active:scale-[0.95] disabled:cursor-not-allowed disabled:text-elm-text-disabled disabled:active:scale-100',
+          'p-1 text-sm rounded-elm-control flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring active:scale-[0.95] disabled:cursor-not-allowed disabled:text-elm-text-disabled disabled:active:scale-100',
           active ? activeClasses[color] : 'text-elm-text hover:bg-elm-control-hover disabled:hover:bg-transparent',
         )}
       >
