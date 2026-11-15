@@ -50,9 +50,9 @@ jobs:
       - name: Unit tests (react)
         run: pnpm --filter @element-editor/react test:run
 
-  # Playwright e2e, sharded. ~1070 tests (every spec on both drop-in engines + the demo) take over an
-  # hour on one 2-vCPU runner (Playwright runs 1 worker there), so they are split across parallel
-  # jobs. Each shard builds on its own: the dev servers load packages/*/dist.
+  # Playwright e2e, sharded. ~1070 tests (every spec on both drop-in engines + the demo) are split
+  # across parallel jobs; public-repo runners have 4 vCPUs, so Playwright runs 2 workers per shard.
+  # Each shard builds on its own (~1.2 min overhead): the dev servers load packages/*/dist.
   # Projects: chromium (Leaflet drop-in), chromium-maplibre (MapLibre drop-in), demo-maplibre (apps/demo).
   e2e:
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
@@ -63,7 +63,9 @@ jobs:
       matrix:
         # Shards split by test count, not time; MapLibre (SwiftShader WebGL) tests are ~2x slower and
         # cluster in the last shards, so keep the count high enough that those finish in ~12 min.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        # At 14 shards the slowest test step took 4.6 min; 8 shards (~8 min + overhead) keep one run
+        # at 10 jobs, so two runs fit in the 20 concurrent jobs of a free account without queueing.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
 
     steps:
       - uses: actions/checkout@v5

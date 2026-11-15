@@ -1,36 +1,80 @@
 #!/usr/bin/env node
 // Cut a release: one version for all five packages (lockstep), CHANGELOG section, commit, tag.
+// Nothing is tagged unless the release gate passes. See RELEASING.md for the policy.
 //
-//   pnpm release patch|minor|major|<x.y.z> [--date YYYY-MM-DD] [--dry-run] [--no-commit]
+//   pnpm release patch|minor|major|<x.y.z> [--date YYYY-MM-DD] [--dry-run] [--no-commit] [--no-site]
+//   pnpm release --trigger-site [vX.Y.Z]     (after pushing the tag: redeploy the docs site from it)
 //
-// What it does (see RELEASING.md for the policy):
-// 1. Computes the next version from packages/react's current one (or takes an explicit x.y.z).
-// 2. Writes it to every packages/*/package.json and apps/demo/package.json, and sets the
-//    @element-editor/* ranges in examples/*/package.json to ^x.y.z.
-// 3. CHANGELOG.md: renames `## [Unreleased]` to `## [x.y.z] — <date>` and opens a fresh empty
-//    `## [Unreleased]` above it. If a `## [x.y.z]` section was already prepared by hand (the 0.2.0
-//    launch entry), it only (re)sets its date. Refuses to release with nothing in Unreleased.
-// 4. Commits `chore(release): x.y.z` and creates the annotated tag `vx.y.z` (no push: pushing the
-//    tag is what triggers .github/workflows/release.yml, which publishes to npm).
+// 1. Repo state: on `main`, clean tree, HEAD equal to `origin/main`, CI green for HEAD, the tag is
+//    free locally and on origin, packages in lockstep.
+// 2. CHANGELOG: `## [Unreleased]` has entries, or a `## [x.y.z]` section for the target version is
+//    already prepared (that is how the version already in package.json, e.g. 0.2.0, is released:
+//    `pnpm release 0.2.0` only dates its section and tags).
+// 3. Applies the bump to the working tree: every packages/*/package.json and apps/demo get x.y.z,
+//    examples/* get ^x.y.z for @element-editor/*, CHANGELOG `## [Unreleased]` becomes
+//    `## [x.y.z] — <date>` under a fresh empty `## [Unreleased]`.
+// 4. Runs the checks against exactly that tree: frozen install, build, typecheck, lint (errors),
+//    unit tests, check:dist, check:docs, check:examples, then the docs site (`pnpm --dir site
+//    verify`) when the private site checkout exists at ./site. Without ./site the release is refused
+//    unless --no-site is passed.
+// 5. Any failure restores the files the bump touched and exits non-zero. On success commits
+//    `chore(release): x.y.z` and creates the annotated tag `vx.y.z`. It never pushes.
+//
+// --dry-run runs the whole gate, then restores every file it touched (build output in dist/ stays).
+// In a dry run, repo-state failures are listed and the checks still run, so one run shows everything
+// that stands between HEAD and a release.
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const SITE_REPO = 'spatibase/element-web'
+const LIB_REPO = 'spatibase/element'
 const args = process.argv.slice(2)
 const flag = (name) => args.includes(name)
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined)
-const bump = args.find((a) => !a.startsWith('--') && a !== opt('--date'))
+const positional = args.filter((a) => !a.startsWith('--') && a !== opt('--date'))
 const dryRun = flag('--dry-run')
 const noCommit = flag('--no-commit') || dryRun
+const noSite = flag('--no-site')
 
-const die = (msg) => { console.error(`release: ${msg}`); process.exit(1) }
-if (!bump) die('usage: pnpm release patch|minor|major|<x.y.z> [--date YYYY-MM-DD] [--dry-run] [--no-commit]')
-
+const die = (msg) => { console.error(`\nrelease: ${msg}`); process.exit(1) }
+const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+const tryGit = (...a) => { try { return git(...a) } catch { return null } }
 const readJson = (f) => JSON.parse(readFileSync(f, 'utf8'))
-const writeJson = (f, j) => { if (!dryRun) writeFileSync(f, JSON.stringify(j, null, 2) + '\n') }
-const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' }).trim()
+const line = (s = '') => console.log(s)
+
+// ── --trigger-site: redeploy the docs site from a pushed tag ──────────────────
+if (flag('--trigger-site')) {
+  const tag = positional[0] ?? `v${readJson(join(root, 'packages/react/package.json')).version}`
+  if (!/^v\d+\.\d+\.\d+$/.test(tag)) die(`--trigger-site takes a tag like v0.2.0, got ${tag}`)
+  if (!tryGit('ls-remote', '--tags', 'origin', `refs/tags/${tag}`)) die(`${tag} is not on origin yet: git push origin main ${tag} first`)
+  line(`Triggering the docs site deploy at ${tag} …`)
+  const r = spawnSync('gh', ['workflow', 'run', 'deploy.yml', '-R', SITE_REPO, '-f', `ref=${tag}`], { stdio: 'inherit' })
+  if (r.status !== 0) die('gh workflow run failed (needs gh logged in with access to the site repo)')
+  line(`Started. Follow it with: gh run list -R ${SITE_REPO} --workflow deploy.yml -L 1`)
+  process.exit(0)
+}
+
+const bump = positional[0]
+if (!bump) die('usage: pnpm release patch|minor|major|<x.y.z> [--date YYYY-MM-DD] [--dry-run] [--no-commit] [--no-site]\n       pnpm release --trigger-site [vX.Y.Z]')
+
+// ── Site checkout: required unless --no-site ────────────────────────────────
+const siteDir = join(root, 'site')
+const hasSite = existsSync(join(siteDir, 'package.json'))
+if (!hasSite && !noSite) {
+  die(`no docs site checkout at ./site, so the site cannot be checked against this release.
+  Run the release from the maintainer checkout that has ./site, or pass --no-site to release
+  without checking the site (not recommended: the site deploys from the tag).`)
+}
+if (!hasSite) {
+  line('!'.repeat(78))
+  line('!!  --no-site: the docs site is NOT checked against this release.')
+  line('!!  The site deploys from the tag; if it breaks, the deploy fails and production keeps the')
+  line('!!  previous version. Run `pnpm --dir site verify` against the tag before pushing if you can.')
+  line('!'.repeat(78))
+}
 
 // ── Version ────────────────────────────────────────────────────────────────
 const pkgDirs = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'package.json')))
@@ -38,63 +82,168 @@ const versions = new Set(pkgDirs.map((p) => readJson(join(root, 'packages', p, '
 if (versions.size !== 1) die(`packages are not in lockstep: ${[...versions].join(', ')}`)
 const current = [...versions][0]
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
-const [, M, m, p] = (current.match(SEMVER) ?? die(`current version ${current} is not x.y.z`)).map(Number)
+const parse = (v) => (v.match(SEMVER) ?? die(`version ${v} is not x.y.z`)).slice(1).map(Number)
+const [M, m, p] = parse(current)
 const next = SEMVER.test(bump) ? bump
   : bump === 'major' ? `${M + 1}.0.0`
   : bump === 'minor' ? `${M}.${m + 1}.0`
   : bump === 'patch' ? `${M}.${m}.${p + 1}`
   : die(`unknown bump "${bump}"`)
+const cmp = (a, b) => { const x = parse(a), y = parse(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0 }
+if (cmp(next, current) < 0) die(`${next} is lower than the current version ${current}`)
+const tag = `v${next}`
 const date = opt('--date') ?? new Date().toISOString().slice(0, 10)
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) die(`--date must be YYYY-MM-DD, got ${date}`)
 
-// ── Clean tree, tag free ───────────────────────────────────────────────────
-if (!noCommit) {
-  if (git('status', '--porcelain')) die('working tree is not clean; commit or stash first')
-  if (git('tag', '--list', `v${next}`)) die(`tag v${next} already exists`)
+line(`${dryRun ? '[dry run] ' : ''}release ${current} → ${next} (${date})`)
+
+// ── Gate, part 1: repo state ───────────────────────────────────────────────
+// Outside a dry run the first failure stops the release; in a dry run they are collected.
+const failures = []
+const fail = (msg) => {
+  if (!dryRun) die(msg)
+  failures.push(msg)
+  line(`  ✗ ${msg}`)
+}
+const ok = (msg) => line(`  ✓ ${msg}`)
+
+line('\nRepo state')
+const branch = tryGit('rev-parse', '--abbrev-ref', 'HEAD')
+branch === 'main' ? ok('on main') : fail(`not on main (on ${branch}): releases are cut from main`)
+const dirty = tryGit('status', '--porcelain')
+!dirty ? ok('working tree clean') : fail(`working tree is not clean:\n${dirty}`)
+if (tryGit('fetch', '--quiet', '--tags', 'origin', 'main') === null) fail('git fetch origin main failed')
+const head = git('rev-parse', 'HEAD')
+const originMain = tryGit('rev-parse', 'origin/main')
+head === originMain ? ok(`HEAD is origin/main (${head.slice(0, 7)})`)
+  : fail(`HEAD ${head.slice(0, 7)} is not origin/main ${originMain?.slice(0, 7)}: pull, or push and wait for CI`)
+tryGit('tag', '--list', tag) ? fail(`tag ${tag} already exists locally`) : null
+tryGit('ls-remote', '--tags', 'origin', `refs/tags/${tag}`) ? fail(`tag ${tag} already exists on origin`) : ok(`tag ${tag} is free`)
+
+// CI on GitHub for this exact commit (runs the e2e suite the local gate doesn't).
+{
+  const r = spawnSync('gh', ['run', 'list', '-R', LIB_REPO, '--workflow', 'ci.yml', '--commit', head, '--json', 'status,conclusion,url', '-L', '1'], { encoding: 'utf8' })
+  if (r.status !== 0) fail(`could not read CI status with gh: ${(r.stderr || r.error?.message || '').trim()}`)
+  else {
+    const [run] = JSON.parse(r.stdout || '[]')
+    if (!run) fail(`no CI run for ${head.slice(0, 7)}: push it to main and let CI finish`)
+    else if (run.status !== 'completed') fail(`CI for ${head.slice(0, 7)} is still ${run.status}: ${run.url}`)
+    else if (run.conclusion !== 'success') fail(`CI for ${head.slice(0, 7)} concluded ${run.conclusion}: ${run.url}`)
+    else ok(`CI green for ${head.slice(0, 7)}`)
+  }
 }
 
-// ── CHANGELOG ──────────────────────────────────────────────────────────────
+// ── Gate, part 2: CHANGELOG ────────────────────────────────────────────────
+line('\nCHANGELOG')
 const clPath = join(root, 'CHANGELOG.md')
 let cl = readFileSync(clPath, 'utf8')
 const prepared = new RegExp(`^## \\[${next.replace(/\./g, '\\.')}\\][^\\n]*$`, 'm')
 const unreleased = /^## \[Unreleased\][^\n]*\n([\s\S]*?)(?=^## \[)/m
+const hasEntries = (u) => u && u[1].replace(/---/g, '').trim()
 if (prepared.test(cl)) {
-  cl = cl.replace(prepared, `## [${next}] — ${date}`)
   // An empty Unreleased above a prepared section is fine; a non-empty one would be lost.
-  const u = cl.match(unreleased)
-  if (u && u[1].replace(/---/g, '').trim()) die(`CHANGELOG has entries under [Unreleased] and a prepared [${next}] section: merge them first`)
+  if (hasEntries(cl.match(unreleased))) fail(`CHANGELOG has entries under [Unreleased] and a prepared [${next}] section: merge them first`)
+  else ok(`dating the prepared [${next}] section`)
+  cl = cl.replace(prepared, `## [${next}] — ${date}`)
+} else if (next === current) {
+  fail(`${next} is the current version but CHANGELOG has no [${next}] section to release`)
 } else {
-  const u = cl.match(unreleased) ?? die('CHANGELOG.md has no "## [Unreleased]" section')
-  if (!u[1].replace(/---/g, '').trim()) die('nothing under [Unreleased]: add the changes before releasing')
+  const u = cl.match(unreleased)
+  if (!u) fail('CHANGELOG.md has no "## [Unreleased]" section')
+  else if (!hasEntries(u)) fail('nothing under [Unreleased]: add the changes before releasing')
+  else ok(`[Unreleased] becomes [${next}]`)
   cl = cl.replace(/^## \[Unreleased\][^\n]*\n/m, `## [Unreleased]\n\n---\n\n## [${next}] — ${date}\n`)
 }
 if (!/^## \[Unreleased\]/m.test(cl)) cl = cl.replace(/^## \[/m, '## [Unreleased]\n\n---\n\n## [')
-if (!dryRun) writeFileSync(clPath, cl)
 
-// ── package.json files ─────────────────────────────────────────────────────
-const touched = ['CHANGELOG.md']
+// ── Apply the bump to the working tree (restored on failure / dry run) ────────
+const originals = new Map()
+const put = (rel, text) => {
+  const f = join(root, rel)
+  const before = readFileSync(f, 'utf8')
+  if (before === text) return
+  if (!originals.has(rel)) originals.set(rel, before)
+  writeFileSync(f, text)
+}
+const putJson = (rel, j) => put(rel, JSON.stringify(j, null, 2) + '\n')
+const restore = () => {
+  for (const [rel, text] of originals) writeFileSync(join(root, rel), text)
+  if (originals.size) line(`Restored ${originals.size} file(s) the bump touched.`)
+  originals.clear()
+}
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { restore(); process.exit(130) })
+
+put('CHANGELOG.md', cl)
 for (const d of pkgDirs) {
-  const f = join(root, 'packages', d, 'package.json'), j = readJson(f)
-  j.version = next; writeJson(f, j); touched.push(`packages/${d}/package.json`)
+  const rel = `packages/${d}/package.json`, j = readJson(join(root, rel))
+  j.version = next; putJson(rel, j)
 }
-const demo = join(root, 'apps/demo/package.json')
-if (existsSync(demo)) { const j = readJson(demo); j.version = next; writeJson(demo, j); touched.push('apps/demo/package.json') }
+if (existsSync(join(root, 'apps/demo/package.json'))) {
+  const j = readJson(join(root, 'apps/demo/package.json')); j.version = next; putJson('apps/demo/package.json', j)
+}
 for (const ex of existsSync(join(root, 'examples')) ? readdirSync(join(root, 'examples')) : []) {
-  const f = join(root, 'examples', ex, 'package.json')
-  if (!existsSync(f)) continue
-  const j = readJson(f)
+  const rel = `examples/${ex}/package.json`
+  if (!existsSync(join(root, rel))) continue
+  const j = readJson(join(root, rel))
   for (const deps of [j.dependencies, j.devDependencies]) for (const k in deps ?? {}) if (k.startsWith('@element-editor/')) deps[k] = `^${next}`
-  writeJson(f, j); touched.push(`examples/${ex}/package.json`)
+  putJson(rel, j)
+}
+line(`\nBump applied to the working tree:${[...originals.keys()].map((t) => `\n  ${t}`).join('') || ' (no file changes)'}`)
+
+// ── Gate, part 3: checks against the bumped tree ────────────────────────────
+const checks = [
+  ['install (frozen lockfile)', 'pnpm', ['install', '--frozen-lockfile']],
+  ['build', 'pnpm', ['build']],
+  ['typecheck (packages + demo)', 'pnpm', ['-r', '--filter', './packages/**', '--filter', '@element-editor/demo', 'typecheck']],
+  ['lint (errors fail)', 'pnpm', ['lint']],
+  ['unit tests', 'pnpm', ['test']],
+  ['check:dist', 'pnpm', ['check:dist']],
+  ['check:docs', 'pnpm', ['check:docs']],
+  ['check:examples', 'pnpm', ['check:examples']],
+]
+if (hasSite) {
+  checks.push(['site: install', 'pnpm', ['--dir', 'site', 'install', '--frozen-lockfile']])
+  checks.push(['site: verify (typecheck, tests, lint, build)', 'pnpm', ['--dir', 'site', 'verify']])
+}
+for (const [name, cmd, cmdArgs] of checks) {
+  line(`\n── ${name}: ${cmd} ${cmdArgs.join(' ')}`)
+  const t0 = Date.now()
+  const r = spawnSync(cmd, cmdArgs, { cwd: root, stdio: 'inherit', env: { ...process.env, CI: 'true' } })
+  if (r.status !== 0) {
+    restore()
+    die(`gate failed at "${name}" (exit ${r.status ?? r.signal}). Nothing was committed or tagged.${failures.length ? `\nAlso failing:\n${failures.map((f) => `  - ${f}`).join('\n')}` : ''}`)
+  }
+  ok(`${name} (${Math.round((Date.now() - t0) / 1000)} s)`)
 }
 
-console.log(`${dryRun ? '[dry run] ' : ''}${current} → ${next} (${date})`)
-console.log(touched.map((t) => `  ${t}`).join('\n'))
+if (dryRun) {
+  restore()
+  if (failures.length) die(`[dry run] checks passed, but ${failures.length} repo-state problem(s) would block the release:\n${failures.map((f) => `  - ${f}`).join('\n')}`)
+  line(`\n[dry run] gate passed${hasSite ? '' : ' (without the site check)'}: ${tag} could be released. Nothing was changed.`)
+  process.exit(0)
+}
+if (noCommit) {
+  line('\nGate passed. Files updated; not committed (--no-commit).')
+  process.exit(0)
+}
 
-if (!noCommit) {
+// ── Commit and tag ──────────────────────────────────────────────────────────
+const touched = [...originals.keys()]
+if (touched.length) {
   git('add', ...touched)
   git('commit', '-m', `chore(release): ${next}`)
-  git('tag', '-a', `v${next}`, '-m', `v${next}`)
-  console.log(`Committed and tagged v${next}. Publish: git push origin main v${next}`)
-} else if (!dryRun) {
-  console.log('Files updated; not committed (--no-commit).')
 }
+git('tag', '-a', tag, '-m', tag)
+originals.clear()
+line(`
+Gate passed${hasSite ? '' : ' (WITHOUT the site check)'}. ${touched.length ? `Committed chore(release): ${next} and t` : 'T'}agged ${tag}. Nothing is pushed.
+
+Next steps:
+  1. Publish:       git push origin main ${tag}
+                    (release.yml publishes to npm and creates the GitHub release)
+  2. Docs site:     it deploys from the tag on its own within the hour; to deploy now:
+                    pnpm release --trigger-site ${tag}
+                    (= gh workflow run deploy.yml -R ${SITE_REPO} -f ref=${tag})
+  3. docs-live:     if the branch exists, reset it to the new release:
+                    git push --force origin ${tag}^{commit}:refs/heads/docs-live
+  4. Checks after publishing: see RELEASING.md ("After publishing").`)
