@@ -4,9 +4,29 @@ All five packages in `packages/*` (`core`, `ui`, `adapter-leaflet`, `adapter-map
 
 ## One-time setup
 
-- The npm organisation `element-editor` exists and the publishing account is an owner of the `@element-editor` scope.
-- The repository secret `NPM_TOKEN` holds an npm **granular access token** with read and write access to the `@element-editor` packages (give it a name that says what it is for, e.g. `element GitHub Actions release token`). Granular tokens expire: renew it before it does.
-- The GitHub repository is **public**. npm provenance (`--provenance`, `publishConfig.provenance`) is only accepted from public repositories; from a private one the publish fails.
+- The npm organisation `element-editor` exists and the publishing account is an owner of the `@element-editor` scope, with 2FA on.
+- **Trusted publishing (OIDC).** `release.yml` authenticates to npm with a short-lived OIDC token from GitHub Actions; no npm token is stored in the repository. On npmjs.com, each of the five packages has, under **Settings → Trusted publishing**, a GitHub Actions trusted publisher with:
+  - Organization or user: `spatibase`
+  - Repository: `element`
+  - Workflow filename: `release.yml`
+  - Environment: empty
+  - Allowed actions: **`npm publish` allowed** (direct publishing). A configuration that only allows `npm stage publish` (npm's default for new configurations) makes every CI publish wait for a manual approval on npmjs.com.
+
+  A new configuration must publish successfully within **2 days** or it expires (it can then only be deleted and recreated), so add or recreate the configurations right before pushing a release tag.
+
+  The fields are case-sensitive and npm only checks them when a publish runs. Renaming the workflow file, moving the repository or adding a GitHub environment to the job breaks publishing until every package's configuration is updated. `repository.url` in each `package.json` must keep pointing at `github.com/spatibase/element`.
+- **Publishing access** on each package (Settings → Publishing access): "Require two-factor authentication and disallow tokens". Trusted publishing keeps working with it; classic and granular tokens can no longer publish.
+- No npm token: the repository has no `NPM_TOKEN` secret and nothing needs renewing. (Up to 0.2.0 the workflow used a granular token; npm now stages publishes made with such tokens until a maintainer approves them. If that secret or token still exists, delete the secret and revoke the token on npmjs.com.)
+- The GitHub repository is **public**. npm generates provenance automatically for trusted publishing from a public repository (the packages also set `publishConfig.provenance`); from a private one there is no provenance.
+- Publishing runs on GitHub-hosted runners only: npm trusted publishing does not support self-hosted runners.
+
+### Adding a new package
+
+Trusted publishing is configured per package, and a package must exist on npm before it can have a trusted publisher. For a new `packages/<name>`:
+
+1. Add it to the package lists in `release.yml` (the "Pack" and "Publish to npm" steps, in dependency order) and give it the same `version`, `publishConfig` and `repository` fields as the others.
+2. Publish its first version by hand from a maintainer machine (`npm login`, then `pnpm pack` in the package directory and `npm publish <tarball> --access public`), with 2FA.
+3. On npmjs.com, add its trusted publisher (fields above) and set its publishing access to "Require two-factor authentication and disallow tokens". Its configuration expires if it hasn't published within 2 days, so do this right before the next release.
 
 ## Versioning policy
 
@@ -39,11 +59,20 @@ Any failure restores the files the bump touched and exits non-zero; nothing is c
    ```
    `scripts/release.mjs` sets the version in every `packages/*/package.json` and `apps/demo`, sets the `@element-editor/*` ranges in `examples/*` to `^X.Y.Z`, turns `## [Unreleased]` into `## [X.Y.Z] — date` (or dates an already prepared `## [X.Y.Z]` section) and opens a new empty `[Unreleased]`, runs the gate, then commits `chore(release): X.Y.Z` and creates the tag `vX.Y.Z`. It never pushes.
    **Releasing the version already in `package.json`** (0.2.0 was set before it was ever tagged): `pnpm release 0.2.0` dates the prepared `## [0.2.0]` section, runs the gate, commits and tags `v0.2.0`.
-2. Push: `git push origin main vX.Y.Z`. `.github/workflows/release.yml` checks the tag matches every package version, builds, runs `check:dist`, runs `pnpm publish -r` (versions already on npm are skipped, so a rerun after a partial failure is safe) and creates the GitHub release from the CHANGELOG section.
+2. Push: `git push origin main vX.Y.Z`. `.github/workflows/release.yml` checks the tag matches every package version, builds, runs `check:dist`, packs every package with `pnpm pack` (which turns the `workspace:*` ranges into the real version), publishes the tarballs with `npm publish` in dependency order (core, ui, the two adapters, react) through trusted publishing, and creates the GitHub release from the CHANGELOG section. A version already on npm is skipped, so a rerun after a partial failure is safe.
 3. The docs site deploys from the tag. Its deploy workflow checks hourly for a new release tag (or `docs-live` commit), so it goes live within the hour; to deploy right away run `pnpm release --trigger-site vX.Y.Z` (it runs `gh workflow run deploy.yml -R spatibase/element-web -f ref=vX.Y.Z` and needs `gh` logged in with access to the site repo). No token for the site lives in this repository.
 4. If `docs-live` exists, reset it to the new tag: `git push --force origin vX.Y.Z^{commit}:refs/heads/docs-live`. (Until then the site ignores it: it uses `docs-live` only when the branch contains the latest tag.)
 
-The script prints these steps after tagging. A dry run of the publish workflow (no publish) can be started from the Actions tab: **Release → Run workflow** (`dry_run` is on by default).
+The script prints these steps after tagging. A dry run of the publish workflow (no publish) can be started from the Actions tab: **Release → Run workflow** (`dry_run` is on by default): it builds, packs and runs `npm publish --dry-run` on each tarball whose version isn't on npm yet. With the `tag` input (e.g. `v0.2.0`) and `dry_run` off, the same run builds that tag's source with the current workflow steps and publishes whatever of it isn't on npm yet (and creates its GitHub release if missing): the way to finish a release whose publish failed. A version that is staged on npm but not approved blocks publishing the same version: approve it, or reject it (`npm stage reject`) first.
+
+## Prereleases
+
+For a beta or release candidate, give the version explicitly: `pnpm release 0.3.0-beta.1` (accepted suffixes: `-alpha.N`, `-beta.N`, `-rc.N`). The gate and the CHANGELOG handling are the same (the section is `## [0.3.0-beta.1]`), except that `examples/*` keep their stable `^x.y.z` range. Push as usual: `git push origin main v0.3.0-beta.1`.
+
+- `release.yml` publishes a version with a prerelease suffix to the npm dist-tag **`next`**, so `npm install @element-editor/react` keeps getting the latest stable version; testers install `@element-editor/react@next` (or the exact version). Stable versions go to `latest`.
+- The GitHub release is marked as a prerelease.
+- The docs site and the `docs-live` guard only consider `vX.Y.Z` tags, so a prerelease never deploys the docs; skip release steps 3 and 4.
+- While the current version is a prerelease, `patch`/`minor`/`major` are refused: name the next version (`0.3.0-beta.2`, `0.3.0-rc.1`, or `0.3.0` for the final release). After the final release, `next` still points at the last prerelease; that is harmless, or move it with `npm dist-tag add @element-editor/<pkg>@0.3.0 next` from a maintainer machine.
 
 ## Docs fixes between releases (`docs-live`)
 

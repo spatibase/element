@@ -2,7 +2,7 @@
 // Cut a release: one version for all five packages (lockstep), CHANGELOG section, commit, tag.
 // Nothing is tagged unless the release gate passes. See RELEASING.md for the policy.
 //
-//   pnpm release patch|minor|major|<x.y.z> [--date YYYY-MM-DD] [--dry-run] [--no-commit] [--no-site]
+//   pnpm release patch|minor|major|<x.y.z>|<x.y.z-beta.N> [--date YYYY-MM-DD] [--dry-run] [--no-commit] [--no-site]
 //   pnpm release --trigger-site [vX.Y.Z]     (after pushing the tag: redeploy the docs site from it)
 //
 // 1. Repo state: on `main`, clean tree, HEAD equal to `origin/main`, CI green for HEAD, the tag is
@@ -81,15 +81,25 @@ const pkgDirs = readdirSync(join(root, 'packages')).filter((p) => existsSync(joi
 const versions = new Set(pkgDirs.map((p) => readJson(join(root, 'packages', p, 'package.json')).version))
 if (versions.size !== 1) die(`packages are not in lockstep: ${[...versions].join(', ')}`)
 const current = [...versions][0]
-const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
-const parse = (v) => (v.match(SEMVER) ?? die(`version ${v} is not x.y.z`)).slice(1).map(Number)
-const [M, m, p] = parse(current)
+// x.y.z, or a prerelease x.y.z-alpha.N / -beta.N / -rc.N (published to the `next` dist-tag).
+const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc)\.(\d+))?$/
+const PRE = ['alpha', 'beta', 'rc']
+// [major, minor, patch, pre rank (alpha 0, beta 1, rc 2, release 3), pre number]
+const parse = (v) => {
+  const r = v.match(SEMVER) ?? die(`version ${v} is not x.y.z or x.y.z-alpha|beta|rc.N`)
+  return [+r[1], +r[2], +r[3], r[4] ? PRE.indexOf(r[4]) : PRE.length, r[5] ? +r[5] : 0]
+}
+const [M, m, p, preRank] = parse(current)
+if (preRank < PRE.length && ['major', 'minor', 'patch'].includes(bump)) {
+  die(`the current version ${current} is a prerelease: give the next version explicitly (e.g. ${M}.${m}.${p} or ${M}.${m}.${p}-rc.1)`)
+}
 const next = SEMVER.test(bump) ? bump
   : bump === 'major' ? `${M + 1}.0.0`
   : bump === 'minor' ? `${M}.${m + 1}.0`
   : bump === 'patch' ? `${M}.${m}.${p + 1}`
   : die(`unknown bump "${bump}"`)
-const cmp = (a, b) => { const x = parse(a), y = parse(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0 }
+const prerelease = next.includes('-')
+const cmp = (a, b) => { const x = parse(a), y = parse(b); for (let i = 0; i < 5; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0 }
 if (cmp(next, current) < 0) die(`${next} is lower than the current version ${current}`)
 const tag = `v${next}`
 const date = opt('--date') ?? new Date().toISOString().slice(0, 10)
@@ -181,7 +191,8 @@ for (const d of pkgDirs) {
 if (existsSync(join(root, 'apps/demo/package.json'))) {
   const j = readJson(join(root, 'apps/demo/package.json')); j.version = next; putJson('apps/demo/package.json', j)
 }
-for (const ex of existsSync(join(root, 'examples')) ? readdirSync(join(root, 'examples')) : []) {
+// Examples are what people copy: they keep the latest stable range through prereleases.
+for (const ex of !prerelease && existsSync(join(root, 'examples')) ? readdirSync(join(root, 'examples')) : []) {
   const rel = `examples/${ex}/package.json`
   if (!existsSync(join(root, rel))) continue
   const j = readJson(join(root, rel))
@@ -235,7 +246,16 @@ if (touched.length) {
 }
 git('tag', '-a', tag, '-m', tag)
 originals.clear()
-line(`
+if (prerelease) line(`
+Gate passed${hasSite ? '' : ' (WITHOUT the site check)'}. ${touched.length ? `Committed chore(release): ${next} and t` : 'T'}agged ${tag} (prerelease). Nothing is pushed.
+
+Next steps:
+  1. Publish:       git push origin main ${tag}
+                    (release.yml publishes to the npm dist-tag \`next\`, not \`latest\`, and creates a
+                    GitHub prerelease)
+  2. The docs site and docs-live ignore prerelease tags: nothing to do there.
+  3. Checks after publishing: see RELEASING.md ("After publishing"); use @next / @${next}.`)
+else line(`
 Gate passed${hasSite ? '' : ' (WITHOUT the site check)'}. ${touched.length ? `Committed chore(release): ${next} and t` : 'T'}agged ${tag}. Nothing is pushed.
 
 Next steps:

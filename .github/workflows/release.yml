@@ -1,12 +1,22 @@
 name: Release
 
 # Publishes every public package in packages/* to npm. Runs on a version tag (`v0.2.0`), or by hand
-# from the Actions tab (dry run by default). See RELEASING.md.
+# from the Actions tab (dry run by default). By hand, `tag` (e.g. `v0.2.0`) builds and publishes that
+# tag's source with the steps of the workflow version being run (re-publishing a release whose publish
+# failed, or that was staged and discarded); empty builds the selected branch. See RELEASING.md.
+#
+# Authentication is npm trusted publishing (OIDC): no npm token is stored in this repository. Each
+# package has a trusted publisher on npmjs.com for this repo and this workflow file (`release.yml`);
+# renaming the file or adding a GitHub environment breaks publishing until that config is updated.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
+      tag:
+        description: 'Release tag to build and publish (e.g. v0.2.0). Empty: the selected branch, no GitHub release'
+        type: string
+        default: ''
       dry_run:
         description: 'Dry run: build, check and pack, but do not publish'
         type: boolean
@@ -18,32 +28,58 @@ concurrency:
 
 permissions:
   contents: write # GitHub release for the tag
-  id-token: write # npm provenance (OIDC)
+  id-token: write # npm trusted publishing (OIDC) and provenance
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # GitHub-hosted: npm trusted publishing does not support self-hosted runners
     timeout-minutes: 20
 
+    env:
+      DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && 'true' || 'false' }}
+      # The release tag being published: the pushed tag, or the `tag` input of a manual run.
+      RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Release tag
+        run: |
+          if [ -n "$RELEASE_TAG" ] && ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+            echo "::error::tag must look like v1.2.3 or v1.2.3-beta.1, got '$RELEASE_TAG'"; exit 1
+          fi
+          echo "Release tag: ${RELEASE_TAG:-none (branch build)}, dry run: $DRY_RUN"
 
-      - uses: pnpm/action-setup@v4 # pnpm version from package.json "packageManager"
-
-      - uses: actions/setup-node@v4
+      # The source of the release tag (a manual run with `tag` uses this workflow's steps on it; npm
+      # trusted publishing checks the repository and workflow file name, not the ref).
+      - uses: actions/checkout@v5
         with:
-          node-version: 22
+          ref: ${{ env.RELEASE_TAG && format('refs/tags/{0}', env.RELEASE_TAG) || github.ref }}
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      # No `registry-url`: it writes an .npmrc that reads NODE_AUTH_TOKEN, which trusted publishing
+      # doesn't need. npm's default registry is registry.npmjs.org.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1 (and Node >= 22.14.0). Pinned to the 11 line so a new
+      # npm major can't change publish behaviour under a release.
+      - name: npm for trusted publishing
+        run: |
+          npm install -g npm@11
+          v=$(npm --version)
+          echo "npm $v"
+          node -e "const [a,b,c]=process.argv[1].split('.').map(Number); if (a<11 || (a===11 && (b<5 || (b===5 && c<1)))) { console.error('npm >= 11.5.1 required'); process.exit(1) }" "$v"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       # A `v1.2.3` tag must match the version of every package it publishes.
       - name: Tag matches package versions
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.RELEASE_TAG != ''
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${RELEASE_TAG#v}"
           for p in packages/*/package.json; do
             v=$(node -p "require('./$p').version")
             if [ "$v" != "$tag" ]; then echo "::error file=$p::version $v does not match tag v$tag"; exit 1; fi
@@ -56,23 +92,52 @@ jobs:
       - name: Dist smoke check
         run: pnpm check:dist
 
-      - name: Publish to npm
-        run: pnpm publish -r --access public --provenance --no-git-checks ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
-
-      # The GitHub release carries the tag's CHANGELOG section (written by `pnpm release`).
-      - name: GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+      # `pnpm pack` turns the `workspace:*` ranges into real versions; `npm publish` in a package
+      # directory would not, so npm publishes these tarballs instead.
+      - name: Pack
         run: |
-          v="${GITHUB_REF_NAME#v}"
+          mkdir -p "$RUNNER_TEMP/packs"
+          for p in core ui adapter-leaflet adapter-maplibre react; do
+            (cd "packages/$p" && pnpm pack --pack-destination "$RUNNER_TEMP/packs")
+          done
+          ls -l "$RUNNER_TEMP/packs"
+
+      # Dependency order, so a package is never live before the ones it depends on. A version that
+      # is already on npm is skipped, so rerunning after a partial failure is safe. Prereleases
+      # (`1.2.3-beta.1`) go to the `next` dist-tag, releases to `latest`. Provenance is automatic with
+      # trusted publishing (and `publishConfig.provenance` asks for it too).
+      - name: Publish to npm
+        run: |
+          flags=(--access public)
+          if [ "$DRY_RUN" = true ]; then flags+=(--dry-run); echo "Dry run: nothing is published"; fi
+          for p in core ui adapter-leaflet adapter-maplibre react; do
+            name=$(node -p "require('./packages/$p/package.json').name")
+            version=$(node -p "require('./packages/$p/package.json').version")
+            tarball="$RUNNER_TEMP/packs/element-editor-$p-$version.tgz"
+            case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
+            if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+              echo "$name@$version is already on npm, skipped"
+              continue
+            fi
+            echo "::group::$name@$version ($tag)"
+            npm publish "$tarball" "${flags[@]}" --tag "$tag"
+            echo "::endgroup::"
+          done
+
+      # The GitHub release carries the tag's CHANGELOG section (written by `pnpm release`). Skipped
+      # when the release already exists.
+      - name: GitHub release
+        if: env.RELEASE_TAG != '' && env.DRY_RUN != 'true'
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then echo "GitHub release $RELEASE_TAG exists, skipped"; exit 0; fi
+          v="${RELEASE_TAG#v}"
           awk -v v="$v" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/ { exit }
             on { print }
           ' CHANGELOG.md | sed '/^---$/d' > release-notes.md
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
+          prerelease=()
+          case "$v" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md --verify-tag "${prerelease[@]}"
         env:
           GH_TOKEN: ${{ github.token }}
