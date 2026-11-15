@@ -94,3 +94,45 @@ for (const host of [false, true]) {
     })
   })
 }
+
+/** The focused element's box-shadow layers (Tailwind's ring utilities draw there). */
+const focusedShadow = (page: Page) => page.evaluate(() => {
+  const el = document.activeElement as HTMLElement
+  return { focusVisible: el.matches(':focus-visible'), shadow: getComputedStyle(el).boxShadow }
+})
+
+test.describe('Neutral focus ring: basemap cards and search', () => {
+  test('tabbing through the basemap cards shows the neutral ring, not the accent', async ({ page, engine }) => {
+    test.skip(engine !== 'maplibre', 'the basemap picker with cards is the MapLibre drop-in\'s')
+    await page.goto('/')
+    await waitForMap(page)
+    const ring = await neutralRingColor(page)
+    await page.getByRole('button', { name: 'Basemap' }).focus()
+    await page.keyboard.press('Enter')
+    const panel = page.getByRole('group', { name: 'Basemap' })
+    // The open picker focuses the active card: the neutral ring replaces its accent selection ring.
+    await expect(panel.locator('button[aria-pressed="true"]')).toBeFocused()
+    let state = await focusedShadow(page)
+    expect(state.focusVisible).toBe(true)
+    expect(state.shadow).toContain(`${ring} 0px 0px 0px 2px`)
+    // Tab to the next (not selected) card.
+    await page.keyboard.press('Tab')
+    await expect(panel.locator('button[aria-pressed="false"]').first()).toBeFocused()
+    state = await focusedShadow(page)
+    expect(state.focusVisible).toBe(true)
+    expect(state.shadow).toContain(`${ring} 0px 0px 0px 2px`)
+  })
+
+  test('tabbing into the search box outlines it in the neutral ring colour', async ({ page }) => {
+    await page.goto('/')
+    await waitForMap(page)
+    const ring = await neutralRingColor(page)
+    const input = page.getByPlaceholder('Search places…')
+    await page.locator(MAP).click()
+    for (let i = 0; i < 120 && !(await input.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab')
+    await expect(input).toBeFocused()
+    // The search field (the input's rounded wrapper) draws a 1 px inset ring.
+    const shadow = await input.evaluate((el) => getComputedStyle(el.closest('.rounded-elm-control')!).boxShadow)
+    expect(shadow).toContain(`${ring} 0px 0px 0px 1px inset`)
+  })
+})

@@ -213,7 +213,7 @@ export const TextLabelLayer = memo(function TextLabelLayer({
           }}
         >
           <div
-            className={`flex items-center justify-center w-max px-3 py-1.5 rounded text-sm font-medium transition-colors border ${isEditingText && !effectiveDelta ? 'bg-white/95 backdrop-blur-md border border-gray-800 text-gray-800' : selected ? 'bg-primary-500 text-white' : hovered ? 'bg-slate-700 text-white' : 'bg-slate-600 text-white'} ${(effectiveDelta && !isDupDrag) ? 'cursor-grabbing opacity-80' : ''}`}
+            className={`flex items-center justify-center w-max px-3 py-1.5 rounded text-sm font-medium transition-colors border ${isEditingText && !effectiveDelta ? 'bg-white/95 backdrop-blur-md border border-gray-800 text-gray-800 focus-within:ring-2 focus-within:ring-elm-focus-ring' : selected ? 'bg-primary-500 text-white' : hovered ? 'bg-slate-700 text-white' : 'bg-slate-600 text-white'} ${(effectiveDelta && !isDupDrag) ? 'cursor-grabbing opacity-80' : ''}`}
             onMouseDown={(e) => {
               if (e.target === inputRef.current) {
                 e.stopPropagation() // prevent map drag when clicking in input

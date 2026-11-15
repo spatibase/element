@@ -137,7 +137,7 @@ export default function BufferPanel() {
             value={displayValue}
             step={displayStep}
             onChange={(e) => handleDistanceInput(e.target.value)}
-            className="w-16 text-sm text-right bg-transparent border border-elm-border rounded-elm-control px-1.5 py-0.5 text-elm-text-secondary focus:outline-none focus:border-primary-500"
+            className="w-16 text-sm text-right bg-transparent border border-elm-border rounded-elm-control px-1.5 py-0.5 text-elm-text-secondary focus:outline-none focus-visible:border-elm-focus-ring"
           />
           <button
             onClick={handleUnitToggle}

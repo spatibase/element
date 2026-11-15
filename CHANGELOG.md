@@ -9,6 +9,8 @@ What changed in Element, release by release, and what it means for you and the p
 ### Fixed
 
 - **On narrow screens the toolbars wrap cleanly.** When the main toolbar or the toolbar for a selected shape wraps onto two rows, as it does on a phone, no row starts or ends with a stray divider.
+- **Focus rings look the same everywhere: a quiet grey outline when you use the keyboard.** The basemap cards, the buttons in search results, the buffer and schema name fields, the point coordinate fields and the table's rename field used the accent colour (or green) for focus. The search box and the text label editor now show a subtle grey outline while you type in them, not just the cursor. Selected items and active tools keep the accent colour.
+- In dark mode the selected basemap card now has a dark background, so its name is easy to read.
 
 ---
 

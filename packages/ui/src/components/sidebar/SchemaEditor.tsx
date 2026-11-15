@@ -181,7 +181,7 @@ const SchemaNameInput = forwardRef<HTMLInputElement, { schema: Schema; onRename:
         onChange={(e) => setDraft(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-        className="w-full text-sm font-semibold text-(--elm-text,var(--color-gray-800)) dark:text-(--elm-text,var(--color-gray-100)) bg-transparent border-b border-transparent hover:border-(--elm-border-strong,var(--color-gray-300)) dark:hover:border-(--elm-border-strong,var(--color-gray-600)) focus:border-primary-400 focus:outline-none px-0 py-0 leading-snug"
+        className="w-full text-sm font-semibold text-(--elm-text,var(--color-gray-800)) dark:text-(--elm-text,var(--color-gray-100)) bg-transparent border-b border-transparent hover:border-(--elm-border-strong,var(--color-gray-300)) dark:hover:border-(--elm-border-strong,var(--color-gray-600)) focus-visible:border-elm-focus-ring focus:outline-none px-0 py-0 leading-snug"
       />
     )
   }

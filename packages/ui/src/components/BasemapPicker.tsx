@@ -126,7 +126,7 @@ export function BasemapPicker({ options, value, onChange, label = 'Basemap', siz
                     aria-pressed={active}
                     aria-label={o.label}
                     onClick={() => onChange(o.id)}
-                    className={`flex flex-col rounded-elm-card border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60 ${
+                    className={`flex flex-col rounded-elm-card border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring ${
                       active
                         ? 'border-primary-500 ring-2 ring-primary-400/40 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-950/60'
                         : 'border-elm-border hover:border-(--elm-border-strong,var(--color-gray-400)) dark:hover:border-(--elm-border-strong,var(--color-gray-500)) bg-elm-surface hover:bg-elm-surface-hover'

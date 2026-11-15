@@ -27,7 +27,7 @@ try {
 // Any typography/padding/border change must match on both — otherwise the
 // measured width won't match what the browser actually renders.
 const RENAME_INPUT_CLASS =
-  'px-2.5 py-1 rounded-elm-control text-xs font-medium bg-elm-surface text-elm-text ring-1 ring-primary-400 outline-none'
+  'px-2.5 py-1 rounded-elm-control text-xs font-medium bg-elm-surface text-elm-text ring-1 ring-elm-focus-ring outline-none'
 
 function InlineRenameInput({
   initialValue,
