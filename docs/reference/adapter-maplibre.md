@@ -7,18 +7,20 @@
 ## Install
 
 ```bash
-npm install @element-editor/adapter-maplibre maplibre-gl@^5
+npm install @element-editor/adapter-maplibre maplibre-gl
 ```
 
 ### Peer dependencies
 
 | Package | Version |
 |---|---|
-| `maplibre-gl` | `^5.5` |
+| `maplibre-gl` | 5.5 or 6 |
 | `react` | `^19.2` |
 | `react-dom` | `^19.2` |
 
 React 18 is not supported. `@element-editor/core` and `@element-editor/ui` are installed as regular dependencies (not bundled). To import from them directly, add them to your own `package.json` at the same version. The geometry worker is inlined, so no bundler configuration is needed.
+
+On MapLibre GL JS 6, MapLibre's own worker is a separate file: call `setWorkerUrl` before creating your map (see [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker)).
 
 ### CSS imports
 
@@ -43,7 +45,7 @@ The adapter stylesheet doesn't include MapLibre's CSS. It doesn't reset your pag
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'
@@ -284,7 +286,7 @@ It doesn't set `data-elm-theme` or `ThemeContext`; render those yourself.
 
 ## Compatibility with MapTiler SDK and Mapbox GL JS
 
-Keep `maplibre-gl` (`^5.5`) installed with either of them. The adapter imports it at runtime (map markers for vertex and transform handles, measure labels), and it is an optional peer dependency, so the package manager won't add it for you.
+Keep `maplibre-gl` (5.5 or 6) installed with either of them. The adapter imports it at runtime (map markers for vertex and transform handles, measure labels), and it is an optional peer dependency, so the package manager won't add it for you.
 
 **MapTiler SDK** extends `maplibregl.Map` directly. Pass the instance as-is:
 

@@ -13,10 +13,10 @@ This adapter also works with **MapTiler SDK** (which extends MapLibre GL directl
 ## Step 1 — Install
 
 ```bash
-npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
+npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
 ```
 
-If `maplibre-gl` is already in your project, you don't need to reinstall it. Peer dependencies: `react` and `react-dom` `^19.2`, `maplibre-gl` `^5.5`. React 18 is not supported.
+If `maplibre-gl` is already in your project, you don't need to reinstall it. Peer dependencies: `react` and `react-dom` `^19.2`, `maplibre-gl` 5.5 or 6. React 18 is not supported.
 
 `@element-editor/ui` provides the toolbars and panels. The adapter already depends on it, but list it in your own `package.json` so you can import from it (pnpm and other strict package managers only resolve packages you declare). The same applies to `@element-editor/core` if you want its types and helpers, such as `FeatureCollection` or `getFeatureCollectionBBox`. Keep all `@element-editor/*` packages on the same version.
 
@@ -35,6 +35,17 @@ The Element stylesheet doesn't include MapLibre's CSS, so import both. The JavaS
 
 The stylesheet doesn't reset your page. Tailwind's base styles apply only inside an element with a `data-elm-theme` attribute, so all editor UI must be rendered inside one (Step 3 shows how).
 
+On MapLibre GL JS 6 your map also needs MapLibre's worker URL, set once before the first map (MapLibre 5 has the worker built in). With Vite:
+
+```ts
+import { setWorkerUrl } from 'maplibre-gl'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+
+setWorkerUrl(workerUrl)
+```
+
+For other bundlers see MapLibre's [installation notes](https://maplibre.org/maplibre-gl-js/docs/) and [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker).
+
 ---
 
 ## Step 3 — Build the component
@@ -43,7 +54,7 @@ MapLibre GL maps are initialised imperatively via `new maplibregl.Map(...)`. Cre
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'
@@ -121,7 +132,7 @@ Pass `initialData` to pre-populate the editor. `onChange` delivers the full `Fea
 
 ```tsx
 import { useEffect, useRef, useState, useCallback } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import type { FeatureCollection } from '@element-editor/core'
@@ -185,7 +196,7 @@ If `initialData` isn't a valid `FeatureCollection`, the editor reports an `error
 
 ```tsx
 import { Suspense, useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import {

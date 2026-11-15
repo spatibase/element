@@ -9,7 +9,7 @@
 ## Install
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5
+npm install @element-editor/react maplibre-gl
 ```
 
 ### Peer dependencies
@@ -18,10 +18,12 @@ npm install @element-editor/react maplibre-gl@^5
 |---|---|---|
 | `react` | `^19.2` | required |
 | `react-dom` | `^19.2` | required |
-| `maplibre-gl` | `^5.5` | optional peer, but required for the default (MapLibre) entry; the Leaflet entry never loads it |
+| `maplibre-gl` | 5.5 or 6 | optional peer, but required for the default (MapLibre) entry; the Leaflet entry never loads it |
 | `@element-editor/adapter-leaflet`, `leaflet` (`^1.9`), `react-leaflet` (`^5`) | | optional, only for `@element-editor/react/leaflet` |
 
 React 18 is not supported: the data table (`react-data-grid`) requires React 19.2 or newer.
+
+On MapLibre GL JS 6 the drop-in loads MapLibre's worker from jsDelivr (the installed version) unless your app calls MapLibre's `setWorkerUrl` first; MapLibre 5 has the worker built in. See [MapLibre GL JS 6 worker](../guides/third-party-services.md#maplibre-gl-js-6-worker).
 
 `@element-editor/react` installs `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` as regular dependencies (they are not bundled into it), so there is one copy of each store and context. The background geometry worker is inlined into the package, so no bundler configuration is needed. CommonJS builds are `.cjs` files; type declarations reference the other packages by name.
 

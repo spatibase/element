@@ -30,7 +30,7 @@ React and React DOM `^19.2` are required everywhere (React 18 is not supported).
 | Peer | Range |
 |---|---|
 | `react`, `react-dom` | `^19.2.0` |
-| `maplibre-gl` | `^5.5.0` (default entry, MapLibre adapter) |
+| `maplibre-gl` | 5.5 or 6 (default entry, MapLibre adapter) |
 | `leaflet` | `^1.9.0` (`/leaflet` entry, Leaflet adapter) |
 | `react-leaflet` | `^5.0.0` (`/leaflet` entry, Leaflet adapter) |
 
@@ -125,7 +125,7 @@ Needs `ElementEditorUIProvider` (throws without it), one `GeoStoreProvider` per 
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'
@@ -395,7 +395,7 @@ Removed or renamed in 0.2 (https://elementeditor.dev/docs/guides/migrating-to-0.
 - **No stylesheet, or the wrong one.** Unstyled panels, missing controls, broken tiles. One stylesheet per entry (table above); MapLibre adapter also needs `maplibre-gl.css`.
 - **Zero-height parent.** The root is 100% of its parent. Give the parent a height (`height: 600`, `100vh`, or `flex: 1; min-height: 0` in a flex column).
 - **Coordinate order.** Element's API (data, `initialView.center`, `bounds`, `flyTo({ center })`, `fitBounds`) is GeoJSON `[lng, lat]`. Leaflet and react-leaflet (`MapContainer center`, `L.latLng`) are `[lat, lng]`. Convert at the boundary.
-- **Missing or wrong peers.** `maplibre-gl` must be installed for the default entry (`^5.5`); `@element-editor/adapter-leaflet`, `leaflet ^1.9` and `react-leaflet ^5` for `/leaflet`. React 18 and react-leaflet 4 do not work.
+- **Missing or wrong peers.** `maplibre-gl` must be installed for the default entry (5.5 or 6); `@element-editor/adapter-leaflet`, `leaflet ^1.9` and `react-leaflet ^5` for `/leaflet`. React 18 and react-leaflet 4 do not work.
 - **SSR.** Render client-only (`next/dynamic` with `ssr: false`); `'use client'` alone is not enough.
 - **Expecting `initialData` to be reactive.** Use the ref or a `key` remount (see Loading and saving data).
 - **Adapters without providers.** `ElementEditorControls` throws outside `ElementEditorUIProvider`; it also needs a `GeoStoreProvider` (one per editor) and a `data-elm-theme="light" | "dark"` ancestor containing the map and all editor UI. Portaled UI of your own needs a `data-elm-portal` attribute.

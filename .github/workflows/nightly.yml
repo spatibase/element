@@ -9,8 +9,14 @@ on:
 
 jobs:
   examples-smoke:
+    name: examples-smoke (maplibre-gl ${{ matrix.maplibre }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both ends of the maplibre-gl peer range (^5.5.0 || ^6.0.0); the examples pin 6.
+        maplibre: ['6', '5']
 
     steps:
       - uses: actions/checkout@v4
@@ -32,4 +38,4 @@ jobs:
         run: pnpm --filter @element-editor/react exec playwright install --with-deps chromium
 
       - name: Example apps, built and loaded headless
-        run: pnpm check:examples --smoke
+        run: pnpm check:examples --smoke --maplibre=${{ matrix.maplibre }}

@@ -17,7 +17,7 @@
     "@element-editor/react": "workspace:*",
     "@element-editor/ui": "workspace:*",
     "leaflet": "^1.9.0",
-    "maplibre-gl": "^5.22.0",
+    "maplibre-gl": "^6.18.0",
     "react": "^19.0.0",
     "react-data-grid": "^7.0.0-beta.59",
     "react-dom": "^19.0.0",

@@ -15,7 +15,7 @@ npm install @element-editor/ui @element-editor/core
 # plus your adapter:
 npm install @element-editor/adapter-leaflet leaflet react-leaflet
 # or
-npm install @element-editor/adapter-maplibre maplibre-gl@^5
+npm install @element-editor/adapter-maplibre maplibre-gl
 ```
 
 The adapters already depend on `@element-editor/ui` and `@element-editor/core`. List them in your own `package.json` anyway, because your code imports from them and strict package managers (pnpm) only resolve packages you declare. `@element-editor/core` is only needed for types and helpers such as `FeatureCollection` and `getFeatureCollectionBBox`. Keep all `@element-editor/*` packages on the same version. Peer dependencies: React and React DOM `^19.2`.
@@ -211,7 +211,7 @@ Pass `@element-editor/ui` components as `children` of `ElementEditorControls`:
 
 ```tsx
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import type { ElementEditorControlsRef } from '@element-editor/adapter-maplibre'
 import type { FeatureCollection } from '@element-editor/core'

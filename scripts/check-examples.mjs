@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Build the example apps against the packed packages, the way a user installs them (run after
-// `pnpm build`): `pnpm check:examples [--smoke] [--keep] [example ...]`.
+// `pnpm build`): `pnpm check:examples [--smoke] [--keep] [--maplibre=<range>] [example ...]`.
+// --maplibre=5 installs that maplibre-gl range instead of the examples' own (^6), to check the
+// lower end of the peer range (CI runs both).
 //
 // 1. `pnpm pack` every library package (workspace:* becomes a real version, `files` applies).
 // 2. Copy each examples/<name> to a temp dir outside the repo (its own one-package workspace, no parent
@@ -20,6 +22,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const rootPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const args = process.argv.slice(2)
 const smoke = args.includes('--smoke'), keep = args.includes('--keep')
+const maplibre = args.find((a) => a.startsWith('--maplibre='))?.slice('--maplibre='.length)
 const EXAMPLES = {
   'vite-maplibre': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
   'vite-leaflet': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.leaflet-container']] },
@@ -56,6 +59,7 @@ try {
     cpSync(join(root, 'examples', name), dir, { recursive: true, filter: (src) => !/(^|\/)(node_modules|\.next|dist)$/.test(src) })
     const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
     for (const deps of [pkg.dependencies, pkg.devDependencies]) for (const d in deps ?? {}) if (tarballs[d]) deps[d] = tarballs[d]
+    if (maplibre && pkg.dependencies?.['maplibre-gl']) pkg.dependencies['maplibre-gl'] = /^\d+$/.test(maplibre) ? `^${maplibre}` : maplibre
     // Overrides point the packages' own @element-editor/* deps at the tarballs too. pnpm 10 reads
     // them from package.json `pnpm.overrides`; pnpm 11+ ignores that field and reads
     // pnpm-workspace.yaml `overrides:` instead, so write both. The example also gets the repo's
@@ -68,7 +72,8 @@ try {
     try {
       const install = await timed(() => run('pnpm', ['install', '--no-frozen-lockfile'], dir))
       const build = await timed(() => run('pnpm', ['run', 'build'], dir, { NEXT_TELEMETRY_DISABLED: '1' }))
-      console.log(`ok   ${name}: install ${install}s, build ${build}s`)
+      const ml = maplibre && pkg.dependencies?.['maplibre-gl'] ? `, maplibre-gl ${JSON.parse(readFileSync(join(dir, 'node_modules/maplibre-gl/package.json'), 'utf8')).version}` : ''
+      console.log(`ok   ${name}: install ${install}s, build ${build}s${ml}`)
     } catch (e) {
       console.log(`FAIL ${name}`)
       failures.push(`${name}: ${e.message}`)

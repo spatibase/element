@@ -6,6 +6,15 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Peer range widened to `maplibre-gl` `^5.5.0 || ^6.0.0`** (`@element-editor/react`, `@element-editor/adapter-maplibre`). Install commands are plain `npm i @element-editor/react maplibre-gl` again.
+- On MapLibre GL JS 6 the MapLibre drop-in loads MapLibre's worker (`maplibre-gl-worker.mjs`, a separate file since 6.0) from jsDelivr at the installed version when your app has not called `setWorkerUrl`; call it before the editor mounts to serve the file yourself. Adapter users set it in their own map setup. See [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker).
+
+### Fixed
+
+- **Works with MapLibre GL JS 6.** The packages imported `maplibre-gl` through its default export, which 6.x (ESM-only) no longer has: bundlers failed with `"default" is not exported by maplibre-gl/dist/maplibre-gl.mjs`. They now use a namespace import, which works on 5.x and 6.x.
+
 ---
 
 ## [0.2.0] — 2026-11-15
