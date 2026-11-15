@@ -6,6 +6,10 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.2] — 2026-11-15
+
 ### Changed
 
 - Drawing hints show each instruction as its own item; the data table and export messages use commas instead of '·'.
