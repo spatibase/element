@@ -1,7 +1,9 @@
 name: Release
 
 # Publishes every public package in packages/* to npm. Runs on a version tag (`v0.2.0`), or by hand
-# from the Actions tab (dry run by default). See RELEASING.md.
+# from the Actions tab (dry run by default). By hand, `tag` (e.g. `v0.2.0`) builds and publishes that
+# tag's source with the steps of the workflow version being run (re-publishing a release whose publish
+# failed, or that was staged and discarded); empty builds the selected branch. See RELEASING.md.
 #
 # Authentication is npm trusted publishing (OIDC): no npm token is stored in this repository. Each
 # package has a trusted publisher on npmjs.com for this repo and this workflow file (`release.yml`);
@@ -11,6 +13,10 @@ on:
     tags: ['v*']
   workflow_dispatch:
     inputs:
+      tag:
+        description: 'Release tag to build and publish (e.g. v0.2.0). Empty: the selected branch, no GitHub release'
+        type: string
+        default: ''
       dry_run:
         description: 'Dry run: build, check and pack, but do not publish'
         type: boolean
@@ -31,9 +37,22 @@ jobs:
 
     env:
       DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && 'true' || 'false' }}
+      # The release tag being published: the pushed tag, or the `tag` input of a manual run.
+      RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
 
     steps:
+      - name: Release tag
+        run: |
+          if [ -n "$RELEASE_TAG" ] && ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+            echo "::error::tag must look like v1.2.3 or v1.2.3-beta.1, got '$RELEASE_TAG'"; exit 1
+          fi
+          echo "Release tag: ${RELEASE_TAG:-none (branch build)}, dry run: $DRY_RUN"
+
+      # The source of the release tag (a manual run with `tag` uses this workflow's steps on it; npm
+      # trusted publishing checks the repository and workflow file name, not the ref).
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_TAG && format('refs/tags/{0}', env.RELEASE_TAG) || github.ref }}
 
       - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
 
@@ -58,9 +77,9 @@ jobs:
 
       # A `v1.2.3` tag must match the version of every package it publishes.
       - name: Tag matches package versions
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.RELEASE_TAG != ''
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${RELEASE_TAG#v}"
           for p in packages/*/package.json; do
             v=$(node -p "require('./$p').version")
             if [ "$v" != "$tag" ]; then echo "::error file=$p::version $v does not match tag v$tag"; exit 1; fi
@@ -105,11 +124,13 @@ jobs:
             echo "::endgroup::"
           done
 
-      # The GitHub release carries the tag's CHANGELOG section (written by `pnpm release`).
+      # The GitHub release carries the tag's CHANGELOG section (written by `pnpm release`). Skipped
+      # when the release already exists.
       - name: GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.RELEASE_TAG != '' && env.DRY_RUN != 'true'
         run: |
-          v="${GITHUB_REF_NAME#v}"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then echo "GitHub release $RELEASE_TAG exists, skipped"; exit 0; fi
+          v="${RELEASE_TAG#v}"
           awk -v v="$v" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/ { exit }
@@ -117,7 +138,6 @@ jobs:
           ' CHANGELOG.md | sed '/^---$/d' > release-notes.md
           prerelease=()
           case "$v" in *-*) prerelease=(--prerelease) ;; esac
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag "${prerelease[@]}"
+          gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md --verify-tag "${prerelease[@]}"
         env:
           GH_TOKEN: ${{ github.token }}

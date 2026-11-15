@@ -63,7 +63,7 @@ Any failure restores the files the bump touched and exits non-zero; nothing is c
 3. The docs site deploys from the tag. Its deploy workflow checks hourly for a new release tag (or `docs-live` commit), so it goes live within the hour; to deploy right away run `pnpm release --trigger-site vX.Y.Z` (it runs `gh workflow run deploy.yml -R spatibase/element-web -f ref=vX.Y.Z` and needs `gh` logged in with access to the site repo). No token for the site lives in this repository.
 4. If `docs-live` exists, reset it to the new tag: `git push --force origin vX.Y.Z^{commit}:refs/heads/docs-live`. (Until then the site ignores it: it uses `docs-live` only when the branch contains the latest tag.)
 
-The script prints these steps after tagging. A dry run of the publish workflow (no publish) can be started from the Actions tab: **Release → Run workflow** (`dry_run` is on by default): it builds, packs and runs `npm publish --dry-run` on each tarball whose version isn't on npm yet.
+The script prints these steps after tagging. A dry run of the publish workflow (no publish) can be started from the Actions tab: **Release → Run workflow** (`dry_run` is on by default): it builds, packs and runs `npm publish --dry-run` on each tarball whose version isn't on npm yet. With the `tag` input (e.g. `v0.2.0`) and `dry_run` off, the same run builds that tag's source with the current workflow steps and publishes whatever of it isn't on npm yet (and creates its GitHub release if missing): the way to finish a release whose publish failed. A version that is staged on npm but not approved blocks publishing the same version: approve it, or reject it (`npm stage reject`) first.
 
 ## Prereleases
 
