@@ -1,0 +1,65 @@
+name: docs-live
+
+# Guards the `docs-live` branch: the latest release tag plus docs-only commits. The docs site
+# (elementeditor.dev) deploys from `docs-live` when it contains the latest release tag, so docs fixes
+# go live between releases without shipping unreleased code. See RELEASING.md ("Docs fixes between
+# releases").
+on:
+  push:
+    branches: [docs-live]
+  pull_request:
+    branches: [docs-live]
+
+concurrency:
+  group: docs-live-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # tags and history for the diff
+
+      - name: Only docs/ and CHANGELOG.md changed since the latest release tag
+        run: |
+          set -euo pipefail
+          tag=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          if [ -z "$tag" ]; then
+            echo "::error::No release tag (vX.Y.Z) yet: docs-live starts from a release tag."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$tag" HEAD; then
+            echo "::error::docs-live does not contain the latest release tag $tag. Reset it: git push --force origin $tag^{commit}:refs/heads/docs-live"
+            exit 1
+          fi
+          outside=$(git diff --name-only "$tag" HEAD | grep -Ev '^(docs/|CHANGELOG\.md$)' || true)
+          if [ -n "$outside" ]; then
+            echo "::error::docs-live may only change docs/ and CHANGELOG.md since $tag. Also changed:"
+            echo "$outside"
+            exit 1
+          fi
+          echo "docs-live = $tag + $(git rev-list --count "$tag"..HEAD) docs-only commit(s)"
+          git diff --stat "$tag" HEAD
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Doc snippets and API reference
+        run: pnpm check:docs
