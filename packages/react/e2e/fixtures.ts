@@ -75,6 +75,14 @@ export const test = base.extend<{ engine: Engine }>({
     await page.addInitScript(() => {
       try { if (localStorage.getItem('elm_autoExitAfterDraw') === null) localStorage.setItem('elm_autoExitAfterDraw', 'true') } catch {}
     })
+    // Intercept file choosers from the start. Playwright only intercepts them while a
+    // 'filechooser' listener exists, and turning that on is asynchronous: the DevTools
+    // command can reach a busy renderer (MapLibre drawing) after key events sent right
+    // behind it. So `waitForEvent('filechooser')` just before Cmd+O sometimes lost: the
+    // editor's `input.click()` opened a real, un-intercepted chooser (dropped headless)
+    // and the event never came. With a listener from page creation, interception is on
+    // long before any spec presses a key; specs still use `waitForEvent('filechooser')`.
+    page.on('filechooser', () => {})
     const goto = page.goto.bind(page)
     page.goto = (url, opts) => goto(withEngine(url, engine), opts)
     await use(page)

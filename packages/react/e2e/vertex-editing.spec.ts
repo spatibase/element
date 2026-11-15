@@ -27,6 +27,13 @@ test.describe('Vertex editing', () => {
 
   test('vertex edit mode shows midpoint marker on the hovered edge only', async ({ page }) => {
     await drawPolygon(page)
+    const box = (await page.locator(MAP).first().boundingBox())!
+    const cx = box.x + box.width / 2
+    const cy = box.y + box.height / 2
+    // drawPolygon leaves the cursor on the last corner, which is on two edges. Rest it
+    // away from the shape: MapLibre re-runs hover at the cursor once the new feature has
+    // rendered (map idle), which may land after Enter and would rightly show a midpoint.
+    await page.mouse.move(cx, cy + 150, { steps: 5 })
     await page.keyboard.press('Enter')
     await expect(page.locator('.elm-vertex').first()).toBeVisible()
 
@@ -35,10 +42,6 @@ test.describe('Vertex editing', () => {
     // default, which cluttered the view.) MapLibre keeps them in the DOM, hidden.
     const shown = page.locator('.elm-midpoint-marker:visible')
     await expect(shown).toHaveCount(0)
-
-    const box = (await page.locator(MAP).first().boundingBox())!
-    const cx = box.x + box.width / 2
-    const cy = box.y + box.height / 2
 
     // Hover near the top edge of the drawn polygon (drawPolygon places its
     // top edge at cy - 60 with default 80×60 size).

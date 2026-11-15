@@ -278,10 +278,14 @@ export default function FeatureInteractionLayer({ map }: Props) {
     const prev = prevFeaturesRef.current
     prevFeaturesRef.current = features
     if (features.length <= prev.length) return
-    const canvas = map.getCanvas()
-    const rect = canvas.getBoundingClientRect()
-    const p = getLastPointer()
-    if (p.x < rect.left || p.x > rect.right || p.y < rect.top || p.y > rect.bottom) return
+    // Where the cursor is, or null when it is off the map.
+    const pointer = () => {
+      const rect = map.getCanvas().getBoundingClientRect()
+      const p = getLastPointer()
+      if (p.x < rect.left || p.x > rect.right || p.y < rect.top || p.y > rect.bottom) return null
+      return { p, local: [p.x - rect.left, p.y - rect.top] as [number, number] }
+    }
+    if (!pointer()) return
     const before = new Set(prev.map((f) => f.id))
     const added = new Set(features.filter((f) => !before.has(f.id)).map((f) => f.id))
     // Wait for maplibre to finish re-rendering with the new feature before
@@ -289,8 +293,13 @@ export default function FeatureInteractionLayer({ map }: Props) {
     // cursor position will miss the feature that hasn't made it into the
     // interactive layers yet. `'idle'` fires when all sources + style are
     // done loading and nothing is animating.
-    const local: [number, number] = [p.x - rect.left, p.y - rect.top]
+    // That can be seconds later (tiles still loading), so read the cursor when it
+    // fires: a position taken now would re-run hover where the cursor used to be
+    // (a midpoint on the wrong edge in point editing, a stale tooltip) after it moved.
     const fire = () => {
+      const at = pointer()
+      if (!at) return
+      const { p, local } = at
       try {
         const lngLat = map.unproject(local)
         const hit = safeQueryRendered(map, map.project(lngLat), INTERACTIVE_FEATURE_LAYERS)[0]
