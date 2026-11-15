@@ -14,7 +14,8 @@ export type AccentPaint = ReadonlyArray<readonly [layerId: string, prop: string,
 
 export function paintAccent(map: MapLibreMap, paints: AccentPaint, palette: AccentPalette = readAccentPalette(map.getContainer())) {
   for (const [id, prop, value] of paints) {
-    if (map.getLayer(id)) map.setPaintProperty(id, prop, value(palette))
+    // `as never`: MapLibre 6 types the property name per layer type, 5 takes any string.
+    if (map.getLayer(id)) map.setPaintProperty(id, prop as never, value(palette) as never)
   }
 }
 

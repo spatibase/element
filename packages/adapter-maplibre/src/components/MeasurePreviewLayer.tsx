@@ -7,7 +7,8 @@
  */
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import maplibregl, { type Map as MapLibreMap, type MapMouseEvent, type MapLayerMouseEvent } from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import type { Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent } from 'maplibre-gl'
 import { length } from '@turf/length'
 import { area } from '@turf/area'
 import { lineString, polygon } from '@turf/helpers'

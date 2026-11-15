@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import { Crosshair, Trash } from '@phosphor-icons/react'
 import { ContextMenu, VertexSelectionBar, useEmit, useIsEventForEditor } from '@element-editor/ui'
 import PreciseCoordsOverlay from './PreciseCoordsOverlay'

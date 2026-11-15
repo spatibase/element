@@ -3,13 +3,15 @@
  *
  * - `engine` option ('leaflet' | 'maplibre', set per project in playwright.config.ts).
  * - `page`: `goto` appends `engine=<engine>` to the dev-page URL (unless the URL already names an
- *   engine), and tile hosts are answered offline (raster PNGs get a transparent pixel, the rest abort).
+ *   engine), and tile hosts are answered offline (raster PNGs get a transparent pixel, the rest abort);
+ *   MapLibre 6's worker, which the drop-in loads from jsDelivr, is served from the installed package.
  * - Global `Window` typings for the dev-only test hooks, so `page.evaluate(() => window.__elementEditorTest!...)`
  *   type-checks against the real store / map types instead of per-file `Win` casts.
  *
  * Mark engine-specific specs with `test.skip(({ engine }) => engine !== 'leaflet', 'why')` at file or
  * describe level (or `test.skip(engine !== 'leaflet', 'why')` inside a test).
  */
+import { fileURLToPath } from 'node:url'
 import { test as base, expect, type Page, type Locator } from '@playwright/test'
 import type { Map as LeafletMap } from 'leaflet'
 import type { Map as MapLibreMap } from 'maplibre-gl'
@@ -36,6 +38,9 @@ declare global {
 
 /** Basemap / tile hosts the dev pages touch. Never hit them from tests. */
 export const OFFLINE = /tile\.openstreetmap\.org|tiles\.openfreemap\.org|tiles\.mapterhorn\.com|\.example\.test/
+/** MapLibre 6's worker as the drop-in loads it (`config.network.maplibreWorker`): the jsDelivr default or the dev page's `?network=custom` host. */
+export const MAPLIBRE_WORKER = /^https:\/\/(cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^/]+\/dist|worker\.example\.test)\/maplibre-gl-worker\.mjs/
+const LOCAL_MAPLIBRE_WORKER = fileURLToPath(new URL('../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url))
 /** The map container on either engine. */
 export const MAP = ':is(.leaflet-container, .maplibregl-map)'
 /** The map's attribution control on either engine (it moves into the status bar with `'attribution'`). */
@@ -60,6 +65,10 @@ export const test = base.extend<{ engine: Engine }>({
         ? r.fulfill({ contentType: 'image/png', body: PIXEL })
         : r.abort(),
     )
+    // Served from the installed maplibre-gl (same version), not the CDN. Registered after OFFLINE,
+    // so it wins for worker.example.test.
+    await page.route(MAPLIBRE_WORKER, (r) =>
+      r.fulfill({ path: LOCAL_MAPLIBRE_WORKER, contentType: 'text/javascript', headers: { 'Access-Control-Allow-Origin': '*' } }))
     // Most specs were written when tools returned to select after each shape.
     // Keep that for them (a stored choice wins, like a real user's); the new
     // stay-in-tool default is covered by `editor-defaults.spec.ts`.

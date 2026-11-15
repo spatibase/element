@@ -93,13 +93,24 @@ const DOM = `const w = new JSDOM('<!doctype html>', { pretendToBeVisual: true })
   for (const k of ['window', 'document', 'HTMLElement', 'Element', 'Node', 'getComputedStyle', 'requestAnimationFrame'])
     if (!(k in globalThis)) globalThis[k] = k === 'window' ? w : w[k];`
 const PRINT = `console.log(JSON.stringify(Object.keys(m).sort()))`
+// maplibre-gl 6 is ESM-only and its `exports` has no "require" condition, so plain Node can't
+// `require('maplibre-gl')` at all (bundlers, the real consumers of the CJS entry, resolve it). For
+// the CJS load, resolve it to its ESM file the way a bundler would; Node 22 can require() ESM.
+const ESM_ONLY_MAPLIBRE = `const Module = require('node:module'), path = require('node:path'), orig = Module._resolveFilename;
+  Module._resolveFilename = function (req, ...rest) {
+    try { return orig.call(this, req, ...rest) } catch (e) {
+      if (req !== 'maplibre-gl' || e.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw e
+      const pj = orig.call(this, 'maplibre-gl/package.json', ...rest)
+      return path.join(path.dirname(pj), require(pj).exports['.'].import)
+    }
+  };`
 const keysBy = {}
 for (const spec of ['@element-editor/react', '@element-editor/react/leaflet']) {
   for (const fmt of ['esm', 'cjs']) {
     const dom = spec.endsWith('/leaflet') ? DOM : ''
     const code = fmt === 'esm'
       ? `import { JSDOM } from 'jsdom'; ${dom} const m = await import('${spec}'); ${PRINT}`
-      : `const { JSDOM } = require('jsdom'); ${dom} const m = require('${spec}'); ${PRINT}`
+      : `const { JSDOM } = require('jsdom'); ${ESM_ONLY_MAPLIBRE} ${dom} const m = require('${spec}'); ${PRINT}`
     try {
       const out = execFileSync(process.execPath, [...(fmt === 'esm' ? ['--input-type=module'] : []), '-e', code],
         { cwd: pkgDir('@element-editor/react'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })

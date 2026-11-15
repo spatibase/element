@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent } from 'maplibre-gl'
 import type { MultiPolygon, Polygon } from 'geojson'
 import { useEmit, useIsEventForEditor, runGeometryWorkerOperation, useElementEditorConfig, useAccentStyle, useTheme } from '@element-editor/ui'

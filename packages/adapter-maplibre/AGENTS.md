@@ -11,7 +11,7 @@ pnpm add @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
 # types/helpers (FeatureCollection, getFeatureCollectionBBox): pnpm add @element-editor/core
 ```
 
-Peers: `react`, `react-dom` `^19.2.0`; `maplibre-gl` `^5.5.0`. Keep all `@element-editor/*` packages on one version and list every one you import from in your `package.json`.
+Peers: `react`, `react-dom` `^19.2.0`; `maplibre-gl` `^5.5.0 || ^6.0.0`. Keep all `@element-editor/*` packages on one version and list every one you import from in your `package.json`.
 
 ```tsx
 import 'maplibre-gl/dist/maplibre-gl.css' // not included in Element's stylesheet
@@ -24,7 +24,7 @@ The `@element-editor/ui` components go in `ElementEditorControls`' `children`. `
 
 ```tsx
 import { Suspense, useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls, type ElementEditorControlsRef,

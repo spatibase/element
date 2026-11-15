@@ -41,7 +41,7 @@ Professional map editing for React. Bring your Leaflet or MapLibre map — Eleme
 
 ## Requirements
 
-React and React DOM `^19.2` (React 18 is not supported; Next.js 15's `create-next-app` pins 19.1, so run `npm install react@^19.2 react-dom@^19.2` there first). `@element-editor/react` and the MapLibre adapter need `maplibre-gl` `^5.5` (the built-in Terrain basemap uses 5.5 hillshade options); the Leaflet adapter (and the Leaflet drop-in, `@element-editor/react/leaflet`) need `leaflet` `^1.9` and `react-leaflet` `^5`. Every peer of `@element-editor/react` except React is optional, so install the ones for the entry you use. The Leaflet drop-in never loads `maplibre-gl`.
+React and React DOM `^19.2` (React 18 is not supported; Next.js 15's `create-next-app` pins 19.1, so run `npm install react@^19.2 react-dom@^19.2` there first). `@element-editor/react` and the MapLibre adapter need `maplibre-gl` 5.5 or 6 (the built-in Terrain basemap needs 5.5+); the Leaflet adapter (and the Leaflet drop-in, `@element-editor/react/leaflet`) need `leaflet` `^1.9` and `react-leaflet` `^5`. Every peer of `@element-editor/react` except React is optional, so install the ones for the entry you use. The Leaflet drop-in never loads `maplibre-gl`.
 
 The packages ship ES modules plus CommonJS (`.cjs`) builds. `@element-editor/react` depends on `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` instead of bundling them. The geometry worker is inlined, so no bundler configuration is needed. The stylesheets don't reset your page: Tailwind's base styles apply only inside the editor (`[data-elm-theme]`). TypeScript users of the Leaflet entries also need `@types/leaflet`. Sites with a Content Security Policy need `worker-src blob:` and `style-src 'unsafe-inline'` plus the map and service hosts: see [CSP](./docs/guides/third-party-services.md#content-security-policy-csp).
 
@@ -186,7 +186,7 @@ npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'

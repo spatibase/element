@@ -8,13 +8,13 @@ Plug Element drawing and editing tools (vertex editing, snapping, a data table, 
 npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
 ```
 
-Peer dependencies: `react` and `react-dom` `^19.2` (React 18 is not supported), `maplibre-gl` `^5.5`. `@element-editor/ui` (the toolbars and panels) comes with the adapter; list it yourself when you import from it, because strict package managers (pnpm) only resolve packages you declare. Keep all `@element-editor/*` packages on the same version.
+Peer dependencies: `react` and `react-dom` `^19.2` (React 18 is not supported), `maplibre-gl` 5.5 or 6. `@element-editor/ui` (the toolbars and panels) comes with the adapter; list it yourself when you import from it, because strict package managers (pnpm) only resolve packages you declare. Keep all `@element-editor/*` packages on the same version.
 
 ## Quick start
 
 ```tsx
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'

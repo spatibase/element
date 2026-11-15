@@ -20,7 +20,7 @@ No other Next.js configuration is needed. The packages ship ES modules (`.es.js`
 `create-next-app` for Next.js 15 pins `react` and `react-dom` to 19.1, below Element's `^19.2` peer range, so `npm install @element-editor/react` stops with a peer dependency conflict (`ERESOLVE`; pnpm and yarn only warn, and the editor may then break at runtime). Upgrade React in the same step:
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5 react@^19.2 react-dom@^19.2
+npm install @element-editor/react maplibre-gl react@^19.2 react-dom@^19.2
 ```
 
 Next.js 16 apps already use React 19.2. If your site sends a Content Security Policy, see [CSP](./third-party-services.md#content-security-policy-csp) for what the editor needs.

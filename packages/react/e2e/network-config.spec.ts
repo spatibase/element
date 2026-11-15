@@ -3,10 +3,13 @@
  * on *.example.test, through a `fetch` that adds `X-Elm-Test: 1`), none to the default ones;
  * `?network=off` hides what needs a service; the deprecated `routingApiKey` still picks ORS.
  */
+import { readFileSync } from 'node:fs'
 import { test, expect, MAP, ATTRIBUTION, type Page, type Locator } from './fixtures'
 import { waitForMap, flyTo, NOMINATIM_EIFFEL } from './helpers'
 
 type MapLibreMap = import('maplibre-gl').Map
+/** The installed maplibre-gl's major version (CI also runs the MapLibre specs on 5.x). */
+const MAPLIBRE_MAJOR = parseInt(JSON.parse(readFileSync(new URL('../node_modules/maplibre-gl/package.json', import.meta.url), 'utf8')).version, 10)
 type Req = { url: string; headers: Record<string, string> }
 
 const DEFAULT_HOSTS = /overpass-api\.de|nominatim\.openstreetmap\.org|router\.project-osrm\.org|api\.openrouteservice\.org|tiles\.openfreemap\.org|tiles\.mapterhorn\.com|tile\.openstreetmap\.org|cdn\.jsdelivr\.net/
@@ -130,6 +133,8 @@ test.describe('?network=custom: requests go to the configured servers', () => {
     expect(style.sources['terrain-dem']).toMatchObject({ tiles: ['https://dem.example.test/{z}/{x}/{y}.png'], encoding: 'mapbox' })
     await expect.poll(() => all.some((r) => r.url.startsWith('https://vector.example.test/planet'))).toBe(true)
     await expect.poll(() => all.some((r) => r.url.startsWith('https://sprite.example.test/sprite'))).toBe(true)
+    // MapLibre 6 only (5.x has its worker built in and requests none).
+    if (MAPLIBRE_MAJOR >= 6) expect(all.some((r) => r.url === 'https://worker.example.test/maplibre-gl-worker.mjs')).toBe(true)
     expect(all.filter((r) => DEFAULT_HOSTS.test(r.url))).toEqual([])
   })
 })

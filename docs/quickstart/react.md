@@ -11,7 +11,7 @@
 ## Step 1 — Install
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5
+npm install @element-editor/react maplibre-gl
 ```
 
 `@element-editor/react` is built on MapLibre GL JS. Install `maplibre-gl` next to it: it is marked as an optional peer dependency only so that Leaflet-only apps can skip it, but the default entry needs it. You also need React.
@@ -20,7 +20,7 @@ npm install @element-editor/react maplibre-gl@^5
 |---|---|
 | `react` | `^19.2` |
 | `react-dom` | `^19.2` |
-| `maplibre-gl` | `^5.5` |
+| `maplibre-gl` | 5.5 or 6 |
 
 React 18 is not supported. If your app is on an older React 19, upgrade it first; npm otherwise stops with a peer dependency conflict (`ERESOLVE`). Apps made with Next.js 15's `create-next-app` pin React 19.1:
 

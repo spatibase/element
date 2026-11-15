@@ -35,7 +35,8 @@ vi.mock('maplibre-gl', () => {
     on() {} once() {} off() {} remove() {} resize() {} addControl() {} removeControl() {}
     getContainer() { return document.createElement('div') }
   }
-  return { default: { Map, AttributionControl: class {} } }
+  const lib = { Map, AttributionControl: class {}, getVersion: () => '6.0.0', getWorkerUrl: () => 'worker.mjs', setWorkerUrl() {} }
+  return { ...lib, default: lib }
 })
 
 const { ElementEditorShell } = await import('../../shell/ElementEditorShell')

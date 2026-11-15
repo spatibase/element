@@ -29,10 +29,10 @@ React and React DOM **`^19.2`** are required for both engines (React 18 is no lo
 **MapLibre (the default entry):**
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5
+npm install @element-editor/react maplibre-gl
 ```
 
-`maplibre-gl` must be **`^5.5`** (the built-in Terrain basemap uses 5.5 hillshade options). `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` come in as regular dependencies.
+`maplibre-gl` must be **5.5 or 6** (the built-in Terrain basemap needs 5.5+). `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` come in as regular dependencies.
 
 **Leaflet (`/leaflet`):**
 
@@ -42,7 +42,7 @@ npm install @element-editor/react @element-editor/adapter-leaflet leaflet react-
 
 `leaflet` `^1.9`, `react-leaflet` `^5` (react-leaflet 4 is no longer supported). These peers are optional, so your package manager won't install them for you. You don't need `maplibre-gl`: the Leaflet entry never loads it.
 
-**Adapter packages:** `@element-editor/adapter-maplibre` needs `maplibre-gl` `^5.5` (was `>=4`); `@element-editor/adapter-leaflet` needs `leaflet` `^1.9` and `react-leaflet` `^5`.
+**Adapter packages:** `@element-editor/adapter-maplibre` needs `maplibre-gl` 5.5 or 6 (was `>=4`); `@element-editor/adapter-leaflet` needs `leaflet` `^1.9` and `react-leaflet` `^5`.
 
 ## 2. Imports and CSS
 
