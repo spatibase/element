@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { CircleHalfTilt, ArrowsHorizontal, Hexagon } from '@phosphor-icons/react'
 import { useUIStore } from '../store/StoreContext'
 import { useElementEditorConfig } from '../contexts/ElementEditorConfigContext'
@@ -7,6 +8,79 @@ import { Kbd, KbdInvert } from './ui/Kbd'
 // Same hover as the EditToolbarBtn icons beside them: one step stronger than the
 // shared ghost Button, and no colour transition.
 const ACTION_BTN = 'h-8 px-3 rounded-elm-control text-sm flex items-center justify-center gap-1.5 active:scale-[0.95]'
+
+/**
+ * One instruction in the drawing hint: plain text, or text with a key chip in it
+ * (`keyName` is what screen readers hear in place of the glyph).
+ */
+type HintPart = string | { before: string; key: string; keyName: string; after?: string }
+
+const UNDO_LAST: HintPart = { before: 'Undo last', key: '⌫', keyName: 'Backspace' }
+const SHIFT_SQUARE: HintPart = { before: 'Hold', key: 'Shift', keyName: 'Shift', after: 'for a square' }
+
+const partKey = (p: HintPart) => (typeof p === 'string' ? p : `${p.before} ${p.keyName} ${p.after ?? ''}`)
+
+/** The hint as separate list items, one per instruction; at narrow widths whole items wrap. */
+function DrawingHint({ parts }: { parts: HintPart[] }) {
+  return (
+    <ul
+      data-elm-hint
+      aria-label="Drawing hints"
+      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 min-w-0 px-2 m-0 list-none text-sm text-elm-text-muted"
+    >
+      {parts.map((p) => (
+        <li key={partKey(p)} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          {typeof p === 'string' ? p : (
+            <>
+              {p.before}
+              {p.key === p.keyName ? <Kbd>{p.key}</Kbd> : (
+                <>
+                  <span aria-hidden="true" className="inline-flex"><Kbd>{p.key}</Kbd></span>
+                  <span className="sr-only">{p.keyName}</span>
+                </>
+              )}
+              {p.after}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Toolbar divider that only shows between two items on the same row: when the
+ * bar wraps at narrow widths it would otherwise start or end a row on its own.
+ */
+function RowDivider() {
+  const ref = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const bar = el?.parentElement
+    if (!el || !bar) return
+    // `display: contents` wrappers (Tooltip) have no box of their own: use their edge child.
+    const mid = (n: Element, edge: 'first' | 'last') => {
+      let b: Element | null = n
+      while (b && getComputedStyle(b).display === 'contents') b = edge === 'first' ? b.firstElementChild : b.lastElementChild
+      const r = (b ?? n).getBoundingClientRect()
+      return r.top + r.height / 2
+    }
+    const update = () => {
+      el.style.display = ''
+      const prev = el.previousElementSibling
+      const next = el.nextElementSibling
+      const y = mid(el, 'first')
+      const alone = !prev || !next || Math.abs(mid(prev, 'last') - y) > 4 || Math.abs(mid(next, 'first') - y) > 4
+      if (alone) el.style.display = 'none'
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(bar)
+    for (const c of Array.from(bar.children)) if (c !== el) ro.observe(c)
+    return () => ro.disconnect()
+  })
+  return <span ref={ref} aria-hidden="true" className="flex"><ToolbarDivider /></span>
+}
 
 export default function ActiveDrawingToolbar() {
   const { ui } = useElementEditorConfig()
@@ -72,30 +146,30 @@ export default function ActiveDrawingToolbar() {
     : isDrawingRoute ? routeWaypoints.length >= 2 && !routeLoading
     : false
 
-  const hintText = isPlacingPoint
-    ? 'Click to place a point'
+  const hint: HintPart[] | null = isPlacingPoint
+    ? ['Click to place a point']
     : editingMode === 'draw-line'
-      ? (lineInProgress.length === 0 ? 'Click to place the first point' : 'Click to add points · Double-click to finish · ⌫ undo last')
+      ? (lineInProgress.length === 0 ? ['Click to place the first point'] : ['Click to add points', 'Double-click to finish', UNDO_LAST])
     : editingMode === 'draw-polygon'
-      ? (polygonInProgress.length === 0 ? 'Click to place the first point' : polygonInProgress.length < 3 ? 'Click to continue · ⌫ undo last' : 'Click to add points · Double-click to close · ⌫ undo last')
+      ? (polygonInProgress.length === 0 ? ['Click to place the first point'] : polygonInProgress.length < 3 ? ['Click to continue', UNDO_LAST] : ['Click to add points', 'Double-click to close', UNDO_LAST])
     : isDrawingRoute
-      ? (routeWaypoints.length === 0 ? 'Click to place the first waypoint' : 'Click to add waypoints · ⌫ undo last')
+      ? (routeWaypoints.length === 0 ? ['Click to place the first waypoint'] : ['Click to add waypoints', UNDO_LAST])
     : isDrawingCircle
-      ? 'Click and drag to size'
+      ? ['Click and drag to size']
     : isDrawingRect
-      ? 'Click and drag to size · Hold Shift for square'
+      ? ['Click and drag to size', SHIFT_SQUARE]
     : isDrawingFreehand
-      ? 'Click and drag to draw'
+      ? ['Click and drag to draw']
     : editingMode === 'slice-shape'
-      ? (lineInProgress.length === 0 ? 'Draw a line across the shape to slice it' : 'Click to add points · Double-click to cut · ⌫ undo last')
+      ? (lineInProgress.length === 0 ? ['Draw a line across the shape to slice it'] : ['Click to add points', 'Double-click to cut', UNDO_LAST])
     : editingMode === 'cut-hole'
-      ? (polygonInProgress.length === 0 ? 'Draw a shape inside to cut a hole' : polygonInProgress.length < 3 ? 'Click to continue · ⌫ undo last' : 'Click to add points · Double-click to cut · ⌫ undo last')
+      ? (polygonInProgress.length === 0 ? ['Draw a shape inside to cut a hole'] : polygonInProgress.length < 3 ? ['Click to continue', UNDO_LAST] : ['Click to add points', 'Double-click to cut', UNDO_LAST])
     : isMeasuring
       ? (measurePoints.length === 0
-          ? 'Click to start measuring'
-          : 'Click to add points · Double-click to finish · ⌫ undo last')
+          ? ['Click to start measuring']
+          : ['Click to add points', 'Double-click to finish', UNDO_LAST])
     : isPickingShape
-      ? 'Click anywhere to import a shape from the map'
+      ? ['Click anywhere to import a shape from the map']
     : null
 
   return (
@@ -127,13 +201,11 @@ export default function ActiveDrawingToolbar() {
             <CircleHalfTilt size={24} weight={freehandClosed ? 'fill' : 'regular'} />
           </EditToolbarBtn>
         )}
-      {(isMeasuring || editingMode === 'draw-freehand') && <ToolbarDivider />}
+      {(isMeasuring || editingMode === 'draw-freehand') && <RowDivider />}
 
-      {ui.hints && hintText && (
-        <span className="text-sm text-elm-text-muted px-2">{hintText}</span>
-      )}
+      {ui.hints && hint && <DrawingHint parts={hint} />}
 
-      {ui.hints && hintText && <ToolbarDivider />}
+      {ui.hints && hint && <RowDivider />}
 
       {canFinish && (
         <button

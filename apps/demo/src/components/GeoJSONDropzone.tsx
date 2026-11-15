@@ -100,7 +100,7 @@ export function GeoJSONExportButton({ getFeatureCollection }: ExportProps) {
   const handleExport = useCallback((fc: FeatureCollection, file: { name: string; bytes: number }) => {
     const count = fc.features.length
     toast.success(`Exported ${file.name}`, {
-      description: `${count === 1 ? '1 feature' : `${count} features`} · ${(file.bytes / 1024).toFixed(1)} KB`,
+      description: `${count === 1 ? '1 feature' : `${count} features`}, ${(file.bytes / 1024).toFixed(1)} KB`,
     })
   }, [])
 

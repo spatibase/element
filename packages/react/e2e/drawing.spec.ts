@@ -30,7 +30,8 @@ test.describe('Drawing tools — activation', () => {
 
   test('R activates draw-rect mode', async ({ page }) => {
     await page.keyboard.press('r')
-    await expect(page.getByText(/click and drag to size.*square/i)).toBeVisible()
+    await expect(page.getByText(/click and drag to size/i)).toBeVisible()
+    await expect(page.locator('[data-elm-hint] li').filter({ hasText: /for a square/i })).toBeVisible()
   })
 
   test('O activates draw-circle mode', async ({ page }) => {
@@ -183,6 +184,22 @@ test.describe('Draw line', () => {
     await page.goto('/')
     await waitForMap(page)
     await page.locator(MAP).click()
+  })
+
+  test('hint shows each instruction as its own item, without separator dots', async ({ page }) => {
+    const map = page.locator(MAP)
+    const box = await map.boundingBox()
+    if (!box) throw new Error('no map')
+
+    await page.keyboard.press('l')
+    await map.click({ position: { x: box.width / 2 - 100, y: box.height / 2 } })
+    const items = page.locator('[data-elm-hint] li')
+    await expect(items).toHaveCount(3)
+    await expect(items.nth(0)).toHaveText('Click to add points')
+    await expect(items.nth(1)).toHaveText('Double-click to finish')
+    await expect(items.nth(2)).toContainText('Undo last')
+    await expect(items.nth(2).locator('kbd')).toHaveText('⌫')
+    await expect(page.locator('[data-elm-hint]')).not.toContainText('·')
   })
 
   test('Enter commits a line with 2+ vertices and adds it to the list', async ({ page }) => {

@@ -6,6 +6,10 @@ All notable changes to Element are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- Drawing hints show each instruction as its own item; the data table and export messages use commas instead of '·'.
+
 ### Fixed
 
 - AGENTS.md (`@element-editor/adapter-maplibre`, `@element-editor/react`, `@element-editor/ui`): the MapLibre adapter examples now call `setWorkerUrl`, without which the map stays blank on MapLibre GL JS 6 (what a plain `maplibre-gl` install gets); the drop-in's `config.network.maplibreWorker` and its CSP needs are described.
