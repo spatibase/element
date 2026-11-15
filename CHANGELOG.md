@@ -9,6 +9,7 @@ All notable changes to Element are documented here.
 ### Fixed
 
 - Floating windows no longer show a focus ring when opened with the mouse or a keyboard shortcut, even when the host page styles `:focus-visible`.
+- Toolbar buttons show a focus ring for keyboard users; form inputs use the neutral focus colour.
 
 ---
 

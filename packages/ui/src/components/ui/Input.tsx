@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { CaretDown } from '@phosphor-icons/react'
 import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes } from 'react'
 
-const base = 'w-full h-9 px-2.5 py-1.5 text-sm border rounded-elm-control focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-elm-surface-raised text-(--elm-text,var(--color-gray-900)) dark:text-(--elm-text,var(--color-gray-100)) placeholder:text-(--elm-text-subtle,var(--color-gray-400)) dark:placeholder:text-(--elm-text-subtle,var(--color-gray-600))'
+const base = 'w-full h-9 px-2.5 py-1.5 text-sm border rounded-elm-control focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring focus:border-transparent bg-elm-surface-raised text-(--elm-text,var(--color-gray-900)) dark:text-(--elm-text,var(--color-gray-100)) placeholder:text-(--elm-text-subtle,var(--color-gray-400)) dark:placeholder:text-(--elm-text-subtle,var(--color-gray-600))'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean

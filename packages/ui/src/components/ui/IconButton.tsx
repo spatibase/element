@@ -30,7 +30,7 @@ export type IconButtonSize = 'md' | 'sm' | 'group'
 
 // Same look as EditToolbarBtn: a flat button inside a pill surface.
 const groupClasses =
-  'p-1 rounded-elm-control flex items-center justify-center text-sm active:scale-[0.95] disabled:cursor-not-allowed disabled:active:scale-100'
+  'p-1 rounded-elm-control flex items-center justify-center text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring active:scale-[0.95] disabled:cursor-not-allowed disabled:active:scale-100'
 const groupInactiveClasses =
   'text-elm-text hover:bg-elm-control-hover disabled:hover:bg-transparent'
 
@@ -40,7 +40,7 @@ const smClasses =
   'flex items-center justify-center w-6 h-6 rounded-elm-control transition-colors bg-transparent hover:bg-(--elm-control-hover,color-mix(in_oklab,var(--color-gray-200)_70%,transparent)) dark:hover:bg-(--elm-control-hover,var(--color-gray-800)) focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring disabled:cursor-not-allowed'
 
 const baseClasses =
-  'flex items-center justify-center w-12 h-12 backdrop-blur-md border border-elm-border/80 shadow-elm-control rounded-elm transition-colors active:scale-[0.95] focus:outline-none disabled:cursor-not-allowed disabled:active:scale-100'
+  'flex items-center justify-center w-12 h-12 backdrop-blur-md border border-elm-border/80 shadow-elm-control rounded-elm transition-colors active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring disabled:cursor-not-allowed disabled:active:scale-100'
 
 // Same surface for every state; an open window/panel shows as a filled icon
 // in the accent colour (below). Fill stays near-opaque (/95): these float over
