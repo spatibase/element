@@ -39,6 +39,18 @@ Trusted publishing is configured per package, and a package must exist on npm be
 - **Every change to a published package gets a CHANGELOG line** under `## [Unreleased]` in the same commit (Keep a Changelog headings: Breaking, Added, Changed, Deprecated, Removed, Fixed). Docs-only, test-only and tooling changes (CI, scripts) don't.
 - **When to release:** a patch as soon as a user-visible fix lands on `main` and CI is green; a minor when a batch of features or any breaking change is ready (breaking changes are batched, with a migration note in the CHANGELOG entry).
 
+## Writing the changelog
+
+`CHANGELOG.md` is read by the people who use Element: developers adding a map editor to their app, and through them the people who draw on those maps. It's also the release notes on GitHub and on elementeditor.dev/changelog. Write it for them, not for the person who made the change.
+
+- **Each version opens with 1 to 3 plain sentences:** what's better for the reader now and why it matters. Then the entries, under Keep a Changelog headings (Breaking, Added, Changed, Deprecated, Removed, Fixed).
+- **Lead each entry with the effect on the user**, in their words: "Your map no longer goes blank on MapLibre 6", "Keyboard users can see where focus is", "Drawing hints are easier to scan". Not the file, handler or hook that changed.
+- **Add technical detail only when the reader must act on it:** a prop, a config key, a peer range, a migration step. Say what to do in plain words and link the docs page (`./docs/...md`, which the site turns into a docs link). Leave out internal mechanics (handler internals, observers, export conditions) unless someone has to change their code because of them.
+- **Every breaking change says how to migrate**, in the entry or in a linked migration guide.
+- **Voice:** plain, warm and direct; "you"; sentence case; short sentences; British spelling, as in the rest of the repo. No marketing words, no exclamation marks, no emoji, no "·" as a separator, few em-dashes. Never mention internal tools, issue codes or who wrote the change.
+- **Be exact.** Every claim must match the code; don't describe what isn't shipped, and don't leave out a change an integrator could notice.
+- Keep the version lines exactly as `pnpm release` writes them (`## [X.Y.Z] — YYYY-MM-DD`); the site and the release workflow parse them. The site's page title and meta description for each version live in the site repo (`content/changelog.json`): give a new version a title and description in the same voice.
+
 ## Release gate
 
 Nothing ships without cross-validation: `pnpm release` refuses to bump, commit or tag unless every check below passes, and the docs site (elementeditor.dev) only ever shows released code.
