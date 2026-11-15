@@ -10,6 +10,21 @@
 
 Professional map editing for React. Bring your Leaflet or MapLibre map — Element adds drawing, vertex editing, snapping, undo/redo, and data management on top.
 
+> [!TIP]
+> **Using an AI coding agent?** (Claude Code, Cursor, Codex, Copilot, …) Point it at these, in this order:
+>
+> 1. **https://elementeditor.dev/llms.txt** is the overview for agents. **https://elementeditor.dev/llms-full.txt** has all the docs in one file. Every docs page is also served as Markdown: add `.md` to its URL, e.g. https://elementeditor.dev/docs/quickstart/react.md.
+> 2. **`AGENTS.md` in the installed package** (`node_modules/@element-editor/react/AGENTS.md`, likewise for each `@element-editor/*` package) is a short guide checked against that version's types: which package to pick, install commands, the public API and common mistakes.
+>
+> A prompt to start with:
+>
+> ```text
+> Add a map editor to this React app with Element (@element-editor/react).
+> Read https://elementeditor.dev/llms.txt first, install the package with
+> `npm install @element-editor/react maplibre-gl@^5`, then follow
+> node_modules/@element-editor/react/AGENTS.md. Use only the public API it lists.
+> ```
+
 ---
 
 ## Packages
@@ -39,7 +54,7 @@ The batteries-included editor. Owns its own MapLibre map, with built-in basemaps
 ### Install
 
 ```bash
-npm install @element-editor/react maplibre-gl
+npm install @element-editor/react maplibre-gl@^5
 ```
 
 ### Usage
@@ -164,7 +179,7 @@ Plug editing into an existing MapLibre GL map. Same API as the Leaflet adapter �
 ### Install
 
 ```bash
-npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
+npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
 ```
 
 ### Usage
