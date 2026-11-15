@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Fixed
+
+- **On narrow screens the toolbars wrap cleanly.** When the main toolbar or the toolbar for a selected shape wraps onto two rows, as it does on a phone, no row starts or ends with a stray divider.
+
 ---
 
 ## [0.2.2] — 2026-11-15

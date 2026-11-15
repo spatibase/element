@@ -29,6 +29,40 @@ function buttonsOutside(page: Page) {
   })
 }
 
+/**
+ * Toolbar dividers (1 px bars) that start or end a row of the wrapping bar they sit in.
+ * Rows are the bar's visible items grouped by vertical centre; Tooltip's `display: contents`
+ * wrappers are looked through.
+ */
+function strayDividers(page: Page) {
+  return page.evaluate(() => {
+    const out: string[] = []
+    const items = (bar: Element) => {
+      const list: Element[] = []
+      const visit = (p: Element) => {
+        for (const c of Array.from(p.children)) {
+          if (getComputedStyle(c).display === 'contents') { visit(c); continue }
+          if (c.getBoundingClientRect().width) list.push(c)
+        }
+      }
+      visit(bar)
+      return list
+    }
+    const mid = (el: Element) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 }
+    for (const d of document.querySelectorAll('[data-elm-theme] div, [data-elm-theme] span')) {
+      const r = d.getBoundingClientRect()
+      if (!(r.width > 0 && r.width <= 1.5 && r.height >= 12 && r.height <= 24)) continue
+      let bar = d.parentElement
+      while (bar && getComputedStyle(bar).flexWrap === 'nowrap') bar = bar.parentElement
+      if (!bar) continue
+      const row = items(bar).filter((c) => Math.abs(mid(c) - mid(d)) < 6)
+      const i = row.findIndex((c) => c === d || c.contains(d))
+      if (i === 0 || i === row.length - 1) out.push(`${Math.round(r.left)},${Math.round(r.top)}: ${i === 0 ? 'starts' : 'ends'} a row`)
+    }
+    return out
+  })
+}
+
 const toolbarButtons = (page: Page) => page.locator('[data-elm-slot="topCenter"] button')
 
 async function setup(page: Page, width: number) {
@@ -131,5 +165,22 @@ test.describe('narrow editor', () => {
     // The full search box is back; nothing sticks out once the panel has slid in.
     await expect(page.getByPlaceholder('Search places…')).toBeVisible()
     await expect.poll(() => buttonsOutside(page)).toEqual([])
+  })
+  test('390 px: a wrapped toolbar never starts or ends a row with a divider', async ({ page }) => {
+    await setup(page, 390)
+    // The main toolbar wraps onto two rows; the editing toolbar is open too.
+    const top = (await toolbarButtons(page).first().boundingBox())!
+    const last = (await toolbarButtons(page).last().boundingBox())!
+    expect(last.y).toBeGreaterThan(top.y + top.height / 2)
+    expect(await strayDividers(page)).toEqual([])
+    // Squeeze and widen through the phone range: the dividers follow every re-wrap.
+    for (const width of [360, 400, 410, 420, 430, 390]) {
+      await page.setViewportSize({ width, height: 760 })
+      await expect.poll(() => strayDividers(page), { message: `${width} px` }).toEqual([])
+    }
+    // The measure hint bar wraps too.
+    await page.evaluate(() => window.__elementEditorTest!.uiStore.getState().setEditingMode('measure'))
+    await expect(page.locator('[data-elm-hint]')).toBeVisible()
+    await expect.poll(() => strayDividers(page)).toEqual([])
   })
 })

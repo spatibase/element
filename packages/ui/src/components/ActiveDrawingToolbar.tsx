@@ -1,8 +1,8 @@
-import { useLayoutEffect, useRef } from 'react'
 import { CircleHalfTilt, ArrowsHorizontal, Hexagon } from '@phosphor-icons/react'
 import { useUIStore } from '../store/StoreContext'
 import { useElementEditorConfig } from '../contexts/ElementEditorConfigContext'
-import { EditToolbarBtn, ToolbarDivider } from './ui/EditToolbarBtn'
+import { EditToolbarBtn } from './ui/EditToolbarBtn'
+import { RowDivider } from './ui/RowDivider'
 import { Kbd, KbdInvert } from './ui/Kbd'
 
 // Same hover as the EditToolbarBtn icons beside them: one step stronger than the
@@ -46,40 +46,6 @@ function DrawingHint({ parts }: { parts: HintPart[] }) {
       ))}
     </ul>
   )
-}
-
-/**
- * Toolbar divider that only shows between two items on the same row: when the
- * bar wraps at narrow widths it would otherwise start or end a row on its own.
- */
-function RowDivider() {
-  const ref = useRef<HTMLSpanElement>(null)
-  useLayoutEffect(() => {
-    const el = ref.current
-    const bar = el?.parentElement
-    if (!el || !bar) return
-    // `display: contents` wrappers (Tooltip) have no box of their own: use their edge child.
-    const mid = (n: Element, edge: 'first' | 'last') => {
-      let b: Element | null = n
-      while (b && getComputedStyle(b).display === 'contents') b = edge === 'first' ? b.firstElementChild : b.lastElementChild
-      const r = (b ?? n).getBoundingClientRect()
-      return r.top + r.height / 2
-    }
-    const update = () => {
-      el.style.display = ''
-      const prev = el.previousElementSibling
-      const next = el.nextElementSibling
-      const y = mid(el, 'first')
-      const alone = !prev || !next || Math.abs(mid(prev, 'last') - y) > 4 || Math.abs(mid(next, 'first') - y) > 4
-      if (alone) el.style.display = 'none'
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(bar)
-    for (const c of Array.from(bar.children)) if (c !== el) ro.observe(c)
-    return () => ro.disconnect()
-  })
-  return <span ref={ref} aria-hidden="true" className="flex"><ToolbarDivider /></span>
 }
 
 export default function ActiveDrawingToolbar() {
