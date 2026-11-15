@@ -1,0 +1,101 @@
+{
+  "name": "@element-editor/adapter-leaflet",
+  "version": "0.2.0",
+  "description": "Add drawing, vertex editing, snapping and GeoJSON data editing to an existing Leaflet / react-leaflet map.",
+  "keywords": [
+    "element-editor",
+    "leaflet",
+    "react-leaflet",
+    "react",
+    "geojson",
+    "map-editor",
+    "drawing",
+    "vertex-editing",
+    "snapping",
+    "gis"
+  ],
+  "homepage": "https://elementeditor.dev",
+  "bugs": {
+    "url": "https://github.com/spatibase/element/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spatibase/element.git",
+    "directory": "packages/adapter-leaflet"
+  },
+  "license": "MIT",
+  "author": "Michal Acler",
+  "private": false,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./style.css": "./dist/adapter-leaflet.css"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "vite build && node ../../scripts/fix-dts.mjs",
+    "dev": "tsc -b --watch",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
+    "@element-editor/core": "workspace:*",
+    "@element-editor/ui": "workspace:*",
+    "@turf/area": "^7.3.4",
+    "@turf/bbox": "^7.3.4",
+    "@turf/boolean-intersects": "^7.3.4",
+    "@turf/distance": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
+    "@turf/length": "^7.3.4",
+    "@turf/transform-rotate": "^7.3.4",
+    "sonner": "^2.0.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/geojson": "^7946.0.16",
+    "@types/leaflet": "^1.9.21",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.7.2",
+    "vite": "^6.4.2",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "leaflet": "^1.9.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-leaflet": "^5.0.0"
+  }
+}

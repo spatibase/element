@@ -1,0 +1,65 @@
+@import "./shell.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@source "../../../adapter-maplibre/src/**/*.{ts,tsx}";
+
+/* Keep the attribution corner clear of the open layers panel / docked inspector
+ * (--elm-panel-offset) and the data table (--elm-table-offset). Scoped to Element roots. */
+[data-elm-theme] .maplibregl-ctrl-bottom-right {
+  right: var(--elm-panel-offset, 0px);
+  bottom: var(--elm-table-offset, 0px);
+  transition: right 200ms ease;
+}
+
+/* Compact attribution moved into the shell's attribution corner (the bottom-right end of
+ * its slot row, ElementEditorShell), outside .maplibregl-map: no corner margin, map font size. */
+.maplibregl-ctrl-attrib.elm-attribution-corner { margin: 0; font-size: 12px; line-height: 20px; }
+
+.maplibregl-ctrl-attrib.elm-attribution-bar {
+  float: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 4px;
+  background: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--elm-text-muted, var(--_elm-text-muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dark on-map attribution (MapLibre only ships a light one). Excludes the status-bar variant above. */
+[data-elm-theme="dark"] .maplibregl-ctrl.maplibregl-ctrl-attrib:not(.elm-attribution-bar) {
+  background-color: color-mix(in srgb, var(--elm-surface, var(--_elm-surface)) 60%, transparent);
+  color: var(--elm-text-secondary, var(--_elm-text-secondary));
+}
+[data-elm-theme="dark"] .maplibregl-ctrl-attrib:not(.elm-attribution-bar) a { color: var(--elm-text-secondary, var(--color-gray-200)); }
+[data-elm-theme="dark"] .maplibregl-ctrl-attrib:not(.elm-attribution-bar) a:hover { color: var(--elm-text, var(--color-gray-50)); text-decoration: underline; }
+@media screen {
+  [data-elm-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact:not(.elm-attribution-bar) {
+    background-color: var(--elm-surface-raised, var(--_elm-surface-raised));
+    color: var(--elm-text-secondary, var(--color-gray-200));
+  }
+}
+/* Light: MapLibre's own look, or the design tokens once an integrator sets them. */
+[data-elm-theme="light"] .maplibregl-ctrl.maplibregl-ctrl-attrib:not(.elm-attribution-bar) {
+  background-color: color-mix(in srgb, var(--elm-surface, #fff) 50%, transparent);
+  /* No fallback on purpose: unset, the declaration is invalid and the colour inherits as before. */
+  color: var(--elm-text-secondary);
+}
+[data-elm-theme="light"] .maplibregl-ctrl-attrib:not(.elm-attribution-bar) a { color: var(--elm-text-secondary, rgb(0 0 0 / 0.75)); }
+@media screen {
+  [data-elm-theme="light"] .maplibregl-ctrl-attrib.maplibregl-compact:not(.elm-attribution-bar) { background-color: var(--elm-surface, #fff); }
+}
+/* Light "i" (same path as MapLibre's, fill added) */
+[data-elm-theme="dark"] .maplibregl-ctrl-attrib:not(.elm-attribution-bar) .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23d4d4d4' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");
+}
+[data-elm-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact-show:not(.elm-attribution-bar) .maplibregl-ctrl-attrib-button {
+  background-color: color-mix(in srgb, white 10%, transparent);
+}
+[data-elm-theme="dark"] .maplibregl-ctrl-attrib:not(.elm-attribution-bar) .maplibregl-ctrl-attrib-button:focus-visible {
+  box-shadow: 0 0 0 2px var(--elm-focus-ring, var(--color-gray-400));
+}

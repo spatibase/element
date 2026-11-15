@@ -1,0 +1,135 @@
+/* Theme + utilities only — no global preflight (scoped preflight lives in ui/src/styles/shared.css). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "leaflet/dist/leaflet.css";
+/* Rules shared by every Element stylesheet; inlined at build. Also scans UI source. */
+@import "../../ui/src/styles/shared.css";
+
+/* Scan adapter source for Tailwind classes */
+@source "./**/*.{ts,tsx}";
+
+/* ── Leaflet-adapter-only rules (shared rules: ui/src/styles/shared.css) ── */
+
+/* Suppress browser focus outline on Leaflet marker/path containers */
+.leaflet-marker-icon:focus,
+.leaflet-interactive:focus { outline: none; }
+
+/* A pin just added under the still cursor (freshFeature.ts): one accent step darker
+   instead of a snap ring, until the cursor leaves it. Beats the pin's inline fill. */
+.elm-pin-fresh path { fill: var(--color-primary-600) !important; }
+
+/* When drawing, force crosshair cursor on the map */
+.leaflet-container.drawing-mode,
+.leaflet-container.drawing-mode .leaflet-grab,
+.leaflet-container.drawing-mode .leaflet-interactive,
+.leaflet-container.drawing-mode.leaflet-dragging,
+.leaflet-container.drawing-mode.leaflet-dragging .leaflet-grab,
+.leaflet-container.drawing-mode.leaflet-dragging .leaflet-interactive {
+    cursor: crosshair !important;
+}
+
+/* ...except while the map is being panned: Leaflet puts .leaflet-dragging on <body>. */
+body.leaflet-dragging .leaflet-container.drawing-mode,
+body.leaflet-dragging .leaflet-container.drawing-mode * {
+    cursor: grabbing !important;
+}
+
+/* Allow pointer cursors for closing nodes while drawing */
+.leaflet-container.drawing-mode .closing-node,
+.leaflet-container.drawing-mode .closing-node * {
+    cursor: pointer !important;
+}
+
+/* Spacebar pan mode — grab/grabbing cursors are set via inline !important in DrawingLayer.tsx
+   (inline !important beats class-based !important, so JS owns this cursor state). */
+
+/* Feature name tooltip on hover */
+/* Light in both modes by default; follows the design tokens (copied onto this
+ * body-level element from the editor root at show time) once an integrator sets them. */
+.elm-feature-tooltip {
+  background: var(--elm-surface, #fff);
+  border: 1px solid var(--elm-border, #e5e7eb);
+  border-radius: var(--elm-radius-control, 6px);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--elm-text-secondary, #374151);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+.elm-feature-tooltip::before {
+  display: none;
+}
+
+/* Override Leaflet tooltip defaults — solid white, no transparency */
+.leaflet-tooltip {
+  background-color: var(--elm-surface, #fff) !important;
+  opacity: 1 !important;
+}
+/* Leaflet popups (precise coordinates): leaflet.css's white card, or the design tokens once set. */
+[data-elm-theme] :is(.leaflet-popup-content-wrapper, .leaflet-popup-tip) {
+  background: var(--elm-surface, white);
+  color: var(--elm-text, #333);
+}
+
+/* React unmounts Tooltip's portal children before Leaflet removes the layer,
+   so the pill briefly renders empty during teardown. Hide it the moment
+   it becomes empty so the user doesn't see a blank tooltip flash on ESC. */
+.leaflet-tooltip:empty {
+  display: none !important;
+}
+
+/* Measure tool distance/area label pill (portal div, not a Leaflet tooltip) */
+.elm-measure-label {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  line-height: 1.2;
+  user-select: none;
+}
+
+/* × dismiss button inside measure label */
+.elm-measure-close {
+  background: none;
+  border: none;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  padding: 3px 5px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  transition: background 0.1s;
+}
+.elm-measure-close:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Force pointer cursor on close button even in drawing-mode (crosshair forced globally) */
+.leaflet-container.drawing-mode .elm-measure-close,
+.leaflet-container.drawing-mode .elm-measure-close * {
+  cursor: pointer !important;
+}
+
+/* Pointer cursor on completed measure segment hit areas in drawing mode */
+.leaflet-container.drawing-mode .elm-measure-segment {
+  cursor: pointer !important;
+}
+
+/* Keep the attribution corner clear of the open layers panel / docked inspector
+ * (--elm-panel-offset) and the data table (--elm-table-offset). `right` uses the
+ * panels' own 200ms ease so it moves in lockstep; `bottom` rides the table
+ * offset, which is already transitioned on the root. Scoped to Element roots so
+ * a host app's other maps are untouched. */
+[data-elm-theme] .leaflet-bottom.leaflet-right {
+  right: var(--elm-panel-offset, 0px);
+  bottom: var(--elm-table-offset, 0px);
+  transition: right 200ms ease;
+}

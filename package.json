@@ -1,0 +1,32 @@
+{
+  "name": "element-editor-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.9",
+  "scripts": {
+    "dev": "pnpm --filter @element-editor/demo dev",
+    "dev:lib": "pnpm --filter @element-editor/react dev",
+    "build": "pnpm -r --filter './packages/**' build",
+    "check:dist": "node scripts/check-dist.mjs",
+    "check:docs": "node scripts/check-doc-snippets.mjs && node scripts/check-api-docs.mjs",
+    "check:examples": "node scripts/check-examples.mjs",
+    "test": "pnpm --filter @element-editor/core --filter @element-editor/ui --filter @element-editor/adapter-leaflet --filter @element-editor/adapter-maplibre test && pnpm --filter @element-editor/react test:run",
+    "test:e2e": "pnpm --filter @element-editor/react test:e2e",
+    "test:perf": "pnpm --filter @element-editor/react test:perf",
+    "lint": "eslint .",
+    "release": "node scripts/release.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "agentation": "^3.0.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.72.2"
+  },
+  "dependencies": {
+    "agentation-mcp": "^1.2.0",
+    "mesurer": "^0.0.3"
+  }
+}

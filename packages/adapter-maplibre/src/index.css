@@ -1,0 +1,19 @@
+/* Theme + utilities only — no global preflight (scoped preflight lives in ui/src/styles/shared.css). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+/* Rules shared by every Element stylesheet; inlined at build. Also scans UI source. */
+@import "../../ui/src/styles/shared.css";
+
+/* ── MapLibre-adapter-only rules (shared rules: ui/src/styles/shared.css) ── */
+
+/* Keep the attribution corner clear of the open layers panel / docked inspector
+ * (--elm-panel-offset) and the data table (--elm-table-offset). `right` uses the
+ * panels' own 200ms ease so it moves in lockstep; `bottom` rides the table
+ * offset, which is already transitioned on the root. Scoped to Element roots so
+ * a host app's other maps are untouched. */
+[data-elm-theme] .maplibregl-ctrl-bottom-right {
+  right: var(--elm-panel-offset, 0px);
+  bottom: var(--elm-table-offset, 0px);
+  transition: right 200ms ease;
+}

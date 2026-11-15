@@ -1,0 +1,101 @@
+{
+  "name": "@element-editor/core",
+  "version": "0.2.0",
+  "description": "Framework-neutral core of the Element map editor: GeoJSON data and UI stores, types, snapping, geometry and routing helpers.",
+  "keywords": [
+    "element-editor",
+    "geojson",
+    "map-editor",
+    "gis",
+    "zustand",
+    "snapping",
+    "typescript"
+  ],
+  "homepage": "https://elementeditor.dev",
+  "bugs": {
+    "url": "https://github.com/spatibase/element/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spatibase/element.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "author": "Michal Acler",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "internal": [
+        "./dist/internal.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./internal": {
+      "import": {
+        "types": "./dist/internal.d.ts",
+        "default": "./dist/internal.es.js"
+      },
+      "require": {
+        "types": "./dist/internal.d.cts",
+        "default": "./dist/internal.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -b && vite build && node ../../scripts/fix-dts.mjs",
+    "dev": "tsc -b --watch",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@turf/area": "^7.3.4",
+    "@turf/boolean-point-in-polygon": "^7.3.4",
+    "@turf/buffer": "^7.3.4",
+    "@turf/destination": "^7.3.4",
+    "@turf/difference": "^7.3.4",
+    "@turf/distance": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
+    "@turf/union": "^7.3.4",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "typescript": "~5.7.2",
+    "vite": "^6.4.2",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  }
+}

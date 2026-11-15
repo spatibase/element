@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build, dist smoke check, type-check, lint and every unit test (~4 min).
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Dist smoke check
+        run: pnpm check:dist
+
+      - name: Type-check (app, configs, unit + e2e tests)
+        run: pnpm --filter @element-editor/react typecheck
+
+      - name: Lint (errors fail; warnings are reported)
+        run: pnpm lint
+
+      - name: Type-check the other packages and the demo
+        run: pnpm --filter @element-editor/core --filter @element-editor/ui --filter @element-editor/adapter-leaflet --filter @element-editor/adapter-maplibre --filter @element-editor/demo typecheck
+
+      - name: Package unit tests (core, ui, adapters)
+        run: pnpm --filter @element-editor/core --filter @element-editor/ui --filter @element-editor/adapter-leaflet --filter @element-editor/adapter-maplibre test
+
+      - name: Unit tests (react)
+        run: pnpm --filter @element-editor/react test:run
+
+  # Playwright e2e, sharded. ~1070 tests (every spec on both drop-in engines + the demo) take over an
+  # hour on one 2-vCPU runner (Playwright runs 1 worker there), so they are split across parallel
+  # jobs. Each shard builds on its own: the dev servers load packages/*/dist.
+  # Projects: chromium (Leaflet drop-in), chromium-maplibre (MapLibre drop-in), demo-maplibre (apps/demo).
+  e2e:
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Shards split by test count, not time; MapLibre (SwiftShader WebGL) tests are ~2x slower and
+        # cluster in the last shards, so keep the count high enough that those finish in ~12 min.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @element-editor/react exec playwright install --with-deps chromium
+
+      - name: E2E tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+        run: pnpm --filter @element-editor/react test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        env:
+          CI: true
+
+      - name: Upload E2E report and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: |
+            packages/react/playwright-report/
+            packages/react/test-results/
+          retention-days: 7
+
+  # Docs honesty: every doc snippet type-checks against the built packages, the API reference
+  # matches the dist types, and the example apps build from `pnpm pack` tarballs (fresh install).
+  docs-and-examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Doc snippets and API reference
+        run: pnpm check:docs
+
+      - name: Example apps from packed tarballs
+        run: pnpm check:examples

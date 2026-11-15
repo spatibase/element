@@ -1,0 +1,35 @@
+name: Nightly
+
+# Example apps from packed tarballs with today's dependency releases (no lockfiles), each page
+# loaded in headless Chromium.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  examples-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @element-editor/react exec playwright install --with-deps chromium
+
+      - name: Example apps, built and loaded headless
+        run: pnpm check:examples --smoke

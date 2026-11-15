@@ -1,0 +1,133 @@
+@import "./shell.css";
+@import "leaflet/dist/leaflet.css";
+
+@source "../../../adapter-leaflet/src/**/*.{ts,tsx}";
+
+/* Suppress browser focus outline on Leaflet marker/path containers */
+.leaflet-marker-icon:focus,
+.leaflet-interactive:focus { outline: none; }
+
+/* Compact map attribution (CompactAttribution.tsx): Leaflet's attribution
+ * control, with a round "i" toggle portalled into the same corner. It starts
+ * expanded (a pill the toggle sits on) and collapses to the toggle after the
+ * first map interaction or five seconds. No transition: it snaps, so the slot
+ * row reflows once (and nothing moves for prefers-reduced-motion). While open the corner spans
+ * the map width so the pill can wrap instead of overflowing. */
+:is(.leaflet-container, [data-elm-attribution-corner]) .leaflet-control-attribution.elm-attribution-compact { display: none; }
+:is(.leaflet-container, [data-elm-attribution-corner]) .leaflet-control-attribution.elm-attribution-open {
+  display: block;
+  margin: 0 4px 4px 0;
+  max-width: calc(100% - 8px);
+  min-height: 22px;
+  padding: 2px 32px 2px 10px;
+  border-radius: 11px;
+  line-height: 18px;
+  background: color-mix(in srgb, var(--elm-surface, var(--_elm-surface)) 85%, transparent);
+  color: var(--elm-text-secondary, var(--_elm-text-secondary));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+.leaflet-bottom.leaflet-right:has(> .elm-attribution-open) { left: 0; }
+/* In the drop-in the control and its toggle sit in the shell's attribution corner
+ * (the bottom-right end of its slot row, ElementEditorShell): the toggle is in the
+ * row's flow while closed, and rides the open pill's right end. Outside
+ * .leaflet-container, so Leaflet's font and link colour are restated. */
+[data-elm-attribution-corner] { position: relative; }
+[data-elm-attribution-corner] .elm-attribution-toggle { position: static; }
+[data-elm-attribution-corner] .elm-attribution-toggle[aria-expanded="true"] { position: absolute; right: 0; bottom: 0; }
+[data-elm-attribution-corner] .leaflet-control-attribution.elm-attribution-open { margin: 0; max-width: 100%; font-size: 12px; }
+[data-elm-attribution-corner] .leaflet-control-attribution a { color: #0078a8; }
+/* Keep the attribution corner clear of the open layers panel / docked inspector
+ * (--elm-panel-offset) and the data table (--elm-table-offset). `right` uses the
+ * panels' own 200ms ease so it moves in lockstep; `bottom` rides the table
+ * offset, which is already transitioned on the root. Scoped to Element roots so
+ * a host app's other maps are untouched. */
+[data-elm-theme] .leaflet-bottom.leaflet-right {
+  right: var(--elm-panel-offset, 0px);
+  bottom: var(--elm-table-offset, 0px);
+  transition: right 200ms ease;
+}
+.elm-attribution-toggle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 801; /* above the expanded control (.leaflet-control is 800) */
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--elm-surface, var(--_elm-surface)) 85%, transparent);
+  color: var(--elm-text-secondary, var(--color-gray-600));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.elm-attribution-toggle:hover { color: var(--elm-text, var(--color-gray-900)); }
+.elm-attribution-toggle[aria-expanded="true"] { box-shadow: none; background: transparent; }
+.elm-attribution-toggle:focus { outline: none; }
+.elm-attribution-toggle:focus-visible { outline: 2px solid var(--elm-focus-ring, var(--_elm-focus-ring)); outline-offset: 1px; }
+[data-elm-theme="dark"] :is(.elm-attribution-toggle, .leaflet-control-attribution.elm-attribution-open) {
+  background: color-mix(in srgb, var(--elm-surface, var(--_elm-surface)) 85%, transparent);
+  color: var(--elm-text-secondary, var(--_elm-text-secondary));
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+[data-elm-theme="dark"] .elm-attribution-toggle:hover { color: var(--elm-text, var(--color-gray-50)); }
+[data-elm-theme="dark"] .elm-attribution-toggle[aria-expanded="true"] { box-shadow: none; background: transparent; }
+[data-elm-theme="dark"] .leaflet-control-attribution.elm-attribution-open a { color: var(--elm-text, var(--color-gray-100)); }
+
+.leaflet-control-attribution.elm-attribution-bar {
+  float: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 4px;
+  background: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--elm-text-muted, var(--_elm-text-muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A pin just added under the still cursor (adapter-leaflet freshFeature.ts): one accent
+   step darker instead of a snap ring, until the cursor leaves it. */
+.elm-pin-fresh path { fill: var(--color-primary-600) !important; }
+
+/* When drawing, force the entire map and all interactive elements to use a crosshair.
+   This prevents Leaflet's native grab/grabbing (hand) cursors from flickering when clicking. */
+.leaflet-container.drawing-mode,
+.leaflet-container.drawing-mode .leaflet-grab,
+.leaflet-container.drawing-mode .leaflet-interactive,
+.leaflet-container.drawing-mode.leaflet-dragging,
+.leaflet-container.drawing-mode.leaflet-dragging .leaflet-grab,
+.leaflet-container.drawing-mode.leaflet-dragging .leaflet-interactive {
+    cursor: crosshair !important;
+}
+
+/* Explicitly allow pointer cursors for specific interactive overlays (like polygon closing nodes) */
+.leaflet-container.drawing-mode .closing-node,
+.leaflet-container.drawing-mode .closing-node * {
+    cursor: pointer !important;
+}
+
+
+/* Override Leaflet tooltip defaults — solid white, no transparency */
+.leaflet-tooltip {
+  background-color: var(--elm-surface, #fff) !important;
+  opacity: 1 !important;
+}
+/* Leaflet popups (precise coordinates): leaflet.css's white card, or the design tokens once set. */
+[data-elm-theme] :is(.leaflet-popup-content-wrapper, .leaflet-popup-tip) {
+  background: var(--elm-surface, white);
+  color: var(--elm-text, #333);
+}
+
+/* React unmounts Tooltip's portal children before Leaflet removes the layer,
+   so the pill briefly renders empty during teardown. Hide it the moment
+   it becomes empty so the user doesn't see a blank tooltip flash on ESC. */
+.leaflet-tooltip:empty {
+  display: none !important;
+}
+

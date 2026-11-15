@@ -1,0 +1,136 @@
+{
+  "name": "@element-editor/ui",
+  "version": "0.2.0",
+  "description": "React UI of the Element map editor: toolbars, layers panel, data table, schema forms and GeoJSON inspector, for building your own editor layout.",
+  "keywords": [
+    "element-editor",
+    "react",
+    "geojson",
+    "map-editor",
+    "data-table",
+    "gis",
+    "ui-components"
+  ],
+  "homepage": "https://elementeditor.dev",
+  "bugs": {
+    "url": "https://github.com/spatibase/element/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spatibase/element.git",
+    "directory": "packages/ui"
+  },
+  "license": "MIT",
+  "author": "Michal Acler",
+  "private": false,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/element-editor-ui.cjs",
+  "module": "./dist/element-editor-ui.es.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "primitives": [
+        "./dist/primitives.d.ts"
+      ],
+      "internal": [
+        "./dist/internal.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/element-editor-ui.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/element-editor-ui.cjs"
+      }
+    },
+    "./primitives": {
+      "import": {
+        "types": "./dist/primitives.d.ts",
+        "default": "./dist/primitives.es.js"
+      },
+      "require": {
+        "types": "./dist/primitives.d.cts",
+        "default": "./dist/primitives.cjs"
+      }
+    },
+    "./internal": {
+      "import": {
+        "types": "./dist/internal.d.ts",
+        "default": "./dist/internal.es.js"
+      },
+      "require": {
+        "types": "./dist/internal.d.cts",
+        "default": "./dist/internal.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "vite build && node ../../scripts/fix-dts.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lint": "^6.9.5",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.41.0",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "@element-editor/core": "workspace:*",
+    "@tanstack/react-virtual": "^3.13.23",
+    "@turf/bbox": "^7.3.4",
+    "@turf/buffer": "^7.3.4",
+    "@turf/centroid": "^7.3.4",
+    "@turf/difference": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
+    "@turf/intersect": "^7.3.4",
+    "@turf/polygon-smooth": "^7.3.4",
+    "@turf/simplify": "^7.3.4",
+    "@turf/union": "^7.3.4",
+    "clsx": "^2.1.1",
+    "codemirror": "^6.0.2",
+    "react-data-grid": "7.0.0-beta.57",
+    "sonner": "^2.0.7",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/geojson": "^7946.0.14",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.2.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

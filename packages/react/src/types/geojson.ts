@@ -1,0 +1,20 @@
+// Re-exported from @element-editor/core — do not add definitions here
+export type {
+  GeoJSONFeature,
+  FeatureCollection,
+  GeoJSONFeatureInput,
+  FeatureCollectionInput,
+  GeometryInput,
+  Schema,
+  SchemaField,
+  FieldType,
+  Group,
+  Geometry,
+  PointGeometry,
+  MultiPointGeometry,
+  LineStringGeometry,
+  PolygonGeometry,
+  MultiPolygonGeometry,
+  EditingMode,
+  DrawType,
+} from '@element-editor/core'

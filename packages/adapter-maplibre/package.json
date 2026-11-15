@@ -1,0 +1,127 @@
+{
+  "name": "@element-editor/adapter-maplibre",
+  "version": "0.2.0",
+  "description": "Add drawing, vertex editing, snapping and GeoJSON data editing to an existing MapLibre GL map (MapTiler SDK and Mapbox GL JS work too).",
+  "keywords": [
+    "element-editor",
+    "maplibre",
+    "maplibre-gl",
+    "mapbox-gl",
+    "react",
+    "geojson",
+    "map-editor",
+    "drawing",
+    "vertex-editing",
+    "snapping",
+    "basemaps",
+    "gis"
+  ],
+  "homepage": "https://elementeditor.dev",
+  "bugs": {
+    "url": "https://github.com/spatibase/element/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spatibase/element.git",
+    "directory": "packages/adapter-maplibre"
+  },
+  "license": "MIT",
+  "author": "Michal Acler",
+  "private": false,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "basemaps": [
+        "./dist/basemaps.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./basemaps": {
+      "import": {
+        "types": "./dist/basemaps.d.ts",
+        "default": "./dist/basemaps.es.js"
+      },
+      "require": {
+        "types": "./dist/basemaps.d.cts",
+        "default": "./dist/basemaps.cjs"
+      }
+    },
+    "./style.css": "./dist/adapter-maplibre.css"
+  },
+  "files": [
+    "dist",
+    "basemaps",
+    "LICENSE",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "vite build && node ../../scripts/fix-dts.mjs",
+    "dev": "tsc --noEmit --watch",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@element-editor/core": "workspace:*",
+    "@element-editor/ui": "workspace:*",
+    "@turf/area": "^7.3.4",
+    "@turf/bbox": "^7.3.4",
+    "@turf/boolean-intersects": "^7.3.4",
+    "@turf/distance": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
+    "@turf/length": "^7.3.4",
+    "@turf/transform-rotate": "^7.3.4",
+    "sonner": "^2.0.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/geojson": "^7946.0.16",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "maplibre-gl": "^5.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "maplibre-gl": "^5.5.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "peerDependenciesMeta": {
+    "maplibre-gl": {
+      "optional": true
+    }
+  }
+}

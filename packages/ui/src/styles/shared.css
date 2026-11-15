@@ -1,0 +1,563 @@
+/*
+ * Shared Element CSS: the single source for every rule all Element stylesheets
+ * need (accent/theme tokens, scoped preflight, dark gray remap, keyframes,
+ * data-table overrides, row-state tokens, scrollbars, checkbox). Each package
+ * entry (adapter-leaflet/src/index.css, adapter-maplibre/src/index.css,
+ * react/src/styles/shell.css) imports this file with a relative @import, and
+ * Tailwind inlines it at build time, so every built stylesheet stays
+ * self-contained. Add new shared keyframes/rules HERE, not in the entries.
+ * Entries must import tailwindcss/theme + utilities (and any third-party CSS)
+ * BEFORE this file; package-specific rules go after it.
+ */
+
+/* Scan UI source for Tailwind classes (relative to this file), regardless of Vite context */
+@source "../**/*.{ts,tsx}";
+
+/*
+ * Element CSS Custom Properties
+ *
+ * Brand colour: set ONE variable — `--elm-accent` (any CSS colour) — and the
+ * whole primary-50…950 scale is generated from it (see the "Accent scale from
+ * ONE colour" block at the end). Or pass `accentColor` to <ElementEditor> /
+ * <ElementEditorUIProvider>. `--elm-primary-N` still overrides a single shade.
+ *
+ * Example (plain CSS):
+ *   :root { --elm-accent: #7c3aed; }        all editors
+ *   .my-editor { --elm-accent: #7c3aed; }   one editor root
+ */
+
+/* ── Brand / accent color ──────────────────────────────────────────────────── */
+/* Registers the primary-* utilities (Tailwind needs a @theme entry). The
+ * actual values come from `--elm-accent` via the "Accent scale from ONE
+ * colour" block at the end of this file — set `--elm-accent`, not these. */
+@theme {
+  --color-primary-50: var(--elm-primary-50, #eff6ff);
+  --color-primary-100: var(--elm-primary-100, #dbeafe);
+  --color-primary-200: var(--elm-primary-200, #bfdbfe);
+  --color-primary-300: var(--elm-primary-300, #93c5fd);
+  --color-primary-400: var(--elm-primary-400, #60a5fa);
+  --color-primary-500: var(--elm-primary-500, #3b82f6);
+  --color-primary-600: var(--elm-primary-600, #2563eb);
+  --color-primary-700: var(--elm-primary-700, #1d4ed8);
+  --color-primary-800: var(--elm-primary-800, #1e40af);
+  --color-primary-900: var(--elm-primary-900, #1e3a8a);
+}
+
+/* Dark mode via data-elm-theme attribute */
+@custom-variant dark (&:where([data-elm-theme="dark"], [data-elm-theme="dark"] *));
+
+/* ── Scoped preflight ────────────────────────────────────────────────────────
+ * Element is embedded in host apps, so it must not ship Tailwind's global
+ * preflight (it would shrink the host's headings, turn inline SVGs into blocks,
+ * zero margins…). Only the theme + utilities layers are imported by each entry; this
+ * block re-applies Tailwind v4.2 preflight (node_modules/tailwindcss/preflight.css)
+ * verbatim, but only inside Element's own DOM:
+ *   - [data-elm-theme]  the editor root and the themed portal wrappers
+ *   - [data-elm-portal]  untinted body portals (delete bar, OSM trace picker)
+ *   - body-level portals that carry neither attribute: the context menu,
+ *     the feature edit window, Tooltip / schema menu (.z-[9999]), the
+ *     drag-and-drop clone in the layers list, and .elm-feature-tooltip.
+ * Each rule keeps the specificity of the original preflight selector (the
+ * scope is a zero-specificity :where), and it lives in @layer base, so
+ * utilities still win exactly as before. Regenerate this block when
+ * Tailwind's preflight changes.
+ * Matching cost (every style recalc of the editor subtree, e.g. a CSS
+ * variable written on the root while a panel is resized): the original
+ * selector comes first (`:is(hr)&`, built as `:is(hr):where(scope)`) so only
+ * matching elements evaluate the scope, and the scope lists plain `ROOT *`
+ * descendants, not `:is(ROOTS) *` (which can't use the browser's ancestor
+ * filter). The `&`-first form cost ~55 ms per recalc with 5k features.
+ * The `html` rule (font, line-height) moves onto the scope roots. */
+@layer base {
+  :where([data-elm-theme], [data-elm-portal], [data-elm-context-menu], [role="dialog"][aria-label="Edit feature"], body > .z-\[9999\], body > [data-rfd-draggable-id], .elm-feature-tooltip,
+    [data-elm-theme] *, [data-elm-portal] *, [data-elm-context-menu] *, [role="dialog"][aria-label="Edit feature"] *, body > .z-\[9999\] *, body > [data-rfd-draggable-id] *, .elm-feature-tooltip *) {
+    &, &::after, &::before, &::backdrop, &::file-selector-button {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border: 0 solid;
+    }
+    :is(hr)& {
+      height: 0;
+      color: inherit;
+      border-top-width: 1px;
+    }
+    :is(abbr:where([title]))& {
+      -webkit-text-decoration: underline dotted;
+      text-decoration: underline dotted;
+    }
+    :is(h1, h2, h3, h4, h5, h6)& {
+      font-size: inherit;
+      font-weight: inherit;
+    }
+    :is(a)& {
+      color: inherit;
+      -webkit-text-decoration: inherit;
+      text-decoration: inherit;
+    }
+    :is(b, strong)& {
+      font-weight: bolder;
+    }
+    :is(code, kbd, samp, pre)& {
+      /* Design token --elm-font-mono; the fallback is preflight's own stack. */
+      font-family: var(--elm-font-mono, var(--_elm-font-mono, --theme(
+        --default-mono-font-family,
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        'Liberation Mono',
+        'Courier New',
+        monospace
+      )));
+      font-feature-settings: --theme(--default-mono-font-feature-settings, normal);
+      font-variation-settings: --theme(--default-mono-font-variation-settings, normal);
+      font-size: 1em;
+    }
+    :is(small)& {
+      font-size: 80%;
+    }
+    :is(sub, sup)& {
+      font-size: 75%;
+      line-height: 0;
+      position: relative;
+      vertical-align: baseline;
+    }
+    :is(sub)& {
+      bottom: -0.25em;
+    }
+    :is(sup)& {
+      top: -0.5em;
+    }
+    :is(table)& {
+      text-indent: 0;
+      border-color: inherit;
+      border-collapse: collapse;
+    }
+    :-moz-focusring& {
+      outline: auto;
+    }
+    :is(progress)& {
+      vertical-align: baseline;
+    }
+    :is(summary)& {
+      display: list-item;
+    }
+    :is(ol, ul, menu)& {
+      list-style: none;
+    }
+    :is(img, svg, video, canvas, audio, iframe, embed, object)& {
+      display: block;
+      vertical-align: middle;
+    }
+    :is(img, video)& {
+      max-width: 100%;
+      height: auto;
+    }
+    :is(button, input, select, optgroup, textarea)&, &::file-selector-button {
+      font: inherit;
+      font-feature-settings: inherit;
+      font-variation-settings: inherit;
+      letter-spacing: inherit;
+      color: inherit;
+      border-radius: 0;
+      background-color: transparent;
+      opacity: 1;
+    }
+    :where(select:is([multiple], [size]))& optgroup {
+      font-weight: bolder;
+    }
+    :where(select:is([multiple], [size]))& optgroup option {
+      padding-inline-start: 20px;
+    }
+    &::file-selector-button {
+      margin-inline-end: 4px;
+    }
+    &::placeholder {
+      opacity: 1;
+    }
+    @supports (not (-webkit-appearance: -apple-pay-button)) /* Not Safari */ or
+      (contain-intrinsic-size: 1px) /* Safari 17+ */ {
+      &::placeholder {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+    :is(textarea)& {
+      resize: vertical;
+    }
+    &::-webkit-search-decoration {
+      -webkit-appearance: none;
+    }
+    &::-webkit-date-and-time-value {
+      min-height: 1lh;
+      text-align: inherit;
+    }
+    &::-webkit-datetime-edit {
+      display: inline-flex;
+    }
+    &::-webkit-datetime-edit-fields-wrapper {
+      padding: 0;
+    }
+    &::-webkit-datetime-edit, &::-webkit-datetime-edit-year-field, &::-webkit-datetime-edit-month-field, &::-webkit-datetime-edit-day-field, &::-webkit-datetime-edit-hour-field, &::-webkit-datetime-edit-minute-field, &::-webkit-datetime-edit-second-field, &::-webkit-datetime-edit-millisecond-field, &::-webkit-datetime-edit-meridiem-field {
+      padding-block: 0;
+    }
+    &::-webkit-calendar-picker-indicator {
+      line-height: 1;
+    }
+    :-moz-ui-invalid& {
+      box-shadow: none;
+    }
+    :is(button, input:where([type='button'], [type='reset'], [type='submit']))&, &::file-selector-button {
+      appearance: button;
+    }
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button {
+      height: auto;
+    }
+    :is([hidden]:where(:not([hidden='until-found'])))& {
+      display: none !important;
+    }
+  }
+  :where([data-elm-theme], [data-elm-portal], [data-elm-context-menu], [role="dialog"][aria-label="Edit feature"], body > .z-\[9999\], body > [data-rfd-draggable-id], .elm-feature-tooltip) {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    /* Design token --elm-font; the fallback is preflight's own stack
+     * (some roots here, e.g. the dnd clone, carry no private token defaults). */
+    font-family: var(--elm-font, var(--_elm-font, --theme(
+    --default-font-family,
+    ui-sans-serif,
+    system-ui,
+    sans-serif,
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji'
+    )));
+    font-feature-settings: --theme(--default-font-feature-settings, normal);
+    font-variation-settings: --theme(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* True-dark UI: the dark chrome is built on Tailwind `gray-*`, which is
+ * blue-tinted. Remap it to the zero-chroma neutral scale inside dark roots so
+ * every `dark:*-gray-*` (and any plain gray-* under a dark root) renders
+ * pure grey. Light mode keeps the stock gray. */
+[data-elm-theme="dark"] {
+  --color-gray-50: oklch(98.5% 0 0);
+  --color-gray-100: oklch(97% 0 0);
+  --color-gray-200: oklch(92.2% 0 0);
+  --color-gray-300: oklch(87% 0 0);
+  --color-gray-400: oklch(70.8% 0 0);
+  --color-gray-500: oklch(55.6% 0 0);
+  --color-gray-600: oklch(43.9% 0 0);
+  --color-gray-700: oklch(37.1% 0 0);
+  --color-gray-800: oklch(26.9% 0 0);
+  --color-gray-900: oklch(20.5% 0 0);
+  --color-gray-950: oklch(14.5% 0 0);
+}
+
+/* ── Design tokens ────────────────────────────────────────────────
+ * Integrators theme the chrome with the PUBLIC tokens below (font, radius,
+ * shadows, surfaces, text, borders, focus ring, tooltip), set per mode on the
+ * editor root, on [data-elm-theme], on :root or through `<ElementEditor style>`.
+ * Element never declares a public `--elm-*` token itself: every use reads
+ * `var(--elm-x, var(--_elm-x))`, and the private `--_elm-x` defaults below
+ * (per mode, zero specificity) reproduce the pre-token look exactly. So:
+ *   - any rule that sets `--elm-x` on the root or an ancestor (even :root) wins;
+ *   - a public token that is set reads as a non-empty computed value, which is
+ *     how useRootTokens() knows what to copy onto body-level portals.
+ * Components use the Tailwind colours/radii/shadows/fonts registered in the
+ * `@theme inline` block (`bg-elm-surface/95`, `text-elm-text-muted`,
+ * `rounded-elm`, `shadow-elm`, `font-elm`, …), which inline the var() chain
+ * so it resolves on the element itself (per editor, per portal). A one-off
+ * shade that no token default matches uses the token with an explicit
+ * fallback, e.g. `text-(--elm-text,var(--color-gray-800))`: identical by
+ * default, and it follows the token once an integrator sets it.
+ * The list of public names lives in ui/src/hooks/useRootTokens.ts
+ * (THEME_TOKENS); keep it, docs/guides/theming.md and this block in sync. */
+@theme inline {
+  --font-elm: var(--elm-font, var(--_elm-font));
+  --font-elm-mono: var(--elm-font-mono, var(--_elm-font-mono));
+  /* Containers (toolbars, panels, menus, popovers) and controls (buttons, inputs, rows). */
+  --radius-elm: var(--elm-radius, var(--_elm-radius));
+  --radius-elm-control: var(--elm-radius-control, var(--_elm-radius-control));
+  /* Derived steps, exact by default: windows = container + 4px (16px), small
+   * chips/badges = control - 2px (4px), tooltips/cards = control + 2px (8px). */
+  --radius-elm-window: calc(var(--elm-radius, var(--_elm-radius)) + 0.25rem);
+  --radius-elm-chip: max(0px, calc(var(--elm-radius-control, var(--_elm-radius-control)) - 0.125rem));
+  --radius-elm-card: calc(var(--elm-radius-control, var(--_elm-radius-control)) + 0.125rem);
+  --shadow-elm: var(--elm-shadow, var(--_elm-shadow));
+  --shadow-elm-raised: var(--elm-shadow-raised, var(--_elm-shadow-raised));
+  --shadow-elm-control: var(--elm-shadow-control, var(--_elm-shadow-control));
+  --color-elm-surface: var(--elm-surface, var(--_elm-surface));
+  --color-elm-surface-raised: var(--elm-surface-raised, var(--_elm-surface-raised));
+  --color-elm-surface-sunken: var(--elm-surface-sunken, var(--_elm-surface-sunken));
+  --color-elm-surface-hover: var(--elm-surface-hover, var(--_elm-surface-hover));
+  --color-elm-control-hover: var(--elm-control-hover, var(--_elm-control-hover));
+  --color-elm-text: var(--elm-text, var(--_elm-text));
+  --color-elm-text-secondary: var(--elm-text-secondary, var(--_elm-text-secondary));
+  --color-elm-text-muted: var(--elm-text-muted, var(--_elm-text-muted));
+  --color-elm-text-subtle: var(--elm-text-subtle, var(--_elm-text-subtle));
+  --color-elm-text-disabled: var(--elm-text-disabled, var(--_elm-text-disabled));
+  --color-elm-border: var(--elm-border, var(--_elm-border));
+  --color-elm-border-subtle: var(--elm-border-subtle, var(--_elm-border-subtle));
+  --color-elm-border-strong: var(--elm-border-strong, var(--_elm-border-strong));
+  --color-elm-focus-ring: var(--elm-focus-ring, var(--_elm-focus-ring));
+  --color-elm-tooltip: var(--elm-tooltip, var(--_elm-tooltip));
+  --color-elm-tooltip-text: var(--elm-tooltip-text, var(--_elm-tooltip-text));
+}
+/* Light defaults (also mode-less portals). :where() keeps them at zero
+ * specificity, so any integrator rule targeting the root wins. */
+:where([data-elm-theme], [data-elm-portal]) {
+  --_elm-font: --theme(--default-font-family, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
+  --_elm-font-mono: --theme(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+  --_elm-radius: 0.75rem;
+  --_elm-radius-control: 0.375rem;
+  --_elm-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --_elm-shadow-raised: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --_elm-shadow-control: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --_elm-surface: var(--color-white);
+  --_elm-surface-raised: var(--color-white);
+  --_elm-surface-sunken: var(--color-gray-50);
+  --_elm-surface-hover: var(--color-gray-100);
+  --_elm-control-hover: var(--color-gray-200);
+  --_elm-text: var(--color-gray-900);
+  --_elm-text-secondary: var(--color-gray-700);
+  --_elm-text-muted: var(--color-gray-500);
+  --_elm-text-subtle: var(--color-gray-400);
+  --_elm-text-disabled: var(--color-gray-300);
+  --_elm-border: var(--color-gray-200);
+  --_elm-border-subtle: var(--color-gray-100);
+  --_elm-border-strong: var(--color-gray-300);
+  --_elm-focus-ring: var(--color-gray-400);
+  /* Tooltips are inverted: dark on a light editor. */
+  --_elm-tooltip: var(--color-neutral-900);
+  --_elm-tooltip-text: var(--color-white);
+}
+:where([data-elm-theme="dark"]) {
+  --_elm-surface: var(--color-gray-900);
+  --_elm-surface-raised: var(--color-gray-800);
+  --_elm-surface-sunken: color-mix(in oklab, var(--color-gray-800) 50%, transparent);
+  --_elm-surface-hover: var(--color-gray-800);
+  --_elm-control-hover: color-mix(in oklab, var(--color-white) 12%, transparent);
+  --_elm-text: var(--color-white);
+  --_elm-text-secondary: var(--color-gray-300);
+  --_elm-text-muted: var(--color-gray-400);
+  --_elm-text-subtle: var(--color-gray-500);
+  --_elm-text-disabled: var(--color-gray-600);
+  --_elm-border: var(--color-gray-700);
+  --_elm-border-subtle: var(--color-gray-800);
+  --_elm-border-strong: var(--color-gray-600);
+  --_elm-focus-ring: var(--color-gray-500);
+  --_elm-tooltip: var(--color-white);
+  --_elm-tooltip-text: var(--color-neutral-900);
+}
+
+/* Shortcut chips (KbdDark) in tooltips and context menus: neutral greys by
+ * default. These private mixes stay guaranteed-invalid (so the chip falls back to
+ * its neutral classes) until the integrator sets both tokens of the container. */
+.elm-kbd-on-tooltip { --_elm-kbd-fg: var(--elm-tooltip-text); --_elm-kbd-base: var(--elm-tooltip); }
+.elm-kbd-on-surface { --_elm-kbd-fg: var(--elm-text); --_elm-kbd-base: var(--elm-surface); }
+:where(.elm-kbd-on-tooltip, .elm-kbd-on-surface) {
+  --_elm-kbd-bg: color-mix(in oklab, var(--_elm-kbd-fg) 14%, var(--_elm-kbd-base));
+  --_elm-kbd-border: color-mix(in oklab, var(--_elm-kbd-fg) 26%, var(--_elm-kbd-base));
+  --_elm-kbd-text: color-mix(in oklab, var(--_elm-kbd-fg) 72%, var(--_elm-kbd-base));
+}
+
+/* Pointer cursor for interactive elements and no text selection on non-text
+ * UI, scoped to Element's DOM (same roots as the scoped preflight). Unlayered
+ * like before; one selector per element so each keeps its old specificity. */
+:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu], [role="dialog"][aria-label="Edit feature"], body > .z-\[9999\], body > [data-rfd-draggable-id], .elm-feature-tooltip,
+    [data-elm-theme] *, [data-elm-portal] *, [data-elm-context-menu] *, [role="dialog"][aria-label="Edit feature"] *, body > .z-\[9999\] *, body > [data-rfd-draggable-id] *, .elm-feature-tooltip *) {
+  :is(button)&, :is(select)&, :is([role="button"])& { cursor: pointer; }
+  :is(button)&, :is([role="button"])&, :is([role="toolbar"])&, :is(nav)&, .select-none& { user-select: none; }
+  :is(button:disabled)& { cursor: not-allowed; }
+}
+
+/* Dialog open animation */
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+dialog[open]:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu], [role="dialog"][aria-label="Edit feature"], body > .z-\[9999\], body > [data-rfd-draggable-id], .elm-feature-tooltip, [data-elm-theme] *, [data-elm-portal] *, [data-elm-context-menu] *, [role="dialog"][aria-label="Edit feature"] *, body > .z-\[9999\] *, body > [data-rfd-draggable-id] *, .elm-feature-tooltip *) {
+  animation: dialog-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tooltip open animation — matches Mantine's "pop" transition: 100ms ease,
+ * scale(0.9) → scale(1), opacity 0 → 1, center origin. No slide. */
+@keyframes tooltip-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* One-shot press-feedback pulse — used on the search input so re-pressing
+ * Cmd+F re-fires the animation even while already focused. Driven by a
+ * React `key` bump that remounts the animated element. */
+@keyframes press-pulse {
+  0%   { scale: 1; }
+  40%  { scale: 0.95; }
+  100% { scale: 1; }
+}
+
+/* Remove DataGrid outer border (panel border-t provides separation) */
+.rdg { border: none !important; }
+/* The grid itself takes focus when empty grid space is clicked: no ring for
+ * that, a neutral one for keyboard focus. Cells keep their own selection outline. */
+.rdg:focus { outline: none; }
+.rdg:focus-visible { outline: 2px solid var(--elm-focus-ring, var(--_elm-focus-ring)); outline-offset: -2px; }
+/* rdg keeps its selected cell after focus leaves it: show the cell ring only
+ * while focus is in a cell (clicking the map, a toolbar, the panel chrome or
+ * empty grid space drops it). A header cell selected by a sorting click shows
+ * it for keyboard focus only. */
+.rdg:is(:focus, :not(:focus-within)) .rdg-cell[aria-selected="true"],
+.rdg .rdg-header-row .rdg-cell[aria-selected="true"]:not(:focus-visible) { outline: none; }
+/* Tailwind v4 preflight resets `border: 0 solid` on every element, which
+ * kills react-data-grid's default cell/header dividers. Restore them. */
+.rdg .rdg-cell { border-inline-end: 1px solid var(--rdg-border-color, #e5e7eb); border-block-end: 1px solid var(--rdg-border-color, #e5e7eb); padding-inline: 8px; }
+.rdg .rdg-header-row .rdg-cell { border-block-end: 1px solid var(--rdg-border-color, #e5e7eb); }
+/* Editors shouldn't get extra padding — their own inputs handle it. */
+.rdg .rdg-cell:has(> .rdg-text-editor), .rdg .rdg-cell:has(> select) { padding-inline: 0; }
+/* Keep the trailing action column (e.g. row-delete) pinned to the right edge. */
+/* Sticky last column needs a SOLID bg to mask horizontally-scrolling content
+ * underneath. Regular cells are transparent over the panel, which is opaque
+ * (DataTablePanel) so both read as the same colour; `--elm-rdg-sticky-bg` is
+ * set per-theme by DataTable to the panel colour. No edge shadow (user call). */
+.rdg .rdg-row > .rdg-cell:last-child { position: sticky; inset-inline-end: 0; background: var(--elm-rdg-sticky-bg, var(--rdg-background-color)); z-index: 1; }
+.rdg .rdg-header-row > .rdg-cell:last-child { position: sticky; inset-inline-end: 0; background: var(--elm-rdg-sticky-bg, var(--rdg-header-background-color)); z-index: 2; }
+/* No right border on the action column: it doubles with the panel edge. */
+.rdg :is(.rdg-row, .rdg-header-row) > .rdg-cell:last-child { border-inline-end: none; }
+/* The sticky last cell paints its own (opaque) bg, so it must follow the row's
+ * hover / selected fill or it stays a mismatched block on the highlighted row. */
+.rdg .rdg-row:hover > .rdg-cell:last-child { background: var(--rdg-row-hover-background-color); }
+.rdg .rdg-row[aria-selected="true"] > .rdg-cell:last-child { background: var(--rdg-row-selected-background-color); }
+.rdg .rdg-row[aria-selected="true"]:hover > .rdg-cell:last-child { background: var(--rdg-row-selected-hover-background-color); }
+/* Row of the feature selected on the map / in the layers list (DataTable
+ * rowClass) — same --elm-row-selected fill as the layers list row. */
+.rdg .rdg-row.elm-row-active:not([aria-selected="true"]), .rdg .rdg-row.elm-row-active:not([aria-selected="true"]) > .rdg-cell:last-child { background-color: var(--elm-row-selected); }
+.rdg .rdg-row.elm-row-active:not([aria-selected="true"]):hover, .rdg .rdg-row.elm-row-active:not([aria-selected="true"]):hover > .rdg-cell:last-child { background-color: var(--elm-row-selected-hover); }
+
+/* Thin, theme-tinted scrollbars on every scroll container in the editor
+ * (layers list, data table, modals, search results…). Native
+ * scrollbar-width/scrollbar-color, matching the docs site: thumb is the
+ * foreground at 20%, 35% on hover, on a transparent track. */
+[data-elm-theme="light"] { --elm-scrollbar-fg: var(--elm-text, var(--color-gray-900)); }
+[data-elm-theme="dark"]  { --elm-scrollbar-fg: var(--elm-text, var(--color-gray-50)); }
+
+/* Row state colours shared by the layers list (FeatureRow) and the data table,
+ * opaque over the panel so the table's sticky cell matches. selected = the
+ * feature selected on the map / in the list; checked = data-table checkbox. */
+[data-elm-theme="light"] {
+  --elm-row-hover: var(--color-gray-100);
+  --elm-row-selected: color-mix(in srgb, var(--color-primary-50) 50%, white);
+  --elm-row-selected-hover: var(--color-primary-50);
+  --elm-row-checked: var(--color-primary-50);
+  --elm-row-checked-hover: var(--color-primary-100);
+}
+[data-elm-theme="dark"] {
+  --elm-row-hover: color-mix(in srgb, white 6%, var(--color-gray-900));
+  --elm-row-selected: color-mix(in srgb, white 10%, var(--color-gray-900));
+  --elm-row-selected-hover: color-mix(in srgb, white 15%, var(--color-gray-900));
+  --elm-row-checked: color-mix(in srgb, white 15%, var(--color-gray-900));
+  --elm-row-checked-hover: color-mix(in srgb, white 20%, var(--color-gray-900));
+}
+[data-elm-theme],
+[data-elm-theme] * {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--elm-scrollbar-fg) 20%, transparent) transparent;
+}
+[data-elm-theme]:hover,
+[data-elm-theme] *:hover {
+  scrollbar-color: color-mix(in srgb, var(--elm-scrollbar-fg) 35%, transparent) transparent;
+}
+
+/* Custom checkbox — data-table select column (react-data-grid's native
+ * 20px input, `@layer rdg`, so this unlayered rule wins) and `.elm-checkbox`
+ * (schema editor "Required", etc.). 16px rounded box; checked = primary fill
+ * + white check; indeterminate (select-all) = white dash. Neutral
+ * keyboard-only focus ring. */
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input) {
+  appearance: none;
+  margin: 0;
+  inline-size: 16px;
+  block-size: 16px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--elm-border-strong, var(--_elm-border-strong));
+  border-radius: 4px;
+  background: var(--elm-surface, var(--color-white)) center / 12px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):hover { border-color: var(--elm-text-subtle, var(--color-gray-400)); }
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):checked {
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):indeterminate {
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+}
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):checked:hover,
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):indeterminate:hover {
+  border-color: var(--color-primary-600);
+  background-color: var(--color-primary-600);
+}
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):focus { outline: none; }
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):focus-visible {
+  outline: 2px solid var(--elm-focus-ring, var(--_elm-focus-ring));
+  outline-offset: 2px;
+}
+:where([data-elm-theme]) :is(.elm-checkbox, .rdg-checkbox-input):disabled { opacity: 0.5; cursor: not-allowed; }
+:where([data-elm-theme="dark"]) :is(.elm-checkbox, .rdg-checkbox-input):not(:checked):not(:indeterminate) {
+  background-color: var(--elm-surface, var(--color-gray-900));
+}
+:where([data-elm-theme="dark"]) :is(.elm-checkbox, .rdg-checkbox-input):not(:checked):not(:indeterminate):hover {
+  border-color: var(--elm-text-subtle, var(--color-gray-500));
+}
+
+/* ── Accent scale from ONE colour ──────────────────────────────────────────
+ * Set `--elm-accent` (any CSS colour) — on :root for every editor, or on one
+ * editor's root (the `accentColor` option does this) — and the whole
+ * primary-50…950 scale used by every utility follows. Light shades mix the
+ * accent with white in OKLab; dark shades scale OKLCH lightness/chroma and
+ * keep the hue (mixing with black would go muddy). Factors are fitted to
+ * Tailwind blue, so the default reproduces the familiar scale. Mirrored in JS
+ * by `accentPalette()` in @element-editor/core for the map renderers — keep in sync.
+ * `--elm-primary-N` still overrides a single shade. Declared on every themed
+ * root and portal root so it resolves per editor (@theme alone resolves once,
+ * at :root); portals set --elm-accent inline via useAccentStyle(). */
+:root, [data-elm-theme], [data-elm-portal] {
+  --color-primary-50: var(--elm-primary-50, color-mix(in oklab, var(--elm-accent, #3b82f6) 8%, white));
+  --color-primary-100: var(--elm-primary-100, color-mix(in oklab, var(--elm-accent, #3b82f6) 16%, white));
+  --color-primary-200: var(--elm-primary-200, color-mix(in oklab, var(--elm-accent, #3b82f6) 30%, white));
+  --color-primary-300: var(--elm-primary-300, color-mix(in oklab, var(--elm-accent, #3b82f6) 50%, white));
+  --color-primary-400: var(--elm-primary-400, color-mix(in oklab, var(--elm-accent, #3b82f6) 75%, white));
+  --color-primary-500: var(--elm-primary-500, var(--elm-accent, #3b82f6));
+  --color-primary-600: var(--elm-primary-600, oklch(from var(--elm-accent, #3b82f6) calc(l * 0.876) c h));
+  --color-primary-700: var(--elm-primary-700, oklch(from var(--elm-accent, #3b82f6) calc(l * 0.78) c h));
+  --color-primary-800: var(--elm-primary-800, oklch(from var(--elm-accent, #3b82f6) calc(l * 0.68) calc(c * 0.93) h));
+  --color-primary-900: var(--elm-primary-900, oklch(from var(--elm-accent, #3b82f6) calc(l * 0.61) calc(c * 0.7) h));
+  --color-primary-950: var(--elm-primary-950, oklch(from var(--elm-accent, #3b82f6) calc(l * 0.45) calc(c * 0.45) h));
+}
+
+/* Shortcut feedback: a keyboard shortcut briefly sets `data-pressed` on its
+ * button (`data-elm-shortcut`, useKeyboardShortcuts), so it looks clicked: the
+ * `active:scale-[0.95]` press plus a hover-like tint layered over whatever
+ * background the button has (filled active tools included). */
+[data-elm-shortcut][data-pressed] {
+  scale: 0.95;
+  background-image: linear-gradient(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.08));
+}
+[data-elm-theme="dark"] [data-elm-shortcut][data-pressed] {
+  background-image: linear-gradient(rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.12));
+}
+
+/* The map surface never shows the browser's (blue) focus ring. Leaflet focuses
+ * its container on click and MapLibre's canvas is focusable; Chrome then turns
+ * on :focus-visible at the next plain key press, so every tool shortcut drew
+ * an outline around the whole map. Keyboard map panning/zoom still works. */
+[data-elm-theme] .leaflet-container:focus-visible,
+[data-elm-theme] .maplibregl-canvas:focus-visible { outline: none; }

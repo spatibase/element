@@ -1,0 +1,26 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+coverage/
+test-data/*.geojson
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+.claude/
+CLAUDE.md
+# Local editor / agent tool configs
+.mcp.json
+.cursor/
+.gemini/
+.zed/
+
+# TypeScript incremental build state (rewritten on every build)
+*.tsbuildinfo
+/vault
+
+# Theme screenshot sets (pixel diffs), local only
+/theme-shots/
+/site

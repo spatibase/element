@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@element-editor/react": ["../../packages/react/src/index.ts"],
+      "@element-editor/react/leaflet": ["../../packages/react/src/leaflet/index.ts"],
+      "@element-editor/ui": ["../../packages/ui/src/index.ts"],
+      "@element-editor/core": ["../../packages/core/src/index.ts"],
+      "@element-editor/adapter-leaflet": ["../../packages/adapter-leaflet/src/index.ts"],
+      "@element-editor/adapter-maplibre": ["../../packages/adapter-maplibre/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

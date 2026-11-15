@@ -1,0 +1,78 @@
+name: Release
+
+# Publishes every public package in packages/* to npm. Runs on a version tag (`v0.2.0`), or by hand
+# from the Actions tab (dry run by default). See RELEASING.md.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: build, check and pack, but do not publish'
+        type: boolean
+        default: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # GitHub release for the tag
+  id-token: write # npm provenance (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # A `v1.2.3` tag must match the version of every package it publishes.
+      - name: Tag matches package versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for p in packages/*/package.json; do
+            v=$(node -p "require('./$p').version")
+            if [ "$v" != "$tag" ]; then echo "::error file=$p::version $v does not match tag v$tag"; exit 1; fi
+          done
+          echo "All packages at $tag"
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Dist smoke check
+        run: pnpm check:dist
+
+      - name: Publish to npm
+        run: pnpm publish -r --access public --provenance --no-git-checks ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+
+      # The GitHub release carries the tag's CHANGELOG section (written by `pnpm release`).
+      - name: GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md | sed '/^---$/d' > release-notes.md
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

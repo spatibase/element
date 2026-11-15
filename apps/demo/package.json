@@ -1,0 +1,38 @@
+{
+  "name": "@element-editor/demo",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@element-editor/adapter-leaflet": "workspace:*",
+    "@element-editor/adapter-maplibre": "workspace:*",
+    "@element-editor/core": "workspace:*",
+    "@element-editor/react": "workspace:*",
+    "@element-editor/ui": "workspace:*",
+    "leaflet": "^1.9.0",
+    "maplibre-gl": "^5.22.0",
+    "react": "^19.0.0",
+    "react-data-grid": "^7.0.0-beta.59",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
+    "sonner": "^2.0.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/geojson": "^7946.0.16",
+    "@types/leaflet": "^1.9.21",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.2.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5"
+  }
+}

@@ -1,0 +1,44 @@
+/* Theme + utilities only — no global preflight (scoped preflight lives in ui/src/styles/shared.css). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "react-data-grid/lib/styles.css";
+/* Rules shared by every Element stylesheet; inlined at build. Also scans UI source. */
+@import "../../../ui/src/styles/shared.css";
+
+/* Scan the react package source for Tailwind classes */
+@source "../**/*.{ts,tsx}";
+
+/* ── Drop-in shell-only rules (shared rules: ui/src/styles/shared.css) ── */
+
+
+/* Attribution placed in a status slot (layout entry 'attribution'): one
+ * muted line, ellipsis when it doesn't fit (full text in the wrapper's title).
+ * Only the attribution shrinks; the bar's buttons keep their size. */
+[data-elm-status-bar] > div > * { flex-shrink: 0; }
+[data-elm-status-bar] [data-elm-attribution] { flex-shrink: 1; min-width: 0; display: flex; }
+/* …also when it sits in a group. */
+[data-elm-status-bar] [data-elm-group]:has(> [data-elm-attribution]) { flex-shrink: 1; min-width: 0; }
+[data-elm-attribution] .elm-attribution-bar a { color: inherit; text-decoration: none; border-radius: 2px; }
+[data-elm-attribution] .elm-attribution-bar a:hover { color: var(--elm-text-secondary, var(--color-gray-700)); text-decoration: underline; }
+[data-elm-attribution] .elm-attribution-bar a:focus { outline: none; }
+[data-elm-attribution] .elm-attribution-bar a:focus-visible { outline: 2px solid var(--elm-focus-ring, var(--_elm-focus-ring)); outline-offset: -1px; text-decoration: underline; }
+[data-elm-theme="dark"] [data-elm-attribution] .elm-attribution-bar a:hover { color: var(--elm-text-secondary, var(--color-gray-200)); }
+
+/* Feature name tooltip */
+/* Light in both modes by default; follows the design tokens (copied onto this
+ * body-level element from the editor root at show time) once an integrator sets them. */
+.elm-feature-tooltip {
+  background: var(--elm-surface, #fff);
+  border: 1px solid var(--elm-border, #e5e7eb);
+  border-radius: var(--elm-radius-control, 6px);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--elm-text-secondary, #374151);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+.elm-feature-tooltip::before {
+  display: none;
+}
