@@ -18,6 +18,19 @@ import 'maplibre-gl/dist/maplibre-gl.css' // not included in Element's styleshee
 import '@element-editor/adapter-maplibre/style.css'
 ```
 
+### MapLibre GL JS 6: set the worker URL
+
+`pnpm add maplibre-gl` installs MapLibre GL JS 6. Version 6 loads its worker from a separate file (`maplibre-gl-worker.mjs`) that bundlers don't put where MapLibre looks for it, so the map stays blank until your app calls MapLibre's `setWorkerUrl`, once, before the first `new maplibregl.Map`. The adapter never creates the map, so it never does this for you (the drop-in `@element-editor/react` does, through `config.network.maplibreWorker`). MapLibre 5 has the worker built in: skip this step there. With Vite:
+
+```ts
+import { setWorkerUrl } from 'maplibre-gl'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+
+setWorkerUrl(workerUrl)
+```
+
+With webpack 5 (Next.js): `setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString())`. Any bundler: the jsDelivr copy the drop-in uses by default, `` setWorkerUrl(`https://cdn.jsdelivr.net/npm/maplibre-gl@${getVersion()}/dist/maplibre-gl-worker.mjs`) `` (a Content-Security-Policy then needs `script-src https://cdn.jsdelivr.net` and `worker-src blob:`).
+
 ## Example: your map, Element's toolbars
 
 The `@element-editor/ui` components go in `ElementEditorControls`' `children`. `FloatingToolbar`, `LayersPanel` and `DataTablePanel` position themselves against the positioned `data-elm-theme` wrapper; `EditingToolbar` and `ActiveDrawingToolbar` render in place, so give them an absolutely positioned wrapper of your own (adding `--elm-table-offset` keeps them above the open table).
@@ -32,6 +45,9 @@ import {
 import { getFeatureCollectionBBox, type FeatureCollection } from '@element-editor/core'
 import { ThemeContext, FloatingToolbar, EditingToolbar, ActiveDrawingToolbar, LayersPanel, DataTablePanel } from '@element-editor/ui'
 import '@element-editor/adapter-maplibre/style.css'
+// MapLibre GL JS 6 with Vite (see above; delete these two lines on MapLibre 5)
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+maplibregl.setWorkerUrl(workerUrl)
 
 export default function MyMap({ data }: { data: FeatureCollection | null }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -107,6 +123,7 @@ import { setBasemap, loadBasemapStyle, BASEMAPS } from '@element-editor/adapter-
 ## Gotchas
 
 - `ElementEditorUIProvider` is required (`ElementEditorControls` throws without it). One `GeoStoreProvider` per editor. All editor UI and the map must sit inside a `data-elm-theme="light" | "dark"` element, or the UI renders unstyled and shortcuts don't reach it. For dark mode set `ThemeContext` to the same value (portaled menus and modals read it).
+- Blank map on MapLibre GL JS 6: MapLibre's worker URL isn't set. Call `setWorkerUrl` before creating the map (see Install and CSS).
 - Render `ElementEditorControls` after the map exists; waiting for `load` (as above) is the safe pattern. A `useRef` holding the map does not re-render, so keep the map in state.
 - The adapter never fits the map on mount. Fit yourself (`map.fitBounds` in `onReady`, or `ref.fitBounds(getFeatureCollectionBBox(fc))`).
 - Your own `map.setStyle()` removes your layers; Element re-adds its own `elm-*` sources/layers. Re-add yours from a `style.load` listener registered in `onReady` (it runs after Element's repair). `setBasemap` / `BasemapControl` keep your layers. Images from `map.addImage` are never carried over: re-add them on `style.load`.

@@ -2,8 +2,9 @@
 // Check the hand-written API reference against the BUILT types (run after `pnpm build`):
 // `pnpm check:docs`. Prose stays hand-written; this only fails when the member lists drift.
 //
-// - Every ```ts block in docs/reference/*.md that declares `interface X { … }`, where X is exported
-//   by that page's package: its members must be exactly X's members (inherited ones included).
+// - Every ```ts block in docs/reference/*.md (and packages/react/AGENTS.md) that declares
+//   `interface X { … }`, where X is exported by that page's package: its members must be exactly
+//   X's members (inherited ones included).
 // - The prop tables in TABLES: row names (first column) must match the type's members; with a
 //   Required column, "Yes" must match a non-optional member. `subset` tables (deltas) only need
 //   every row to exist.
@@ -16,13 +17,16 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ref = (f) => join(root, 'docs/reference', f)
+// Interface-block pages, relative to the repo root.
 const PAGE_MODULE = {
-  'element-editor-react.md': '@element-editor/react',
-  'element-editor-ui.md': '@element-editor/ui',
-  'adapter-leaflet.md': '@element-editor/adapter-leaflet',
-  'adapter-maplibre.md': '@element-editor/adapter-maplibre',
-  'types.md': '@element-editor/core',
-  'events.md': '@element-editor/ui',
+  'docs/reference/element-editor-react.md': '@element-editor/react',
+  'docs/reference/element-editor-ui.md': '@element-editor/ui',
+  'docs/reference/adapter-leaflet.md': '@element-editor/adapter-leaflet',
+  'docs/reference/adapter-maplibre.md': '@element-editor/adapter-maplibre',
+  'docs/reference/types.md': '@element-editor/core',
+  'docs/reference/events.md': '@element-editor/ui',
+  // Shipped in the npm tarball for coding agents: its ref API block must match the types too.
+  'packages/react/AGENTS.md': '@element-editor/react',
 }
 const TABLES = [
   // The main table also lists the Leaflet-only `renderer` (marked as such in its row).
@@ -76,7 +80,7 @@ let checked = 0
 
 // 1. Interface blocks.
 for (const [page, module] of Object.entries(PAGE_MODULE)) {
-  const lines = readFileSync(ref(page), 'utf8').split('\n')
+  const lines = readFileSync(join(root, page), 'utf8').split('\n')
   for (let i = 0; i < lines.length; i++) {
     if (!/^```ts\b/.test(lines[i])) continue
     let j = i + 1
@@ -86,10 +90,10 @@ for (const [page, module] of Object.entries(PAGE_MODULE)) {
       if (!ts.isInterfaceDeclaration(s)) continue
       const name = s.name.text, line = i + 2 + sf.getLineAndCharacterOfPosition(s.getStart()).line
       const actual = [module, ...FALLBACK].map((m) => members(m, name)).find(Boolean)
-      if (!actual) { fail(`docs/reference/${page}:${line}`, `interface ${name} is not exported by ${[module, ...FALLBACK].join(', ')}`); continue }
+      if (!actual) { fail(`${page}:${line}`, `interface ${name} is not exported by ${[module, ...FALLBACK].join(', ')}`); continue }
       const documented = new Set(s.members.map((m) => m.name?.getText(sf)).filter(Boolean))
       const inherited = s.heritageClauses?.length // `extends X`: X's members aren't listed here
-      diff(`docs/reference/${page}:${line}`, `interface ${name}`, new Set(actual.keys()), documented, inherited)
+      diff(`${page}:${line}`, `interface ${name}`, new Set(actual.keys()), documented, inherited)
       checked++
     }
     i = j

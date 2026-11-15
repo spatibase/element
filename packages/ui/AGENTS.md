@@ -11,7 +11,7 @@ pnpm add @element-editor/ui @element-editor/adapter-maplibre maplibre-gl        
 pnpm add @element-editor/ui @element-editor/adapter-leaflet leaflet react-leaflet    # or Leaflet
 ```
 
-Peers: `react`, `react-dom` `^19.2.0`. This package has no stylesheet of its own: import the adapter's (`@element-editor/adapter-maplibre/style.css` plus `maplibre-gl/dist/maplibre-gl.css`, or `@element-editor/adapter-leaflet/style.css`). Keep all `@element-editor/*` packages on one version.
+Peers: `react`, `react-dom` `^19.2.0`. This package has no stylesheet of its own: import the adapter's (`@element-editor/adapter-maplibre/style.css` plus `maplibre-gl/dist/maplibre-gl.css`, or `@element-editor/adapter-leaflet/style.css`). Keep all `@element-editor/*` packages on one version. On MapLibre GL JS 6 (what `maplibre-gl` installs today) your app must call MapLibre's `setWorkerUrl` before creating the map: see the MapLibre adapter's `AGENTS.md`.
 
 ## Entries
 

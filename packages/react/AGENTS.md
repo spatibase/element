@@ -30,11 +30,13 @@ React and React DOM `^19.2` are required everywhere (React 18 is not supported).
 | Peer | Range |
 |---|---|
 | `react`, `react-dom` | `^19.2.0` |
-| `maplibre-gl` | 5.5 or 6 (default entry, MapLibre adapter) |
+| `maplibre-gl` | `^5.5.0 \|\| ^6.0.0` (default entry, MapLibre adapter) |
 | `leaflet` | `^1.9.0` (`/leaflet` entry, Leaflet adapter) |
 | `react-leaflet` | `^5.0.0` (`/leaflet` entry, Leaflet adapter) |
 
 `@element-editor/react` brings `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` as dependencies and re-exports the common types, so you rarely import those directly. With pnpm, add any `@element-editor/*` package you import from to your own `package.json`, on the same version.
+
+MapLibre GL JS 6 (what a plain `maplibre-gl` install gets) loads its worker from a separate file, `maplibre-gl-worker.mjs`. The MapLibre drop-in sets it for you before creating its map: `config.network.maplibreWorker` (default: the jsDelivr copy of your installed version; a URL to self-host it; `false` = your app calls MapLibre's `setWorkerUrl`; a URL your app already set is left alone). With the default, a Content-Security-Policy needs `script-src https://cdn.jsdelivr.net` and `worker-src blob:`. The MapLibre adapter never creates the map, so on MapLibre 6 your app calls `setWorkerUrl` itself (see `node_modules/@element-editor/adapter-maplibre/AGENTS.md`). MapLibre 5 has the worker built in.
 
 ## CSS
 
@@ -129,6 +131,9 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ElementEditorUIProvider, GeoStoreProvider, ElementEditorControls } from '@element-editor/adapter-maplibre'
 import '@element-editor/adapter-maplibre/style.css'
+// MapLibre GL JS 6 with Vite: the adapter doesn't set MapLibre's worker (delete on MapLibre 5)
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+maplibregl.setWorkerUrl(workerUrl)
 
 export default function MyMap() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -395,16 +400,17 @@ Removed or renamed in 0.2 (https://elementeditor.dev/docs/guides/migrating-to-0.
 - **No stylesheet, or the wrong one.** Unstyled panels, missing controls, broken tiles. One stylesheet per entry (table above); MapLibre adapter also needs `maplibre-gl.css`.
 - **Zero-height parent.** The root is 100% of its parent. Give the parent a height (`height: 600`, `100vh`, or `flex: 1; min-height: 0` in a flex column).
 - **Coordinate order.** Element's API (data, `initialView.center`, `bounds`, `flyTo({ center })`, `fitBounds`) is GeoJSON `[lng, lat]`. Leaflet and react-leaflet (`MapContainer center`, `L.latLng`) are `[lat, lng]`. Convert at the boundary.
-- **Missing or wrong peers.** `maplibre-gl` must be installed for the default entry (5.5 or 6); `@element-editor/adapter-leaflet`, `leaflet ^1.9` and `react-leaflet ^5` for `/leaflet`. React 18 and react-leaflet 4 do not work.
+- **Missing or wrong peers.** `maplibre-gl` must be installed for the default entry (`^5.5.0 || ^6.0.0`); `@element-editor/adapter-leaflet`, `leaflet ^1.9` and `react-leaflet ^5` for `/leaflet`. React 18 and react-leaflet 4 do not work.
 - **SSR.** Render client-only (`next/dynamic` with `ssr: false`); `'use client'` alone is not enough.
 - **Expecting `initialData` to be reactive.** Use the ref or a `key` remount (see Loading and saving data).
+- **Blank map with the MapLibre adapter on MapLibre 6.** Your app must call `setWorkerUrl` before creating the map (the drop-in does it for you).
 - **Adapters without providers.** `ElementEditorControls` throws outside `ElementEditorUIProvider`; it also needs a `GeoStoreProvider` (one per editor) and a `data-elm-theme="light" | "dark"` ancestor containing the map and all editor UI. Portaled UI of your own needs a `data-elm-portal` attribute.
 - **`onEvent` set "just to log".** It silences every built-in toast. Use `onError` for logging.
 - **Unstable `getFeatureStyle` or id-less inline basemap objects.** A new function re-sends every feature; a new id-less style object counts as a new basemap. Define them at module level or memoise.
 - **Your own `map.setStyle()` on the MapLibre drop-in.** It drops your layers (Element restores its own). Switch basemaps with `basemap` / `ref.setBasemap()`, which keep your layers; images added with `map.addImage` are never kept across a style change.
 - **Several editors on one origin.** They share `elm_*` localStorage keys (theme, view, basemap pick). Set `config.persistKey` per editor, or `config.persist: false`.
 - **The map reopens where the user left it**, not at your data. Pass `initialView` (`'data'` to always fit `initialData`).
-- **Production traffic on public services.** Defaults are OpenFreeMap/Mapterhorn tiles, Overpass, the OSRM demo router (car-only, not for production) and Nominatim. Configure `config.network` (https://elementeditor.dev/docs/guides/third-party-services).
+- **Production traffic on public services.** Defaults are OpenFreeMap/Mapterhorn tiles, Overpass, the OSRM demo router (car-only, not for production), Nominatim, and jsDelivr for the sprite and the MapLibre 6 worker. Configure `config.network` (https://elementeditor.dev/docs/guides/third-party-services).
 - **Importing `@element-editor/ui/internal`.** Not covered by semver.
 
 ## Docs

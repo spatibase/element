@@ -21,7 +21,7 @@ Professional map editing for React. Bring your Leaflet or MapLibre map â€” Eleme
 > ```text
 > Add a map editor to this React app with Element (@element-editor/react).
 > Read https://elementeditor.dev/llms.txt first, install the package with
-> `npm install @element-editor/react maplibre-gl@^5`, then follow
+> `npm install @element-editor/react maplibre-gl`, then follow
 > node_modules/@element-editor/react/AGENTS.md. Use only the public API it lists.
 > ```
 
@@ -54,7 +54,7 @@ The batteries-included editor. Owns its own MapLibre map, with built-in basemaps
 ### Install
 
 ```bash
-npm install @element-editor/react maplibre-gl@^5
+npm install @element-editor/react maplibre-gl
 ```
 
 ### Usage
@@ -179,8 +179,19 @@ Plug editing into an existing MapLibre GL map. Same API as the Leaflet adapter â
 ### Install
 
 ```bash
-npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
+npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
 ```
+
+On MapLibre GL JS 6 (what `npm install maplibre-gl` gets), call MapLibre's `setWorkerUrl` once before creating your map; the adapter doesn't create the map, so it can't (the drop-in does). MapLibre 5 has the worker built in. With Vite:
+
+```ts
+import { setWorkerUrl } from 'maplibre-gl'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+
+setWorkerUrl(workerUrl)
+```
+
+Other bundlers: [MapLibre GL JS 6 worker](./docs/guides/third-party-services.md#maplibre-gl-js-6-worker-maplibreworker).
 
 ### Usage
 
