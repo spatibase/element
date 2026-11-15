@@ -29,7 +29,7 @@ React and React DOM **`^19.2`** are required for both engines (React 18 is no lo
 **MapLibre (the default entry):**
 
 ```bash
-npm install @element-editor/react maplibre-gl
+npm install @element-editor/react maplibre-gl@^5
 ```
 
 `maplibre-gl` must be **`^5.5`** (the built-in Terrain basemap uses 5.5 hillshade options). `@element-editor/core`, `@element-editor/ui` and `@element-editor/adapter-maplibre` come in as regular dependencies.

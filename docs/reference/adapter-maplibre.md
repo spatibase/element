@@ -7,7 +7,7 @@
 ## Install
 
 ```bash
-npm install @element-editor/adapter-maplibre maplibre-gl
+npm install @element-editor/adapter-maplibre maplibre-gl@^5
 ```
 
 ### Peer dependencies

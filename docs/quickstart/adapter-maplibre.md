@@ -13,7 +13,7 @@ This adapter also works with **MapTiler SDK** (which extends MapLibre GL directl
 ## Step 1 — Install
 
 ```bash
-npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl
+npm install @element-editor/adapter-maplibre @element-editor/ui maplibre-gl@^5
 ```
 
 If `maplibre-gl` is already in your project, you don't need to reinstall it. Peer dependencies: `react` and `react-dom` `^19.2`, `maplibre-gl` `^5.5`. React 18 is not supported.

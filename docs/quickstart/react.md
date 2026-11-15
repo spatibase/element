@@ -11,7 +11,7 @@
 ## Step 1 — Install
 
 ```bash
-npm install @element-editor/react maplibre-gl
+npm install @element-editor/react maplibre-gl@^5
 ```
 
 `@element-editor/react` is built on MapLibre GL JS. Install `maplibre-gl` next to it: it is marked as an optional peer dependency only so that Leaflet-only apps can skip it, but the default entry needs it. You also need React.

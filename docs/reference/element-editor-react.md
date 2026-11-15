@@ -9,7 +9,7 @@
 ## Install
 
 ```bash
-npm install @element-editor/react maplibre-gl
+npm install @element-editor/react maplibre-gl@^5
 ```
 
 ### Peer dependencies
