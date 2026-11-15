@@ -39,7 +39,7 @@ declare global {
 /** Basemap / tile hosts the dev pages touch. Never hit them from tests. */
 export const OFFLINE = /tile\.openstreetmap\.org|tiles\.openfreemap\.org|tiles\.mapterhorn\.com|\.example\.test/
 /** The jsDelivr copy of MapLibre 6's worker the drop-in falls back to (maplibre/workerUrl.ts). */
-const MAPLIBRE_WORKER = /^https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^/]+\/dist\/maplibre-gl-worker\.mjs/
+export const MAPLIBRE_WORKER = /^https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^/]+\/dist\/maplibre-gl-worker\.mjs/
 const LOCAL_MAPLIBRE_WORKER = fileURLToPath(new URL('../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url))
 /** The map container on either engine. */
 export const MAP = ':is(.leaflet-container, .maplibregl-map)'

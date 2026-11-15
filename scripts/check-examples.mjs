@@ -26,7 +26,10 @@ const maplibre = args.find((a) => a.startsWith('--maplibre='))?.slice('--maplibr
 const EXAMPLES = {
   'vite-maplibre': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
   'vite-leaflet': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.leaflet-container']] },
-  'nextjs-app-router': { serve: (port) => ['exec', 'next', 'start', '-p', port], pages: [['/', '.maplibregl-canvas'], ['/leaflet', '.leaflet-container']] },
+  // Next 16 builds with Turbopack; the extra webpack build (Next 15's default, still common) is the
+  // one served for --smoke. webpack resolves next/dynamic's require.resolveWeak with the "require"
+  // condition, which is where ESM-only maplibre-gl 6 broke (see the "module" export condition).
+  'nextjs-app-router': { serve: (port) => ['exec', 'next', 'start', '-p', port], pages: [['/', '.maplibregl-canvas'], ['/leaflet', '.leaflet-container']], extraBuild: ['exec', 'next', 'build', '--webpack'] },
 }
 const names = args.filter((a) => !a.startsWith('--'))
 const selected = names.length ? names : Object.keys(EXAMPLES)
@@ -72,8 +75,10 @@ try {
     try {
       const install = await timed(() => run('pnpm', ['install', '--no-frozen-lockfile'], dir))
       const build = await timed(() => run('pnpm', ['run', 'build'], dir, { NEXT_TELEMETRY_DISABLED: '1' }))
+      const extra = EXAMPLES[name].extraBuild
+      const extraTime = extra ? await timed(() => run('pnpm', extra, dir, { NEXT_TELEMETRY_DISABLED: '1' })) : null
       const ml = maplibre && pkg.dependencies?.['maplibre-gl'] ? `, maplibre-gl ${JSON.parse(readFileSync(join(dir, 'node_modules/maplibre-gl/package.json'), 'utf8')).version}` : ''
-      console.log(`ok   ${name}: install ${install}s, build ${build}s${ml}`)
+      console.log(`ok   ${name}: install ${install}s, build ${build}s${extraTime ? ` (+ ${extra.slice(1).join(' ')} ${extraTime}s)` : ''}${ml}`)
     } catch (e) {
       console.log(`FAIL ${name}`)
       failures.push(`${name}: ${e.message}`)

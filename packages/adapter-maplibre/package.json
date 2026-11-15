@@ -44,6 +44,10 @@
   },
   "exports": {
     ".": {
+      "module": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.es.js"

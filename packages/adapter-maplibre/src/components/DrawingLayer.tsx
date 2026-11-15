@@ -191,10 +191,13 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
 
   // Fast clicking: the hand is often still moving when the button goes down, and MapLibre's
   // 3 px click tolerance turns that click into a tiny pan (no click, no point). Click tools get
-  // CLICK_SLOP_PX. ponytail: these handler fields are MapLibre-private (5.x); a no-op if absent.
+  // CLICK_SLOP_PX. ponytail: these handler fields are MapLibre-private (the handler manager is
+  // `map.handlers` on 5.x, `map._handlerManager` on 6.x); a no-op if absent.
   useEffect(() => {
     if (!CLICK_TOOL_MODES.includes(editingMode)) return
-    const byId = (map as unknown as { handlers?: { _handlersById?: Record<string, { _clickTolerance?: number }> } }).handlers?._handlersById
+    type Handlers = { _handlersById?: Record<string, { _clickTolerance?: number }> }
+    const m = map as unknown as { handlers?: Handlers; _handlerManager?: Handlers }
+    const byId = (m.handlers ?? m._handlerManager)?._handlersById
     const targets = [byId?.mapEvent, byId?.mousePan].filter((h): h is { _clickTolerance?: number } => typeof h?._clickTolerance === 'number')
     const prev = targets.map((h) => h._clickTolerance)
     for (const h of targets) h._clickTolerance = CLICK_SLOP_PX

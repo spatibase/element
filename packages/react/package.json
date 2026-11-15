@@ -43,6 +43,10 @@
   },
   "exports": {
     ".": {
+      "module": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/element-editor.es.js"
+      },
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/element-editor.es.js"

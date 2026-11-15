@@ -3,7 +3,7 @@
  * on *.example.test, through a `fetch` that adds `X-Elm-Test: 1`), none to the default ones;
  * `?network=off` hides what needs a service; the deprecated `routingApiKey` still picks ORS.
  */
-import { test, expect, MAP, ATTRIBUTION, type Page, type Locator } from './fixtures'
+import { test, expect, MAP, ATTRIBUTION, MAPLIBRE_WORKER, type Page, type Locator } from './fixtures'
 import { waitForMap, flyTo, NOMINATIM_EIFFEL } from './helpers'
 
 type MapLibreMap = import('maplibre-gl').Map
@@ -18,10 +18,13 @@ const PARK = {
   }],
 }
 
-/** Every request the page makes (to see that none goes to a default host). */
+/**
+ * Every request the page makes (to see that none goes to a default host). MapLibre 6's worker is
+ * not a config.network service (the app sets it with MapLibre's `setWorkerUrl`), so it's left out.
+ */
 function recordRequests(page: Page): Req[] {
   const all: Req[] = []
-  page.on('request', (r) => all.push({ url: r.url(), headers: r.headers() }))
+  page.on('request', (r) => { if (!MAPLIBRE_WORKER.test(r.url())) all.push({ url: r.url(), headers: r.headers() }) })
   return all
 }
 
