@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+---
+
+## [0.2.3] — 2026-11-16
+
 A polish release. The editor looks tidier on phones, keyboard focus looks the same everywhere, and hover on MapLibre maps no longer lags behind your cursor.
 
 ### Fixed
