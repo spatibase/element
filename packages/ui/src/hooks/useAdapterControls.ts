@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { getFeatureCollectionBBox, isGeometry, ElementEditorError, subscribeToDataChanges, validateFeature } from '@element-editor/core'
 import { canVertexEdit, normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
-import type { DataChangeCallbacks, DataStore, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { DataChangeCallbacks, DataStore, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { TOOL_MODES, useElementEditorConfig, type DrawTool } from '../contexts/ElementEditorConfigContext'
 import { useDataStore, useGeoStore, useUIStore } from '../store/StoreContext'
 import { useMapController } from '../contexts/MapControllerContext'
@@ -32,6 +32,8 @@ export interface ImportResult {
   duplicates: number
   /** True if the import was capped by `maxFeatures` / internal safety limits. */
   truncated: boolean
+  /** Features skipped because their geometry type isn't in `geometryTypes` (0 when it isn't set). */
+  refused: number
 }
 
 /**
@@ -123,8 +125,8 @@ export interface ElementEditorImperativeAPI<TMap = unknown> {
    * Imports a FeatureCollection (or anything parseable as one). `'replace'` (default) swaps the
    * data, `'merge'` appends. It is one undo step (undo restores the previous features, schemas and
    * groups; no file backup). Returns counts of skipped (unsupported
-   * geometry) / duplicate (repeated id) features and whether the import was truncated
-   * (`maxFeatures` or the internal 50,000-feature limit).
+   * geometry) / duplicate (repeated id) / refused (type not in `geometryTypes`) features and whether
+   * the import was truncated (`maxFeatures` or the internal 50,000-feature limit).
    */
   importGeoJSON: (raw: FeatureCollectionInput | unknown, mode?: 'replace' | 'merge') => ImportResult
   /**
@@ -272,6 +274,12 @@ export interface UseAdapterControlsOptions {
   readonly?: boolean
   tools?: DrawTool[] | null
   maxFeatures?: number
+  /**
+   * The geometry types the editor accepts (`undefined` = all). Enforced for every way a geometry gets
+   * in; a refusal reports `'geometry-type-not-allowed'` and changes nothing. Tools that can't draw an
+   * allowed type are left out.
+   */
+  geometryTypes?: GeometryType[]
   /**
    * The map engine; the adapters pass it. With it, the tools `config.network` turns off are
    * synced to `uiStore.unavailableTools` (the Picker needs Overpass only on Leaflet).
@@ -460,6 +468,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   const setReadonly = useUIStore((s) => s.setReadonly)
   const setEnabledTools = useUIStore((s) => s.setEnabledTools)
   const setMaxFeatures = useDataStore((s) => s.setMaxFeatures)
+  const setGeometryTypes = useDataStore((s) => s.setGeometryTypes)
   const setLayout = useUIStore((s) => s.setLayout)
   const setUnavailableTools = useUIStore((s) => s.setUnavailableTools)
   const { network } = useElementEditorConfig()
@@ -482,6 +491,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   useSyncProp(opts.readonly, (v) => setReadonly(v ?? false), () => uiStore.getState().readonly)
   useSyncProp(opts.tools, (v) => setEnabledTools(v ?? null), () => uiStore.getState().enabledTools)
   useSyncProp(opts.maxFeatures, setMaxFeatures, () => dataStore.getState().maxFeatures)
+  useSyncProp(opts.geometryTypes, setGeometryTypes, () => dataStore.getState().geometryTypes)
   useSyncProp(opts.layout, (v) => setLayout(v ?? 'panel'), () => uiStore.getState().layout)
   useSyncProp(opts.engine && networkUnavailableTools(network, opts.engine), (v) => setUnavailableTools(v ?? []), () => uiStore.getState().unavailableTools)
 
@@ -675,8 +685,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       if (!clean) return false
       const ds = dataStore.getState()
       if (!ds.features.some((f) => f.id === id)) { warnUnknownIds('updateFeature', [String(id)]); return false }
-      ds.updateFeatures([{ id, patch: clean }], { undoable: options?.undoable ?? true })
-      return true
+      return ds.updateFeatures([{ id, patch: clean }], { undoable: options?.undoable ?? true })
     },
     removeFeatures: (ids, options) => {
       if (!Array.isArray(ids)) { warnOnce('ref-removeFeatures-array', 'removeFeatures: expected an array of ids.'); return 0 }
@@ -718,7 +727,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
         return false
       }
       if (!us.isToolAvailable(tool)) {
-        warnOnce(`ref-setTool-disabled-${tool}`, `setTool: ${JSON.stringify(tool)} is not in the \`tools\` list${us.unavailableTools.includes(tool) ? ' (config.network turns it off)' : ''}.`)
+        warnOnce(`ref-setTool-disabled-${tool}`, `setTool: ${JSON.stringify(tool)} is not available: it is not in the \`tools\` list${us.unavailableTools.includes(tool) ? ' (config.network turns it off)' : ''}, or \`geometryTypes\` allows none of the shapes it draws.`)
         return false
       }
       if (us.editingMode === mode) return true // already on: keep the shape in progress

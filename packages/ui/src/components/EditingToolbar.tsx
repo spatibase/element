@@ -10,6 +10,7 @@ import { EditToolbarBtn } from './ui/EditToolbarBtn'
 import { RowDivider } from './ui/RowDivider'
 import { useBalancedWrap } from '../hooks/useBalancedWrap'
 import { useTouchInput } from '../hooks/useTouchInput'
+import { useGeometryGates } from '../hooks/useGeometryGates'
 
 // Lazy: defers loading the geometry worker client until the user multi-selects.
 const BooleanOperations = lazy(() => import('./BooleanOperations'))
@@ -37,6 +38,10 @@ export default function EditingToolbar() {
     return f?.geometry.type ?? null
   })
 
+  // `geometryTypes`: hide actions whose result the editor would refuse.
+  const selectedGeometry = useDataStore((s) => selectedFeatureId && s.geometryTypes ? s.features.find((x) => x.id === selectedFeatureId)?.geometry : undefined)
+  const { allows, mergeOk, breakOk, polygonResultOk } = useGeometryGates(selectedIds, selectedGeometry)
+
   // Narrow screens: rows of even length, never a lone button on the second row.
   const barRef = useRef<HTMLDivElement>(null)
   useBalancedWrap(barRef, `${readonly}|${selectedIds.length}|${selectedGeomType}|${touch}`)
@@ -59,13 +64,14 @@ export default function EditingToolbar() {
   // - Duplicate / Delete are always shown when there is a selection.
   const isSinglePoint = selectedIds.length === 1 && selectedGeomType === 'Point'
   const showTransform = hasSelection && !isSinglePoint
-  const showPolygonGroup = isPolygonSelected
+  // Cut hole and buffer yield a Polygon / MultiPolygon, slice Polygons (`geometryTypes`).
+  const showPolygonGroup = isPolygonSelected && polygonResultOk
   const showShapeGroup = canProcessShape(selectedGeomType)
   // A finger has no double-click / Enter: "Edit points" says point editing exists (a second tap
   // on the selected shape enters it too). Lines and areas only, as for double-click.
   const showEditPoints = touch && selectedFeatureId !== null && (selectedGeomType === 'LineString' || selectedGeomType === 'Polygon')
-  const showBreakApart = isMultiGeometry
-  const showMerge = selectedIds.length >= 2
+  const showBreakApart = isMultiGeometry && breakOk
+  const showMerge = selectedIds.length >= 2 && mergeOk
   const showCombineGroup = showBreakApart || showMerge
 
   function handleDuplicate() {
@@ -90,8 +96,7 @@ export default function EditingToolbar() {
 
   function handleMerge() {
     if (selectedIds.length < 2) return
-    dataStore.getState().mergeFeatures()
-    emit({ type: 'success', message: `Merged ${selectedIds.length} features` })
+    if (dataStore.getState().mergeFeatures()) emit({ type: 'success', message: `Merged ${selectedIds.length} features` })
   }
 
   function handleDelete() {
@@ -158,7 +163,7 @@ export default function EditingToolbar() {
               >
                 <Scissors size={24} />
               </EditToolbarBtn>
-              <EditToolbarBtn
+              {allows('Polygon') && <EditToolbarBtn
                 label="Slice shape"
                 shortcut={<KbdDark>{getKey('slice-shape').toUpperCase()}</KbdDark>}
               shortcutId="slice-shape"
@@ -169,7 +174,7 @@ export default function EditingToolbar() {
                 active={editingMode === 'slice-shape'}
               >
                 <Knife size={24} />
-              </EditToolbarBtn>
+              </EditToolbarBtn>}
             </>
           )}
 
@@ -198,7 +203,7 @@ export default function EditingToolbar() {
               >
                 <WaveSine size={24} />
               </EditToolbarBtn>
-              <EditToolbarBtn
+              {polygonResultOk && <EditToolbarBtn
                 label="Buffer"
                 onClick={() => {
                   setEditingMode(editingMode === 'buffer-shape' ? 'none' : 'buffer-shape')
@@ -207,7 +212,7 @@ export default function EditingToolbar() {
                 active={editingMode === 'buffer-shape'}
               >
                 <SquareLogo size={24} />
-              </EditToolbarBtn>
+              </EditToolbarBtn>}
             </>
           )}
 

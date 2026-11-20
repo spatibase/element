@@ -103,6 +103,7 @@ export { setGeometryRunner } from './utils/geometryRunner'
 export type { GeometryRunner } from './utils/geometryRunner'
 
 // Store helpers
+export { ALL_GEOMETRY_TYPES, TOOL_GEOMETRY_TYPES, geometryTypeMessage, mergeResultType, breakResultTypes } from './utils/geometryTypes'
 export { canVertexEdit, featureLimitMessage, freeGeometry, vertexEditNotice, vertexEditPatch } from './store/dataStore'
 export { makeCircleCoords, makeRectCoords, NARROW_EDITOR_WIDTH, sidebarTakesSpace } from './store/uiStore'
 export { resolveUnitSystem } from './utils/format'

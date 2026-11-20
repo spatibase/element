@@ -11,6 +11,7 @@ import { destination as turfDestination } from '@turf/destination'
 import { project, unproject } from '../mercator'
 import { ElementEditorError } from '../utils/errors'
 import { getGeometryRunner } from '../utils/geometryRunner'
+import { TOOL_GEOMETRY_TYPES } from '../utils/geometryTypes'
 import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson'
 
 export type DialogState =
@@ -435,7 +436,14 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   setUnavailableTools: (tools) => set((s) => (s.unavailableTools.join() === tools.join() ? s : { unavailableTools: tools })),
   isToolAvailable: (tool) => {
     const s = get()
-    return (!s.enabledTools || s.enabledTools.includes(tool)) && !s.unavailableTools.includes(tool)
+    if ((s.enabledTools && !s.enabledTools.includes(tool)) || s.unavailableTools.includes(tool)) return false
+    // `geometryTypes`: a tool none of whose output types is allowed can't produce anything the editor accepts.
+    const need = TOOL_GEOMETRY_TYPES[tool]
+    if (need) {
+      const ds = dataStore.getState()
+      if (ds.geometryTypes && !need.some((t) => ds.isGeometryTypeAllowed(t))) return false
+    }
+    return true
   },
   openShortcutsModal: () => set({ shortcutsModalOpen: true }),
   closeShortcutsModal: () => set({ shortcutsModalOpen: false }),
@@ -467,6 +475,8 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
     const ds = dataStore.getState()
     const targetId = ds.selectedIds[0]
     if (!targetId) return
+    // Refused (reported) before the snapshot, so a refusal leaves no undo step.
+    if (!ds.canUseGeometryTypes([geometryPreview.type], 'geometry')) { set({ editingMode: 'none', geometryPreview: null }); return }
     ds.takeSnapshot()
     ds.updateFeature(targetId, freeGeometry(geometryPreview as GeoJSONFeature['geometry']))
     set({ editingMode: 'none', geometryPreview: null })
@@ -479,6 +489,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
     const targetId = ds.selectedIds[0]
     if (!targetId) return
     if (bufferCreateNew && !ds.canAddFeatures(1)) return
+    if (!ds.canUseGeometryTypes([geometryPreview.type], 'geometry')) { set({ editingMode: 'none', geometryPreview: null }); return }
     ds.takeSnapshot()
     if (bufferCreateNew) {
       const source = ds.features.find(f => f.id === targetId)
@@ -669,6 +680,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
         return
       }
 
+      if (!freshDs.canUseGeometryTypes([geometry.type], 'geometry')) return
       freshDs.takeSnapshot()
       freshDs.updateFeature(targetId!, freeGeometry(geometry as GeoJSONFeature['geometry']))
     } catch (err) {
@@ -731,6 +743,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
       }
 
       if (!freshDs.canAddFeatures(partsAfter - 1)) return
+      if (!freshDs.canUseGeometryTypes(['Polygon'], 'geometry')) return // every piece becomes its own Polygon
       freshDs.takeSnapshot()
       if (geometry.type === 'MultiPolygon') {
         const coords = geometry.coordinates as [number, number][][][]

@@ -152,6 +152,7 @@ The return value decides what Element shows:
 | `invalid-data` | Unreadable input or response: invalid JSON, not a FeatureCollection, an HTML error page; features in `initialData` / `setFeatureCollection` data that have no usable geometry (`geometry: null`) and were left out. | `import`, `picker`, `search`, `basemap` |
 | `too-large` | A file over the import size cap. | `import` |
 | `limit-reached` | `maxFeatures` refused an add or truncated an import. | `editor`, `import` |
+| `geometry-type-not-allowed` | `geometryTypes` refused a geometry type (an add, paste, merge, break apart, geometry operation) or skipped features of that type in an import. Nothing was changed. | `editor`, `clipboard`, `geometry`, `import` |
 | `geometry` | A geometry operation failed or produced an empty shape. | `geometry`, `editor` |
 | `permission-denied` | The browser refused a permission (geolocation, clipboard). | `locate`, `clipboard` |
 | `unsupported` | The browser or the map lacks something (no geolocation / clipboard API, a style without glyphs). | `locate`, `clipboard`, `basemap` |

@@ -114,6 +114,7 @@ When importing, you choose how the new data interacts with existing features:
 - The drop hook caps file size at 100 MB by default (`DEFAULT_MAX_IMPORT_BYTES`); override via the `maxBytes` option.
 - The store caps imported features at an internal limit of 50,000. When exceeded, `importGeoJSON` returns `{ truncated: true }` and stops at the cap.
 - The editor's `maxFeatures` prop also caps imports: the import is truncated to the remaining room (existing features count in `merge` mode) and returns `{ truncated: true }`, with an `error` event saying how many were imported (see [Restricting tools](../guides/restricting-tools.md)).
+- The editor's `geometryTypes` prop skips features whose geometry type isn't allowed and counts them in `refused`, with an `error` event saying how many (see [Allowed geometry types](../guides/restricting-tools.md#allowed-geometry-types)).
 
 ---
 

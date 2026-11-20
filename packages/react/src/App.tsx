@@ -2,7 +2,7 @@ import { ElementEditor as LeafletEditor } from './leaflet/index'
 import { ElementEditor as MapLibreEditor } from './index'
 import type { ElementEditorConfig } from '@element-editor/ui'
 import { withLayout } from './index'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, GeoJSONFeature, InitialView } from './index'
+import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, GeoJSONFeature, GeometryType, InitialView } from './index'
 import { Agentation } from 'agentation'
 import { Profiler, useState, type CSSProperties } from 'react'
 import { TileLayer } from 'react-leaflet'
@@ -231,6 +231,9 @@ const onError = onErrorMode ? (e: { code: string; source: string; message: strin
 // ?maxFeatures=N passes `maxFeatures`. (e2e)
 const maxFeaturesParam = params.get('maxFeatures')
 const maxFeatures = maxFeaturesParam ? Number(maxFeaturesParam) : undefined
+// ?geometryTypes=Point,MultiPoint passes `geometryTypes` (e2e).
+const geometryTypesParam = params.get('geometryTypes')
+const geometryTypes = geometryTypesParam ? (geometryTypesParam.split(',') as GeometryType[]) : undefined
 
 // ?host=inline (perf benchmark): like a typical integrator, the host passes fresh inline `config` /
 // `tools` objects every render; `window.__rerenderHost()` re-renders it. A Profiler sums the
@@ -264,7 +267,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated

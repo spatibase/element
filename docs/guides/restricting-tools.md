@@ -69,6 +69,29 @@ Each refusal emits an `error` event ("Maximum of 10 features reached — delete 
 
 ---
 
+## Allowed geometry types
+
+`tools` only decides which drawing tools the toolbar offers. `geometryTypes` goes further: it lists the GeoJSON geometry types the editor may hold, and the store enforces it for every way a geometry gets in. Use it when your backend stores only some shapes, for example only points, or only polygons.
+
+```tsx
+<ElementEditor geometryTypes={['Polygon', 'MultiPolygon']} />
+```
+
+The values are GeoJSON type names: `'Point'`, `'MultiPoint'`, `'LineString'`, `'MultiLineString'`, `'Polygon'`, `'MultiPolygon'` and `'GeometryCollection'`. Leave the prop unset to allow all of them. `GeometryCollection` is checked as a whole: its members aren't looked at separately.
+
+What changes when the prop is set:
+
+- **Tools.** A tool is offered only if it can draw an allowed type: Point needs `'Point'`; Line and Route need `'LineString'`; Area, Circle and Rectangle need `'Polygon'`; Freehand needs `'LineString'` or `'Polygon'`; the OSM Picker needs `'Polygon'` or `'MultiPolygon'`. The others leave the toolbar, their keyboard shortcuts do nothing and `ref.setTool` returns `false`. This stacks with `tools` (a tool must pass both). Measure and search are not affected.
+- **Menus.** Actions whose result would be refused are hidden: Merge (two points become a MultiPoint, mixed shapes a GeometryCollection), Break apart (it needs the part type), Slice (Polygons), Buffer and Cut hole (a Polygon or MultiPolygon), Center point (a Point), and the data table's "Add new" (a Point).
+- **Everything else is refused in the store.** Paste, search results, the OSM picker, the ref API (`addFeature`, `updateFeature`, `updateFeatures`), edits in the GeoJSON inspector, boolean operations and the buffer, cut and slice tools whose result has a type that isn't allowed (the result of Subtract can be a MultiPolygon, for example). A refused operation is all-or-nothing: nothing is written and no undo step is added. Changing a feature's geometry without changing its type (dragging, editing points) is never refused.
+- **Imports** (file, drag and drop, Cmd+O, `ref.importGeoJSON`, `ref.setFeatureCollection`, `initialData`) skip the features with a type that isn't allowed and load the rest. `ImportResult.refused` counts them, and one `error` event says how many were skipped. Refused features don't count against `maxFeatures`.
+
+Each refusal emits an `error` event with `code: 'geometry-type-not-allowed'` ("Polygon isn't allowed here: this editor accepts only Point."), shown as a toast unless you handle `onEvent` or `onError` (see [Events](../reference/events.md#onerror)).
+
+Data that is already in the editor when the prop changes stays as it is; only new changes are checked.
+
+---
+
 ## Disabling all editing
 
 The `readonly` prop turns off every way a user can change the data. Features remain visible and selectable — users can click features to see their properties, and selection highlighting still works.
@@ -154,7 +177,7 @@ For finer control over keyboard shortcuts:
 config={{ ui: { keyboardShortcuts: { enabled: true, show: false } } }}
 ```
 
-These flags can be combined freely with the flat `tools`, `readonly`, and `maxFeatures` props.
+These flags can be combined freely with the flat `tools`, `readonly`, `maxFeatures`, and `geometryTypes` props.
 
 ---
 
