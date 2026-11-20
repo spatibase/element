@@ -33,6 +33,7 @@ export type {
   BBoxInput,
 } from './types/geojson'
 export { isSimpleGeometry } from './types/geojson'
+export type { GeometryType } from './utils/geometryTypes'
 export type { FeatureStyle } from './types/featureStyle'
 
 // ─── Stores (headless use and tests; inside React use GeoStoreProvider / useGeoStore) ──

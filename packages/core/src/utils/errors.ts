@@ -19,6 +19,8 @@ export type ErrorCode =
   | 'too-large'
   /** The `maxFeatures` limit refused (or truncated) an add. */
   | 'limit-reached'
+  /** A geometry type outside the `geometryTypes` list was refused (an add, import, paste, merge, break apart, boolean op, …). */
+  | 'geometry-type-not-allowed'
   /** A geometry operation failed or produced an empty / unusable shape. */
   | 'geometry'
   /** The browser refused a permission (geolocation, clipboard, file save). */

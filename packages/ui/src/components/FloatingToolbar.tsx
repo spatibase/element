@@ -95,6 +95,8 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
   const editingMode = useUIStore((s) => s.editingMode)
   const enabledTools = useUIStore((s) => s.enabledTools)
   const unavailableTools = useUIStore((s) => s.unavailableTools)
+  const isToolAvailable = useUIStore((s) => s.isToolAvailable)
+  useDataStore((s) => s.geometryTypes)
   const readonly = useUIStore((s) => s.readonly)
   const setEditingMode = useUIStore((s) => s.setEditingMode)
 
@@ -243,7 +245,8 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
   const isDrawingFreehand = editingMode === 'draw-freehand'
   const isPickingShape = editingMode === 'pick-shape'
   const isMeasuring = editingMode === 'measure'
-  const shouldShow = (tool: string) => (!enabledTools || enabledTools.includes(tool)) && !unavailableTools.includes(tool)
+  // `tools`, `config.network` and `geometryTypes` (read above: re-renders when it changes) decide what is offered.
+  const shouldShow = (tool: string) => (!enabledTools || enabledTools.includes(tool)) && !unavailableTools.includes(tool) && isToolAvailable(tool)
 
 
   const hintText = null

@@ -8,6 +8,7 @@ import { mergeGeometries, offsetGeometry, getRefLat, getPartCount } from '../uti
 import { getMercatorLatCorrectionRatio } from '../mercator'
 import { readStorage, writeStorage, type PersistScope } from '../utils/persisted'
 import { ElementEditorError } from '../utils/errors'
+import { geometryTypeMessage, mergeResultType, breakResultTypes, type GeometryType } from '../utils/geometryTypes'
 
 const LAST_SCHEMA_KEY = 'elm_lastSchemaId'
 
@@ -148,6 +149,11 @@ function editFeatures(features: GeoJSONFeature[], edit: HistoryEdit, schemas: Sc
   return next ?? features
 }
 
+/** Whether `type` passes a `geometryTypes` list (`undefined` = everything passes). */
+function isAllowedIn(allowed: GeometryType[] | undefined, type: string): boolean {
+  return allowed == null || allowed.includes(type as GeometryType)
+}
+
 /** User-facing message when an add would go past `maxFeatures`. Shared with the toolbar gate. */
 export function featureLimitMessage(max: number): string {
   return `Maximum of ${max} features reached — delete some to add more.`
@@ -217,6 +223,16 @@ export interface DataStore {
   /** True when `count` more features fit under `maxFeatures`. On false it also
    *  reports the limit message via `onError` — callers can just bail. */
   canAddFeatures: (count: number) => boolean
+  /** The geometry types the editor accepts (`undefined` = all). Every way a geometry gets in checks it
+   *  (adds, geometry updates, imports, paste, merge, break apart, geometry operations); a refusal is
+   *  reported via `onError` (`'geometry-type-not-allowed'`) and changes nothing. */
+  geometryTypes?: GeometryType[]
+  setGeometryTypes: (types?: GeometryType[]) => void
+  /** Whether `type` is allowed by `geometryTypes`. Silent: for deciding what to offer. */
+  isGeometryTypeAllowed: (type: string) => boolean
+  /** True when every type in `types` is allowed. On false it also reports the refusal via
+   *  `onError` — callers can just bail. */
+  canUseGeometryTypes: (types: Iterable<string>, source?: 'editor' | 'import' | 'clipboard' | 'geometry') => boolean
 
   /** When `skipSnapshot` is true the call does NOT push to undoStack — used
    *  by atomic multi-feature operations (e.g. slice/cut) that take their own
@@ -232,18 +248,21 @@ export interface DataStore {
    * Patches one feature (`properties` replaces the whole object, `geometry`, `schemaId`, `hidden`;
    * `_drawType: undefined` clears it, see `freeGeometry`) and re-validates it. A property edit is an
    * undo step; geometry-only patches aren't (drags take their own snapshot). No-op for an unknown id.
+   * Returns false (nothing written, refusal reported) when the geometry's type is new to the feature
+   * and isn't in `geometryTypes`.
    */
-  updateFeature: (id: string, updates: StoreFeaturePatch, options?: { skipValidation?: boolean }) => void
+  updateFeature: (id: string, updates: StoreFeaturePatch, options?: { skipValidation?: boolean }) => boolean
   /**
    * `updateFeature` for many features in one commit: one array copy, one store
    * notification, at most one undo entry (pushed when any patch is an
    * undoable data edit, by updateFeature's rule — geometry-only patches don't
-   * push). Unknown ids are skipped; nothing to update = no commit. A later
+   * push). Unknown ids are skipped; nothing to update = no commit. Returns false (nothing written)
+   * when a patch's geometry type isn't in `geometryTypes`. A later
    * patch for the same id applies on top of an earlier one.
    * `undoable: true` (the ref API): also push for geometry changes, never coalesce.
    * `undoable: false`: push nothing and apply the patches to every undo/redo snapshot.
    */
-  updateFeatures: (updates: ReadonlyArray<{ id: string; patch: StoreFeaturePatch }>, options?: { skipValidation?: boolean; undoable?: boolean }) => void
+  updateFeatures: (updates: ReadonlyArray<{ id: string; patch: StoreFeaturePatch }>, options?: { skipValidation?: boolean; undoable?: boolean }) => boolean
   updateFeatureValidation: (id: string, warnings: string[], errors: string[]) => void
 
   /** No-op (no commit, no undo entry) for an unknown id. */
@@ -298,7 +317,8 @@ export interface DataStore {
   deleteSelection: () => void
   /** Refused (returns false) when the extra parts would exceed `maxFeatures`. */
   breakMultiGeometry: (id: string) => boolean
-  mergeFeatures: () => void
+  /** Replaces the selected features with one merged feature (one undo step). False when nothing was merged: fewer than two selected, or the merged type isn't in `geometryTypes` (reported). */
+  mergeFeatures: () => boolean
   /** Restores the state before the last undo step (no-op when `undoStack` is empty). Max 25 steps. */
   undo: () => void
   /** Re-applies the last undone step (no-op when `redoStack` is empty). Any new edit clears it. */
@@ -348,7 +368,7 @@ export interface DataStore {
    * `undoable: false` (replace only — the editor's `initialData` load): push no undo entry and clear
    * the undo/redo history, so Cmd+Z can't step back past the loaded data.
    */
-  importGeoJSON: (raw: unknown, mode: 'replace' | 'merge', limits?: { maxFeatures?: number; maxInputSize?: number; undoable?: boolean }) => { skipped: number; duplicates: number; truncated: boolean }
+  importGeoJSON: (raw: unknown, mode: 'replace' | 'merge', limits?: { maxFeatures?: number; maxInputSize?: number; undoable?: boolean }) => { skipped: number; duplicates: number; truncated: boolean; refused: number }
   updateFeaturesFromEditor: (raw: unknown) => void
 }
 
@@ -523,6 +543,22 @@ export const createDataStore = (options?: DataStoreOptions) => {
   clipboard: [],
   maxFeatures: undefined,
   setMaxFeatures: (maxFeatures) => set({ maxFeatures }),
+  geometryTypes: undefined,
+  // An empty list is "nothing allowed"; only undefined / null means all.
+  setGeometryTypes: (geometryTypes) => set({ geometryTypes: geometryTypes ?? undefined }),
+  isGeometryTypeAllowed: (type) => {
+    const allowed = get().geometryTypes
+    return allowed == null || allowed.includes(type as GeometryType)
+  },
+  canUseGeometryTypes: (types, source = 'editor') => {
+    const allowed = get().geometryTypes
+    if (allowed == null) return true
+    let refused: Set<string> | null = null
+    for (const t of types) if (!allowed.includes(t as GeometryType)) (refused ??= new Set()).add(t)
+    if (!refused) return true
+    reportError(new ElementEditorError('geometry-type-not-allowed', source, geometryTypeMessage(allowed, refused)))
+    return false
+  },
   canAddFeatures: (count) => {
     const { maxFeatures, features } = get()
     if (maxFeatures == null || count <= 0 || features.length + count <= maxFeatures) return true
@@ -531,7 +567,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
   },
 
   addFeature: (feature, options) => {
-    if (!get().canAddFeatures(1)) return null
+    if (!get().canAddFeatures(1) || !get().canUseGeometryTypes([feature.geometry.type])) return null
     let stored: GeoJSONFeature | null = null
     set((state) => {
       // Inherit the last active group so new shapes land in the group the user
@@ -591,12 +627,19 @@ export const createDataStore = (options?: DataStoreOptions) => {
     return stored
   },
 
-  updateFeature: (id, updates, options) =>
+  updateFeature: (id, updates, options) => {
+    let refused = null as string | null
     set((state) => {
       // Structural sharing: only the target slot changes; every other feature keeps its reference.
       const idx = state.features.findIndex((f) => f.id === id)
       if (idx < 0) return state // unknown id: no commit
       const prev = state.features[idx]
+      // A geometry that brings in a type the editor doesn't accept is refused whole (a patch that keeps
+      // the feature's own type, like a drag or a point edit, is never a "new" type and costs nothing).
+      if (updates.geometry && updates.geometry.type !== prev.geometry.type && !isAllowedIn(state.geometryTypes, updates.geometry.type)) {
+        refused = updates.geometry.type
+        return state
+      }
       const features = state.features.slice()
       features[idx] = patchFeature(state.schemas, prev, updates, options)
       // Data edits (properties / schemaId) are one undo step each; same-feature
@@ -606,9 +649,13 @@ export const createDataStore = (options?: DataStoreOptions) => {
       const changed = dataKeysChanged(prev, updates)
       const undo = !updates.geometry && changed.length > 0 ? pushUndo(state, `feature:${id}:${changed.sort().join()}`) : {}
       return { ...undo, features, lastModifiedAt: Date.now() }
-    }),
+    })
+    if (refused) { get().canUseGeometryTypes([refused]); return false }
+    return true
+  },
 
-  updateFeatures: (updates, options) =>
+  updateFeatures: (updates, options) => {
+    let refused = null as string | null
     set((state) => {
       let index: Map<string, number> | null = null
       let features: GeoJSONFeature[] | null = null
@@ -619,6 +666,10 @@ export const createDataStore = (options?: DataStoreOptions) => {
         if (idx === undefined) continue // unknown id: skipped, as updateFeature does
         features ??= state.features.slice()
         const prev = features[idx]
+        if (patch.geometry && patch.geometry.type !== prev.geometry.type && !isAllowedIn(state.geometryTypes, patch.geometry.type)) {
+          refused = patch.geometry.type // the whole batch is refused: nothing is written
+          return state
+        }
         features[idx] = patchFeature(state.schemas, prev, patch, options)
         // The same rule as updateFeature, but one entry for the whole batch;
         // `undoable: true` counts geometry changes too.
@@ -630,7 +681,10 @@ export const createDataStore = (options?: DataStoreOptions) => {
         ? historyEdit(state, { type: 'update', patches: updates })
         : undoable ? pushUndo(state) : {}
       return { ...undo, features, lastModifiedAt: Date.now() }
-    }),
+    })
+    if (refused) { get().canUseGeometryTypes([refused]); return false }
+    return true
+  },
 
   updateFeatureValidation: (id, warnings, errors) =>
     set((state) => {
@@ -694,6 +748,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
   replaceFeatures: (removeIds, added) => {
     const remove = new Set(removeIds)
     let changed = false
+    if (!get().canUseGeometryTypes(added.map((f) => f.geometry.type), 'geometry')) return false
     set((state) => {
       const kept = state.features.filter((f) => !remove.has(f.id))
       if (kept.length === state.features.length && added.length === 0) return state
@@ -800,6 +855,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
     const state = get()
     // ponytail: all-or-nothing — a partial paste of a selection would be a surprise.
     if (state.clipboard.length === 0 || !state.canAddFeatures(state.clipboard.length)) return false
+    if (!state.canUseGeometryTypes(state.clipboard.map((f) => f.geometry.type), 'clipboard')) return false
     const pasted = state.clipboard.map(f => cloneFeature(f, state.schemas, state.currentZoom, state.geometryMode))
     set((s) => ({
       undoStack: [...s.undoStack, snap(s.features, s.groups)].slice(-25),
@@ -879,6 +935,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
     if (!target) return false
     const partCount = getPartCount(target.geometry)
     if (partCount < 2 || !get().canAddFeatures(partCount - 1)) return false
+    if (!get().canUseGeometryTypes(breakResultTypes(target.geometry), 'geometry')) return false
     set((state) => {
       const feature = state.features.find((f) => f.id === id)
       if (!feature) return state
@@ -948,7 +1005,9 @@ export const createDataStore = (options?: DataStoreOptions) => {
     return true
   },
 
-  mergeFeatures: () =>
+  mergeFeatures: () => {
+    let refused = null as string | null
+    let merged = false
     set((state) => {
       if (state.selectedIds.length < 2) return state
       const featuresById = new Map(state.features.map(f => [f.id, f]))
@@ -957,6 +1016,8 @@ export const createDataStore = (options?: DataStoreOptions) => {
         return f ? [f] : []
       })
       if (selectedFeatures.length < 2) return state
+      const resultType = mergeResultType(selectedFeatures.map((f) => f.geometry.type))
+      if (!isAllowedIn(state.geometryTypes, resultType)) { refused = resultType; return state }
 
       const mergedGeometry = mergeGeometries(selectedFeatures)
       const baseFeature = selectedFeatures[0]
@@ -978,6 +1039,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
       finalFeature.bbox = getGeometryBBox(finalFeature.geometry)
 
       const deleteSet = new Set(state.selectedIds)
+      merged = true
       return {
         undoStack: [...state.undoStack, snap(state.features, state.groups)].slice(-25),
         redoStack: [],
@@ -985,7 +1047,10 @@ export const createDataStore = (options?: DataStoreOptions) => {
         selectedIds: [newId],
         lastModifiedAt: Date.now(),
       }
-    }),
+    })
+    if (refused) get().canUseGeometryTypes([refused], 'geometry')
+    return merged
+  },
 
   undo: () =>
     set((state) => {
@@ -1300,6 +1365,8 @@ export const createDataStore = (options?: DataStoreOptions) => {
     let skipped = 0
     let duplicates = 0
     let truncated = false
+    const refusedTypes = new Set<string>()
+    let refusedCount = 0
     let limitHit: { max: number; added: number; incoming: number } | null = null
     set((state) => {
       const incomingFeatures = (input.features as GeoJSONFeature[] | undefined) || []
@@ -1345,6 +1412,12 @@ export const createDataStore = (options?: DataStoreOptions) => {
         // getGeometryBBox (and every renderer) and abort the whole import.
         if (!isGeometry(f?.geometry)) {
           skipped++
+          continue
+        }
+        // A type the editor doesn't accept: skipped and counted apart from unusable geometry.
+        if (!isAllowedIn(state.geometryTypes, f.geometry.type)) {
+          refusedTypes.add(f.geometry.type)
+          refusedCount++
           continue
         }
 
@@ -1416,7 +1489,11 @@ export const createDataStore = (options?: DataStoreOptions) => {
       const { max, added, incoming } = limitHit as { max: number; added: number; incoming: number }
       reportError(new ElementEditorError('limit-reached', 'import', `Imported ${added} of ${incoming} features — ${featureLimitMessage(max)}`))
     }
-    return { skipped, duplicates, truncated }
+    if (refusedCount > 0) {
+      const allowed = get().geometryTypes ?? []
+      reportError(new ElementEditorError('geometry-type-not-allowed', 'import', `Skipped ${refusedCount} ${refusedCount === 1 ? 'feature' : 'features'}. ${geometryTypeMessage(allowed, refusedTypes)}`))
+    }
+    return { skipped, duplicates, truncated, refused: refusedCount }
   },
 
   updateFeaturesFromEditor: (raw) => {
@@ -1432,6 +1509,8 @@ export const createDataStore = (options?: DataStoreOptions) => {
     if (incoming.some((f) => !known.has(f) && (f?.type !== 'Feature' || !isGeometry(f.geometry)))) return
     // Editing raw GeoJSON may add features too; refuse a net increase past the limit.
     if (!get().canAddFeatures(incoming.length - get().features.length)) return
+    // Only features the text brought in (new objects) can carry a new type: O(changed).
+    if (!get().canUseGeometryTypes(incoming.filter((f) => !known.has(f)).map((f) => f.geometry.type))) return
     const features = incoming.map((f) => known.has(f) ? f : ({
       ...f,
       id: (f.id !== undefined && f.id !== null && String(f.id).length > 0) ? String(f.id) : crypto.randomUUID(),

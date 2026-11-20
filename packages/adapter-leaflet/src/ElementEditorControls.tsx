@@ -13,7 +13,7 @@ import { useEffect, useImperativeHandle, useRef, forwardRef } from 'react'
 import { useMap } from 'react-leaflet'
 import { latLng, type Map as LeafletMap, type LatLng } from 'leaflet'
 import { normalizeBounds, normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import {
   useKeyboardShortcuts,
   useApplyAccentToRoot,
@@ -94,6 +94,8 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. Drawing is disabled when reached. */
   maxFeatures?: number
+  /** Geometry types the editor accepts (GeoJSON type names); omit to allow all. A refusal reports `'geometry-type-not-allowed'`; tools that can't draw an allowed type are left out. */
+  geometryTypes?: GeometryType[]
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -248,6 +250,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     readonly: props.readonly,
     tools: props.tools,
     maxFeatures: props.maxFeatures,
+    geometryTypes: props.geometryTypes,
     engine: 'leaflet',
     onChange: props.onChange,
     onSubmit: props.onSubmit,

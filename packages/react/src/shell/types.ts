@@ -1,6 +1,6 @@
 import type React from 'react'
 import type { FeatureCollection, FeatureCollectionInput, Schema, GeoJSONFeature, GeoJSONFeatureInput } from '../types/geojson'
-import type { BoundsInput } from '@element-editor/core'
+import type { BoundsInput, GeometryType } from '@element-editor/core'
 import type { InitialView } from './savedView'
 import type { ElementEditorEvent, ElementEditorErrorHandler, ElementEditorConfig, DrawTool } from '@element-editor/ui'
 
@@ -65,6 +65,17 @@ export interface ElementEditorBaseProps {
    * @default undefined (no limit; imports are still capped at 50,000 features)
    */
   maxFeatures?: number
+  /**
+   * Geometry types the editor accepts, as GeoJSON type names; omit to allow all. Enforced for every
+   * way a geometry gets in (drawing, paste, import, `initialData`, merge, break apart, boolean ops,
+   * buffer, the ref API, ...): a refusal changes nothing and reports an `error` event, `code:
+   * 'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type are left out, and
+   * menu actions whose result would be refused are hidden. Works with `tools` and `maxFeatures`.
+   *
+   * @default undefined (every type)
+   * @example geometryTypes={['Polygon', 'MultiPolygon']}
+   */
+  geometryTypes?: GeometryType[]
   /**
    * Restricts panning to this box: the user can't drag the map outside it. The map starts fitted
    * to it only when nothing else gives a start view (see `initialView`). A GeoJSON bbox `[west, south, east, north]`

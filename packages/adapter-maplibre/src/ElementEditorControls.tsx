@@ -15,7 +15,7 @@
  */
 import React, { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import type { FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
 import {
   useKeyboardShortcuts,
@@ -132,6 +132,8 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. */
   maxFeatures?: number
+  /** Geometry types the editor accepts (GeoJSON type names); omit to allow all. A refusal reports `'geometry-type-not-allowed'`; tools that can't draw an allowed type are left out. */
+  geometryTypes?: GeometryType[]
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -236,6 +238,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       readonly: props.readonly,
       tools: props.tools,
       maxFeatures: props.maxFeatures,
+      geometryTypes: props.geometryTypes,
       engine: 'maplibre',
       onChange: props.onChange,
       onSubmit: props.onSubmit,

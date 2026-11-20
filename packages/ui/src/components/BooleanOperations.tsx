@@ -15,6 +15,9 @@ export default function BooleanOperations() {
   const { dataStore } = useGeoStore()
   const selectedIds = useDataStore((s) => s.selectedIds)
   const features = useDataStore((s) => s.features)
+  // `geometryTypes`: what a result may be isn't known until it is computed, but a result that can only be
+  // a type the editor refuses is known up front (polygons need Polygon or MultiPolygon).
+  const geometryTypes = useDataStore((s) => s.geometryTypes)
   const geometryProcessing = useUIStore((s) => s.geometryProcessing)
   const setGeometryProcessing = useUIStore((s) => s.setGeometryProcessing)
   const emit = useEmit()
@@ -37,8 +40,8 @@ export default function BooleanOperations() {
 
   // The selected features become one new feature (the first one's properties, schema and group)
   // in a single store commit = one undo step. The result is no longer a drawn rectangle/circle/route.
-  function commitResult(geometry: GeoJSONFeature['geometry']) {
-    dataStore.getState().replaceFeatures(selectedIds, [{
+  function commitResult(geometry: GeoJSONFeature['geometry']): boolean {
+    return dataStore.getState().replaceFeatures(selectedIds, [{
       ...selectedFeatures[0],
       id: crypto.randomUUID(),
       ...freeGeometry(geometry),
@@ -55,8 +58,7 @@ export default function BooleanOperations() {
       }
     }
 
-    commitResult({ type: 'MultiPoint', coordinates } as GeoJSONFeature['geometry'])
-    emit({ type: 'success', message: 'Union completed' })
+    if (commitResult({ type: 'MultiPoint', coordinates } as GeoJSONFeature['geometry'])) emit({ type: 'success', message: 'Union completed' })
   }
 
   function handleLineUnion() {
@@ -69,8 +71,7 @@ export default function BooleanOperations() {
       }
     }
 
-    commitResult({ type: 'MultiLineString', coordinates } as GeoJSONFeature['geometry'])
-    emit({ type: 'success', message: 'Union completed' })
+    if (commitResult({ type: 'MultiLineString', coordinates } as GeoJSONFeature['geometry'])) emit({ type: 'success', message: 'Union completed' })
   }
 
   async function handleOperation(type: 'union' | 'subtract' | 'intersect' | 'exclude') {
@@ -98,9 +99,10 @@ export default function BooleanOperations() {
       // The worker is async: don't resurrect a shape deleted (or undone) meanwhile.
       const live = new Set(dataStore.getState().features.map((f) => f.id))
       if (!selectedIds.every((id) => live.has(id))) throw new Error('a selected shape was removed while it ran')
-      commitResult(geometry as GeoJSONFeature['geometry'])
+      // A refused result (`geometryTypes`) is reported by the store and changes nothing.
+      const done = commitResult(geometry as GeoJSONFeature['geometry'])
       if (toastId !== undefined) toast.dismiss(toastId)
-      emit({ type: 'success', message: `${type[0].toUpperCase()}${type.slice(1)} completed` })
+      if (done) emit({ type: 'success', message: `${type[0].toUpperCase()}${type.slice(1)} completed` })
 
     } catch (err: unknown) {
       if (toastId !== undefined) toast.dismiss(toastId)
@@ -117,6 +119,10 @@ export default function BooleanOperations() {
     }
   }
 
+  const allowed = (t: string) => geometryTypes == null || geometryTypes.includes(t as (typeof geometryTypes)[number])
+  const polygonOpsOk = allowed('Polygon') || allowed('MultiPolygon')
+  const unionOk = allPolygons ? polygonOpsOk : allLines ? allowed('MultiLineString') : allowed('MultiPoint')
+
   // Labels say what each op does. Subtract keeps the FIRST selected shape (click order, Shift+click
   // adds) and nothing on screen marks which one that is, so its label names it.
   return (
@@ -124,28 +130,28 @@ export default function BooleanOperations() {
       <EditToolbarBtn
         label="Union: join into one shape"
         onClick={() => handleOperation('union')}
-        disabled={(!allPolygons && !allLines && !allPoints) || geometryProcessing}
+        disabled={(!allPolygons && !allLines && !allPoints) || !unionOk || geometryProcessing}
       >
         {geometryProcessing ? <Spinner size={24} className="animate-spin" /> : <UniteSquare size={24} weight="duotone" />}
       </EditToolbarBtn>
       <EditToolbarBtn
         label="Subtract: cut the others out of the first selected"
         onClick={() => handleOperation('subtract')}
-        disabled={!allPolygons || geometryProcessing}
+        disabled={!allPolygons || !polygonOpsOk || geometryProcessing}
       >
         <SubtractSquare size={24} weight="duotone" />
       </EditToolbarBtn>
       <EditToolbarBtn
         label="Intersect: keep only the overlap"
         onClick={() => handleOperation('intersect')}
-        disabled={!allPolygons || geometryProcessing}
+        disabled={!allPolygons || !polygonOpsOk || geometryProcessing}
       >
         <IntersectSquare size={24} weight="duotone" />
       </EditToolbarBtn>
       <EditToolbarBtn
         label="Exclude: keep only what doesn't overlap"
         onClick={() => handleOperation('exclude')}
-        disabled={!allPolygons || geometryProcessing}
+        disabled={!allPolygons || !polygonOpsOk || geometryProcessing}
       >
         <ExcludeSquare size={24} weight="duotone" />
       </EditToolbarBtn>
