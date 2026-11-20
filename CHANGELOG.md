@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Changed
+
+- **Drag a selected feature to move it, no modifier needed.** A plain drag (mouse or one finger) that starts on an already-selected point, line, area or multi-geometry moves it, and a drag on any feature of a multi-selection moves them all, exactly as `Cmd`/`Ctrl`-drag does (one undo step). Selected features show a move cursor, and a grabbing hand while moving; a press that moves less than 8 px stays a click. A drag on an unselected feature or on empty map pans, `Cmd`/`Ctrl`-drag still moves any feature, and drawing tools, point editing and `readonly` are unchanged. Two fingers always zoom. On MapLibre a plain drag on an unselected feature used to select and move it; it now pans, as on Leaflet. On Leaflet a `Cmd`/`Ctrl`-drag of a multi-selection no longer collapses the selection to the feature under the cursor.
+
 ---
 
 ## [0.3.0] — 2026-11-20

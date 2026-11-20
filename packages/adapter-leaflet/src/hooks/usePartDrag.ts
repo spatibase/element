@@ -9,7 +9,7 @@ import {
   setPartGeometry,
 } from '@element-editor/core/internal'
 import type { GeoJSONFeature } from '@element-editor/core'
-import { useDataStore, useUIStore, useGeoStore } from '@element-editor/ui'
+import { useDataStore, useGeoStore } from '@element-editor/ui'
 import type { MapInteractionMachine } from './useMapInteractionMachine'
 import { canPlainDragSelected, markSelectedPress, pastSlop, setActiveFeatureDrag, MOVING_FEATURE_CLASS } from '../utils/selectedDrag'
 

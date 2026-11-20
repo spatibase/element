@@ -2,7 +2,7 @@
  * FeatureInteractionLayer — handles selection, hover highlight, drag-to-translate,
  * double-click to enter vertex edit, and manages VertexEditor / TransformControls.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Point, Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent, MapTouchEvent } from 'maplibre-gl'
 import { useDataStore, useUIStore, useGeoStore } from '../store/StoreContext'
 import type { GeoJSONFeature, Geometry } from '@element-editor/core'
@@ -223,19 +223,18 @@ export default function FeatureInteractionLayer({ map }: Props) {
 
   // Over a feature with no tool: `move` on a selected one (a plain drag moves it, see the
   // drag effect below), `pointer` on the rest. The transform box keeps its own cursors.
-  const hoverCursor = (id: string) => {
+  const hoverCursor = useCallback((id: string) => {
     const ui = uiStore.getState()
     const movable = !ui.transformActive && !ui.vertexEditActive && dataStore.getState().selectedIds.includes(id)
     return movable ? 'move' : 'pointer'
-  }
-  // Selecting (a click) or deselecting under a still cursor changes that cursor at once.
+  }, [uiStore, dataStore])
+  // Selecting (a click) or deselecting under a still cursor changes that cursor at once
+  // (hoverCursor reads the stores: selectedIds / transformActive / vertexEditActive re-run this).
   useEffect(() => {
     const id = hoveredIdRef.current
     if (!id || editingMode !== 'none' || dragRef.current?.dragging) return
     modifierCursor.enter(map.getCanvas(), getLastPointer(), hoverCursor(id))
-    // hoverCursor reads the stores; these are what it depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, transformActive, vertexEditActive, editingMode, map, modifierCursor])
+  }, [selectedIds, transformActive, vertexEditActive, editingMode, map, modifierCursor, hoverCursor])
 
   // ── Hover ──────────────────────────────────────────────────────────────────
   // The hover hit test below is the only thing that decides "over a feature" (so the
@@ -286,7 +285,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
       // On unmount the map may already be removed (getSource throws then).
       try { clearHover(false) } catch { /* map torn down */ }
     }
-  }, [editingMode, map, dataStore, uiStore, modifierCursor])
+  }, [editingMode, map, dataStore, uiStore, modifierCursor, hoverCursor])
 
   // When a new feature is placed under a stationary cursor (e.g. the user
   // clicked with the point tool and hasn't moved yet), MapLibre's hover
