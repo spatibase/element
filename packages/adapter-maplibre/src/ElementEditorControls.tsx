@@ -151,6 +151,8 @@ export interface ElementEditorControlsProps {
   onZoomChange?: (zoom: number) => void
   /** Called with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. */
   onToolChange?: (tool: DrawingTool | null) => void
+  /** Called with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended. */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * Optional per-feature style callback. Return a `FeatureStyle` ({ color,
    * fillColor, opacity, fillOpacity, weight }) to override the default paint
@@ -247,6 +249,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       onFeatureSelect: props.onFeatureSelect,
       onZoomChange: props.onZoomChange,
       onToolChange: props.onToolChange,
+      onVertexEditChange: props.onVertexEditChange,
     })
     useImperativeHandle(ref, () => api, [api])
 

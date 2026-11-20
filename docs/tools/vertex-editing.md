@@ -13,6 +13,8 @@ Select a `LineString` or `Polygon` feature, then use any of:
 - **Double-click** the feature on the map
 - Press `Enter` while the feature is selected
 
+From code, `ref.setVertexEdit(id)` does the same (see [From code](#from-code)).
+
 The feature highlights with vertex handles and midpoint handles along all edges. A ring with more than 500 points shows at most 500 handles, picked from the part in view and evenly spaced; zoom in to reach the others.
 
 > **Warning:** Editing the points of a **circle** (`_drawType: 'circle'`) or a **rectangle** (`_drawType: 'rectangle'`) turns it into a plain polygon. Entering vertex edit shows a one-line notice each time ("Editing points will turn this circle into a plain shape.", same for a rectangle); the first committed change (drag, insert, delete, precise coordinates) removes `_drawType` in the same update, and one undo brings the circle or rectangle back. Leaving vertex edit without a change keeps it a circle or rectangle.
@@ -123,3 +125,22 @@ A rectangle (`_drawType: 'rectangle'`) edits like any polygon: dragging a corner
 - Click outside the feature on empty map space
 
 Changes are committed continuously as you edit — there is no separate confirm step. Undo (`Cmd/Ctrl+Z`) works on individual vertex operations.
+
+---
+
+## From code
+
+An app that edits one record at a time can open its shape for editing straight away:
+
+```tsx
+<ElementEditor
+  ref={ref}
+  onVertexEditChange={(id) => setEditingShape(id !== null)}
+/>
+
+ref.current?.setVertexEdit(featureId) // select it and show its points
+ref.current?.getVertexEdit()          // featureId, or null
+ref.current?.setVertexEdit(null)      // leave point editing (the selection stays)
+```
+
+`setVertexEdit(id)` behaves like a double-click: it selects the feature, turns off a drawing tool that is on and shows the circle / rectangle / route notice. It returns `false`, changing nothing, for an unknown or hidden feature, a geometry other than a `LineString` or `Polygon`, or a `readonly` editor (with a warning in development). `onVertexEditChange` fires once for every start and end, whether the user or your app caused it.

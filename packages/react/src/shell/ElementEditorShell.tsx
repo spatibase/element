@@ -109,6 +109,7 @@ const ElementEditorInternal = forwardRef<ElementEditorRef, ElementEditorShellPro
   onFeatureDelete,
   onSelectionChange,
   onToolChange,
+  onVertexEditChange,
   slots,
   renderMap,
   basemapControl,
@@ -163,6 +164,7 @@ const ElementEditorInternal = forwardRef<ElementEditorRef, ElementEditorShellPro
     onFeatureSelect,
     onZoomChange,
     onToolChange,
+    onVertexEditChange,
     onInitialDataApplied,
   })
   const handle = useMemo(() => (extraApi ? { ...api, ...extraApi } : api), [api, extraApi])

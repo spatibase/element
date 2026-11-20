@@ -114,6 +114,8 @@ export interface ElementEditorControlsProps {
   onZoomChange?: (zoom: number) => void
   /** Called with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. */
   onToolChange?: (tool: DrawingTool | null) => void
+  /** Called with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended. */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * Leaflet max-bounds. When set, the user can't pan the map outside this box.
    * A GeoJSON bbox `[west, south, east, north]`. The older `[[south, west], [north, east]]`
@@ -259,6 +261,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     onFeatureSelect: props.onFeatureSelect,
     onZoomChange: props.onZoomChange,
     onToolChange: props.onToolChange,
+    onVertexEditChange: props.onVertexEditChange,
   })
   useImperativeHandle(ref, () => api, [api])
 

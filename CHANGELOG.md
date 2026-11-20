@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **Start and stop point editing from code.** `ref.setVertexEdit(id)` puts a line or area in point editing, as a double-click does (it selects the feature, turns off a drawing tool and shows the circle / rectangle / route notice); `ref.setVertexEdit(null)` leaves it; `ref.getVertexEdit()` returns the id. The new `onVertexEditChange` prop on `<ElementEditor>` and both adapters' `<ElementEditorControls>` fires once whenever point editing starts or ends, by the user or by your app. Points, hidden features and a `readonly` editor are refused (`false`, with a development warning). `uiStore` gains `vertexEditFeatureId` (`vertexEditActive` follows it).
+
 ---
 
 ## [0.2.3] — 2026-11-16

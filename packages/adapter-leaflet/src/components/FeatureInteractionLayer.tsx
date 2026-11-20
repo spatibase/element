@@ -86,7 +86,6 @@ export default function FeatureInteractionLayer({ renderer: rendererMode = 'canv
   const selectFeature = useDataStore((s) => s.selectFeature)
   const updateFeature = useDataStore((s) => s.updateFeature)
   const closeDialog = useUIStore((s) => s.closeDialog)
-  const setVertexEditActive = useUIStore((s) => s.setVertexEditActive)
   const setTransformActive = useUIStore((s) => s.setTransformActive)
   const transformActive = useUIStore((s) => s.transformActive)
   const vertexEditActive = useUIStore((s) => s.vertexEditActive)
@@ -95,22 +94,31 @@ export default function FeatureInteractionLayer({ renderer: rendererMode = 'canv
   const geometryPreview = useUIStore((s) => s.geometryPreview)
   const bufferCreateNew = useUIStore((s) => s.bufferCreateNew)
   const readonly = useUIStore((s) => s.readonly)
-  const [vertexEditId, setVertexEditIdRaw] = useState<string | null>(null)
-  // Wrapper: keep store's vertexEditActive in sync with local vertexEditId
+  // The store owns which feature is in vertex edit (uiStore.vertexEditFeatureId): the user's
+  // gestures below and ref.setVertexEdit both write it, and this layer follows it.
+  const vertexEditId = useUIStore((s) => s.vertexEditFeatureId)
   function setVertexEditId(id: string | null) {
-    setVertexEditIdRaw(id)
-    setVertexEditActive(!!id)
+    uiStore.getState().setVertexEditFeature(id)
   }
   const shownRouteWarnRef = useRef(false)
   const interaction = useMapInteractionMachine(!!vertexEditId || editingMode !== 'none')
 
-  function enterVertexEdit(featureId: string, suppressDoubleClickZoom = false) {
+  // The feature the last entry already announced: an entry from the map (enterVertexEdit) says
+  // it at once; one that only changed the store (ref.setVertexEdit) is announced by the effect below.
+  const announcedVertexEditRef = useRef<string | null>(null)
+  function announceVertexEdit(featureId: string) {
+    announcedVertexEditRef.current = featureId
     const feature = dataStore.getState().features.find((f) => f.id === featureId)
-    if (!feature) return
     // Circle / rectangle / route: say what an edit will do. Nothing converts yet: the first
     // committed point change does (vertexEditPatch).
     const notice = vertexEditNotice(feature)
     if (notice) emit({ type: 'warning', message: notice })
+  }
+
+  function enterVertexEdit(featureId: string, suppressDoubleClickZoom = false) {
+    const feature = dataStore.getState().features.find((f) => f.id === featureId)
+    if (!feature) return
+    announceVertexEdit(featureId)
     if (suppressDoubleClickZoom) interaction.suppressDoubleClickZoomForGesture()
     interaction.suppressNextVertexExit()
     setVertexEditId(featureId)
@@ -279,15 +287,17 @@ export default function FeatureInteractionLayer({ renderer: rendererMode = 'canv
     }
   }, [selectedFeatureId, vertexEditId])
 
-  // Reverse-sync: when vertexEditActive flips false externally (e.g. ESC handler in
-  // useKeyboardShortcuts toggles the store flag), tear down local vertex-edit state too.
-  // Without this, the store flag would say "off" but VertexEditor would stay mounted.
+  // Vertex edit that changed in the store alone (Esc in useKeyboardShortcuts, a deselect,
+  // ref.setVertexEdit): drop the point selection and, for an entry, show the notice as the
+  // gestures do. No suppressNextVertexExit: no click started it, so the next map click leaves.
   useEffect(() => {
-    if (!vertexEditActive && vertexEditId) {
-      setVertexEditIdRaw(null)
+    if (!vertexEditId) { announcedVertexEditRef.current = null; setSelectedVertexIndices([]); return }
+    if (announcedVertexEditRef.current !== vertexEditId) {
+      announceVertexEdit(vertexEditId)
       setSelectedVertexIndices([])
     }
-  }, [vertexEditActive, vertexEditId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vertexEditId])
 
   // N toggles vertex edit — same guards as other letter shortcuts (panel must be closed).
   useEffect(() => {

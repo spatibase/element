@@ -133,6 +133,16 @@ export default function FeatureInteractionLayer({ map }: Props) {
     if (notice) emit({ type: 'warning', message: notice })
   }, [vertexEditActive, dataStore, emit])
 
+  // Vertex edit stays on while the user clicks another feature: the editor moves to it
+  // (it renders the single selected feature). Keep the store's id on that feature too, so
+  // ref.getVertexEdit / onVertexEditChange report it.
+  useEffect(() => {
+    const us = uiStore.getState()
+    if (us.vertexEditFeatureId && selectedIds.length === 1 && selectedIds[0] !== us.vertexEditFeatureId) {
+      us.setVertexEditFeature(selectedIds[0])
+    }
+  }, [selectedIds, uiStore])
+
   // Warn once (per editor) when the transform box opens on a route, as on Leaflet.
   const shownRouteTransformWarnRef = useRef(false)
   useEffect(() => {

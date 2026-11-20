@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { getFeatureCollectionBBox, isGeometry, ElementEditorError, subscribeToDataChanges, validateFeature } from '@element-editor/core'
-import { normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
+import { canVertexEdit, normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
 import type { DataChangeCallbacks, DataStore, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
 import { TOOL_MODES, useElementEditorConfig, type DrawTool } from '../contexts/ElementEditorConfigContext'
 import { useDataStore, useGeoStore, useUIStore } from '../store/StoreContext'
@@ -180,6 +180,21 @@ export interface ElementEditorImperativeAPI<TMap = unknown> {
    * (cut, slice, simplify, smooth, buffer) aren't tools: `null` while they run.
    */
   getTool: () => DrawTool | null
+  /**
+   * Puts a feature in point editing (vertex edit), as double-click or Enter does: it selects the
+   * feature (like `select([id])`), turns off a drawing tool that is on, shows its point handles and,
+   * for a drawn circle / rectangle / route, the one-line notice. `null` leaves point editing (the
+   * selection is kept). Returns `false`, changing nothing, for an unknown or hidden feature, a
+   * geometry other than a LineString or Polygon, or in `readonly` mode (each warns in development).
+   * The id already in point editing returns `true` and changes nothing.
+   *
+   * ```ts
+   * ref.current?.setVertexEdit(record.featureId) // the shape is editable straight away
+   * ```
+   */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing (vertex edit), or `null`. */
+  getVertexEdit: () => string | null
   /** `true` when `undo()` would change something (there is an edit to undo). */
   canUndo: () => boolean
   /** `true` when `redo()` would change something (there is an undone edit to redo). */
@@ -273,6 +288,12 @@ export interface UseAdapterControlsOptions {
   onZoomChange?: (zoom: number) => void
   /** Called with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. */
   onToolChange?: (tool: DrawTool | null) => void
+  /**
+   * Called with the id of the feature that entered point editing (vertex edit), or `null` when
+   * point editing ended, whether the user (double-click, Enter, Esc, deselect, delete, undo) or
+   * your app (`ref.setVertexEdit`) changed it.
+   */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * @internal Called after `initialData` was applied: `late` is true for data that arrived after
    * mount. The drop-in uses it to fit the late data.
@@ -432,6 +453,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
     onFeatureSelect,
     onZoomChange,
     onToolChange,
+    onVertexEditChange,
   } = opts
 
   const { dataStore, uiStore } = useGeoStore()
@@ -582,6 +604,15 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
     })
   }, [uiStore])
 
+  // onVertexEditChange — fire when the feature in vertex edit changes (the store is the source of truth).
+  const onVertexEditChangeRef = useRef(onVertexEditChange)
+  onVertexEditChangeRef.current = onVertexEditChange
+  useEffect(() => {
+    return uiStore.subscribe((state, prev) => {
+      if (state.vertexEditFeatureId !== prev.vertexEditFeatureId) onVertexEditChangeRef.current?.(state.vertexEditFeatureId)
+    })
+  }, [uiStore])
+
   // Imperative API — stable across renders. Only `dataStore` is in deps because
   // every other dynamic dependency is read via a ref.
   const api = useMemo<ElementEditorImperativeAPI<TMap>>(() => ({
@@ -697,6 +728,33 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       return true
     },
     getTool: () => toolOf(uiStore.getState().editingMode),
+    setVertexEdit: (id) => {
+      const us = uiStore.getState()
+      if (id === null) { us.setVertexEditFeature(null); return true }
+      if (us.readonly) {
+        warnOnce('ref-setVertexEdit-readonly', 'setVertexEdit: the editor is readonly; points can\'t be edited.')
+        return false
+      }
+      const ds = dataStore.getState()
+      const { keep } = selectableIds(ds, [id])
+      const feature = keep[0]
+      if (!feature) {
+        warnOnce('ref-setVertexEdit-unknown', `setVertexEdit: no visible feature with id ${JSON.stringify(id)}; nothing changed.`)
+        return false
+      }
+      if (!canVertexEdit(feature)) {
+        warnOnce('ref-setVertexEdit-geometry', `setVertexEdit: a ${feature.geometry.type} has no points to edit (only a LineString or Polygon has); nothing changed.`)
+        return false
+      }
+      if (us.vertexEditFeatureId === id && ds.selectedIds.length === 1 && ds.selectedIds[0] === id) return true
+      if (us.editingMode !== 'none') us.setEditingMode('none')
+      if (us.transformActive) us.setTransformActive(false)
+      if (!(ds.selectedIds.length === 1 && ds.selectedIds[0] === id)) ds.selectFeature(id)
+      us.setSelectedPartIndex(null)
+      uiStore.getState().setVertexEditFeature(id)
+      return true
+    },
+    getVertexEdit: () => uiStore.getState().vertexEditFeatureId,
     canUndo: () => dataStore.getState().undoStack.length > 0,
     canRedo: () => dataStore.getState().redoStack.length > 0,
     validate: () => {

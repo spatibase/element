@@ -102,7 +102,7 @@ export { setGeometryRunner } from './utils/geometryRunner'
 export type { GeometryRunner } from './utils/geometryRunner'
 
 // Store helpers
-export { featureLimitMessage, freeGeometry, vertexEditNotice, vertexEditPatch } from './store/dataStore'
+export { canVertexEdit, featureLimitMessage, freeGeometry, vertexEditNotice, vertexEditPatch } from './store/dataStore'
 export { makeCircleCoords, makeRectCoords, NARROW_EDITOR_WIDTH, sidebarTakesSpace } from './store/uiStore'
 export { resolveUnitSystem } from './utils/format'
 

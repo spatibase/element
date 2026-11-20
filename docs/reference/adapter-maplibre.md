@@ -122,6 +122,7 @@ Renders no visible HTML. Adds GL sources and layers to the map instance. Unmount
 | `onFeatureSelect` | `(feature: GeoJSONFeature \| null) => void` | — | No | Fires with the single selected feature, or `null` when nothing or several features are selected. |
 | `onZoomChange` | `(zoom: number) => void` | — | No | Fires when the map zoom changes. |
 | `onToolChange` | `(tool: DrawingTool \| null) => void` | — | No | Fires with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. |
+| `onVertexEditChange` | `(id: string \| null) => void` | — | No | Fires with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended, by the user or by `ref.setVertexEdit`. |
 | `routingApiKey` | `string` | — | No | **Deprecated** (dev warning): set `config.network.routing.apiKey` on the surrounding `ElementEditorUIProvider`, which wins when both are set. All servers the controls use (routing, Overpass, search, the built-in basemaps' tiles) come from `config.network`: see [Third-party services and self-hosting](../guides/third-party-services.md). |
 | `onReady` | `(map: maplibregl.Map) => void` | — | No | Called once per map, as soon as Element's sources and layers (`elm-*`) are on it: the place to add your own layers (pass an `elm-*` layer id as `beforeId` to put yours under Element's). `setBasemap` / `BasemapControl` keep them. Your own `map.setStyle(...)` drops them, and Element's too: Element puts its own back (on top, with the current features, selection and images) by itself; re-add yours from a `map.on('style.load', ...)` listener added here, which runs after Element's repair, so an `elm-*` `beforeId` works. Images you added with `map.addImage` are dropped by every style switch, `setBasemap` included: re-add them from a `styleimagemissing` listener. `ElementEditorControls` doesn't move the map: fit your data with `ref.fitBounds` if you want that. |
 | `maxBounds` | `[number, number, number, number] \| [[number, number], [number, number]] \| null` | — | No | MapLibre `maxBounds`: restricts panning. A GeoJSON bbox `[west, south, east, north]` or MapLibre's `[[west, south], [east, north]]`, both `[lng, lat]` order (the Leaflet adapter's prop is `bounds` and takes the same bbox). |
@@ -181,6 +182,10 @@ interface ElementEditorControlsRef {
   setTool: (tool: DrawingTool | null) => boolean
   /** The tool that is on, or null (also while a shape operation such as cut or buffer runs). */
   getTool: () => DrawingTool | null
+  /** Puts a LineString / Polygon in point editing (selects it, tool off); null leaves. False for unknown, hidden, other geometries, readonly. */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing, or null. */
+  getVertexEdit: () => string | null
   /** Whether undo() / redo() would change something. */
   canUndo: () => boolean
   canRedo: () => boolean
