@@ -84,7 +84,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node ../../scripts/fix-dts.mjs",
+    "build": "vite build && node ../../scripts/flatten-css.mjs dist/element-editor.css dist/element-editor-leaflet.css && node ../../scripts/fix-dts.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
