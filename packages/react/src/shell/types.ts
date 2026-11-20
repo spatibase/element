@@ -189,6 +189,12 @@ export interface ElementEditorBaseProps {
    */
   onToolChange?: (tool: DrawTool | null) => void
   /**
+   * Called with the id of the feature that entered point editing (vertex edit, as
+   * `ref.getVertexEdit()` reports it), or `null` when point editing ended, whether the user
+   * (double-click, Enter, Esc, a click away, delete, undo) or your app (`ref.setVertexEdit`) changed it.
+   */
+  onVertexEditChange?: (id: string | null) => void
+  /**
    * Receives every message the editor would show the user (errors, warnings, confirmations,
    * `feature:deleted` with an `undo`, …). With it set, the editor shows no toasts: your app
    * displays them. Without it, the editor renders its own toaster. Read once, on mount.

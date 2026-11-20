@@ -95,6 +95,7 @@ Renders no visible HTML. Mounts the Element editing layer into the Leaflet map. 
 | `onFeatureSelect` | `(feature: GeoJSONFeature \| null) => void` | — | No | Fires with the single selected feature, or `null` when nothing or several features are selected. |
 | `onZoomChange` | `(zoom: number) => void` | — | No | Fires when the map zoom changes. |
 | `onToolChange` | `(tool: DrawingTool \| null) => void` | — | No | Fires with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. |
+| `onVertexEditChange` | `(id: string \| null) => void` | — | No | Fires with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended, by the user or by `ref.setVertexEdit`. |
 | `routingApiKey` | `string` | — | No | **Deprecated** (dev warning): set `config.network.routing.apiKey` on the surrounding `ElementEditorUIProvider`, which wins when both are set. All servers the controls use (routing, Overpass, search) come from `config.network`: see [Third-party services and self-hosting](../guides/third-party-services.md). |
 | `bounds` | `[number, number, number, number] \| null` | — | No | Leaflet max bounds: the user can't pan outside this box. A GeoJSON bbox `[west, south, east, north]` (`[lng, lat]` order, like your data). `null` clears. *Deprecated:* the nested `[[south, west], [north, east]]` Leaflet-order form still works and logs a one-time dev warning with the bbox equivalent. |
 | `getFeatureStyle` | `(feature: GeoJSONFeature) => (FeatureStyle & PathOptions) \| undefined \| null` | — | No | `FeatureStyle` plus any Leaflet `PathOptions` per feature (`null`/`undefined` = default look), applied to polygons, lines and point pins (pins take `fillColor`, then `color`). `fillColor` falls back to `color`, as on MapLibre, so a `FeatureStyle` callback works unchanged. Wins over `config.featureColor` per key; the selected look wins over it, hover keeps the colour. Called on every render; keep it fast. See [Colouring features](../guides/theming.md#colouring-features). |
@@ -140,6 +141,10 @@ interface ElementEditorControlsRef {
   setTool: (tool: DrawingTool | null) => boolean
   /** The tool that is on, or null (also while a shape operation such as cut or buffer runs). */
   getTool: () => DrawingTool | null
+  /** Puts a LineString / Polygon in point editing (selects it, tool off); null leaves. False for unknown, hidden, other geometries, readonly. */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing, or null. */
+  getVertexEdit: () => string | null
   /** Whether undo() / redo() would change something. */
   canUndo: () => boolean
   canRedo: () => boolean

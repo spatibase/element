@@ -89,6 +89,9 @@ export interface UIStore {
   // [south, north, west, east] — set by useBoundaryFromURL, consumed+cleared by BoundaryAutoFit inside MapContainer
   boundaryAutofitBbox: [number, number, number, number] | null
   panelPrefs: PanelPrefs
+  /** Id of the feature in vertex edit, or `null`. The source of truth for vertex edit. */
+  vertexEditFeatureId: string | null
+  /** `vertexEditFeatureId !== null`, kept in step with it (many readers only need the flag). */
   vertexEditActive: boolean
   transformActive: boolean
   transformDragging: boolean
@@ -139,7 +142,10 @@ export interface UIStore {
   toggleSchemaModal: () => void
   toggleCodeModal: () => void
   setPanelPref: (key: keyof PanelPrefs, value: boolean) => void
+  /** `true` puts the single selected feature in vertex edit (nothing when the selection isn't one feature); `false` leaves it. */
   setVertexEditActive: (active: boolean) => void
+  /** Puts this feature in vertex edit (`null` leaves it). Doesn't select it or check its geometry: callers do. */
+  setVertexEditFeature: (id: string | null) => void
   setTransformActive: (active: boolean) => void
   setTransformDragging: (dragging: boolean) => void
   setGeometryProcessing: (processing: boolean) => void
@@ -326,7 +332,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
       // Nothing selected (deselect, delete, an undo that removed the feature): vertex edit and
       // transform end too, so the next click doesn't drop straight into a stale mode.
       if (state.selectedIds.length === 0 && (get().vertexEditActive || get().transformActive)) {
-        set({ vertexEditActive: false, transformActive: false })
+        set({ vertexEditFeatureId: null, vertexEditActive: false, transformActive: false })
       }
     }
   })
@@ -387,6 +393,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   narrow: false,
   boundaryAutofitBbox: null,
   panelPrefs: loadPanelPrefs(scope),
+  vertexEditFeatureId: null,
   vertexEditActive: false,
   transformActive: false,
   transformDragging: false,
@@ -438,7 +445,14 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   setCodeDockWidth: (width) => set({ codeDockWidth: width }),
   setLayout: (layout) => set({ layout }),
   setSelectedPartIndex: (index) => set({ selectedPartIndex: index }),
-  setVertexEditActive: (active) => set({ vertexEditActive: active }),
+  setVertexEditActive: (active) => {
+    const sel = dataStore.getState().selectedIds
+    get().setVertexEditFeature(active && sel.length === 1 ? sel[0] : null)
+  },
+  setVertexEditFeature: (id) => {
+    if (get().vertexEditFeatureId === id) return
+    set({ vertexEditFeatureId: id, vertexEditActive: id !== null })
+  },
   setTransformActive: (active) => set({ transformActive: active }),
   setTransformDragging: (dragging) => set({ transformDragging: dragging }),
   setGeometryProcessing: (processing) => set({ geometryProcessing: processing }),

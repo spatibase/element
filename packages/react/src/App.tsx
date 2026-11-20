@@ -202,6 +202,11 @@ const onChange = params.get('changes') === '1' ? (data: FeatureCollection) => {
   const w = window as unknown as { __changes?: number[] }
   ;(w.__changes ??= []).push(data.features.length)
 } : undefined
+// Every `onVertexEditChange` call pushes its id (or null) to `window.__vertexEditChanges`. (e2e)
+const onVertexEditChange = (id: string | null) => {
+  const w = window as unknown as { __vertexEditChanges?: (string | null)[] }
+  ;(w.__vertexEditChanges ??= []).push(id)
+}
 const mapOptionsParam = params.get('mapOptions')
 const mapOptions = mapOptionsParam ? JSON.parse(mapOptionsParam) : undefined
 type ReadyWin = { __readyMaps?: unknown[]; __readyHadElm?: boolean[] }
@@ -259,7 +264,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, routingApiKey, onChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated

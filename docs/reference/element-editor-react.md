@@ -104,6 +104,7 @@ The component fills its container element. The parent element must have an expli
 | `onFeatureDelete` | `(id: string) => void` | — | No | Fires once per deleted feature, including bulk and group deletions. |
 | `onSelectionChange` | `(ids: string[]) => void` | — | No | Fires with the selected ids whenever the selection changes, including multi-select and lasso (`[]` when cleared). |
 | `onToolChange` | `(tool: DrawTool \| null) => void` | — | No | Fires with the tool that turned on (as `ref.getTool()` reports it), or `null` when the active tool turned off, whether the user or your app changed it. |
+| `onVertexEditChange` | `(id: string \| null) => void` | — | No | Fires with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when point editing ended: double-click, `Enter`, `Escape`, a click away, delete, undo, or `ref.setVertexEdit`. Once per change. |
 | `routingApiKey` | `string` | — | No | **Deprecated** (dev warning): use `config.network.routing.apiKey`, which wins when both are set. OpenRouteService key for the Route tool, per editor. |
 | `mapOptions` | `Partial<Omit<maplibregl.MapOptions, OwnedMapOption>>` | — | No | Extra `maplibregl.Map` options: `pitch`, `bearing`, `minZoom`, `maxZoom`, `hash`, `locale`, `transformRequest`, … Read once, when the map is created; change them later on the map (`onMapReady` / `ref.getMap()`, e.g. `map.setMaxZoom(18)`). Options Element sets itself are left out of the type and, if passed anyway, dropped with a dev warning: `container`, `style` (use `basemap`), `center` / `zoom` / `bounds` / `fitBoundsOptions` (use `initialView`), `maxBounds` (use `bounds`), `attributionControl`, `interactive`, `dragPan`, `boxZoom`, `doubleClickZoom` (Element turns these on and off while editing). `transformRequest` covers every tile, glyph and sprite request MapLibre makes: use it for headers on the servers you set in `config.network` (the built-in styles themselves are bundled, not fetched). |
 | `onMapReady` | `(map: maplibregl.Map) => void` | — | No | Called once per map, as soon as Element's sources and layers (`elm-*`) are on it: the place to add your own sources and layers (pass an `elm-*` layer id as `beforeId` to put yours under Element's). Basemap switches (the picker, `'auto'` following the theme) keep them. Your own `map.setStyle(...)` drops them and Element's: Element restores its own (on top, with the current features and selection) by itself, and a `map.on('style.load', ...)` listener added here runs after that, so it can re-add yours. `map.addImage` images are dropped by every style switch: re-add them on `styleimagemissing`. If the editor remounts, it is called again with the new map. Saves polling `ref.getMap()`. |
@@ -192,6 +193,15 @@ interface ElementEditorRef {
   setTool: (tool: DrawTool | null) => boolean
   /** The tool that is on (as setTool takes it), or null. Shape operations (cut, buffer, …) aren't tools: null. */
   getTool: () => DrawTool | null
+  /**
+   * Puts a LineString or Polygon in point editing, as double-click / Enter does: selects it, turns
+   * off a drawing tool, shows the handles (and the circle / rectangle / route notice). null leaves
+   * point editing, keeping the selection. False, changing nothing, for an unknown or hidden feature,
+   * any other geometry, or readonly. The id already in point editing: true, nothing changes.
+   */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing, or null. */
+  getVertexEdit: () => string | null
   /** Whether undo() / redo() would change something. */
   canUndo: () => boolean
   canRedo: () => boolean
@@ -323,6 +333,9 @@ ref.current?.getSelection()                            // ['a', 'b']
 ref.current?.clearSelection()
 ref.current?.setTool('polygon')                        // false if unavailable
 ref.current?.setTool(null)                             // exit the tool
+ref.current?.setVertexEdit('a')                        // edit a's points (false for points, hidden, readonly)
+ref.current?.getVertexEdit()                           // 'a' | null
+ref.current?.setVertexEdit(null)                       // leave point editing
 
 // The map itself (null until mounted):
 ref.current?.getMap()?.on('moveend', save)

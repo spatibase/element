@@ -66,6 +66,14 @@ Fires when the set of selected feature IDs changes. Fires **independently** of f
 />
 ```
 
+### `onVertexEditChange`
+
+```ts
+onVertexEditChange?: (id: string | null) => void
+```
+
+Fires with the id of the feature that entered point editing, or `null` when point editing ended, once per change: double-click, `Enter`, `Escape`, a click away, deleting or undoing the feature, and `ref.setVertexEdit(id | null)` alike. `ref.getVertexEdit()` returns the same id. See [Vertex editing: From code](../tools/vertex-editing.md#from-code).
+
 ---
 
 ## Selection, zoom, submit and notification events
@@ -251,6 +259,7 @@ The `undo()` function on `feature:deleted`, `features:deleted`, and `feature:bro
 | Real-time sync / CRDT | Granular events (`onFeatureAdd/Update/Delete`) |
 | 500+ features | Granular events |
 | React to selection in your UI | `onSelectionChange` |
+| Show your own "editing shape" state | `onVertexEditChange` |
 | Custom toast notifications | `onEvent` |
 | Error logging, own error UI, translated error messages | `onError` |
 | Validation gate before save | `onSubmit` + `onValidationError` |

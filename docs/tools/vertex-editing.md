@@ -12,6 +12,9 @@ Select a `LineString` or `Polygon` feature, then use any of:
 
 - **Double-click** the feature on the map
 - Press `Enter` while the feature is selected
+- On a touch screen, tap the selected feature again or tap **Edit points** (see [Touch](#touch))
+
+From code, `ref.setVertexEdit(id)` does the same (see [From code](#from-code)).
 
 The feature highlights with vertex handles and midpoint handles along all edges. A ring with more than 500 points shows at most 500 handles, picked from the part in view and evenly spaced; zoom in to reach the others.
 
@@ -80,7 +83,7 @@ This mirrors the Snapping modifier-disable pattern: the same modifier means "ign
 
 Hover an edge to reveal its midpoint handle (the hollow diamond between two vertex handles). Click the midpoint to insert a new vertex at that position; the midpoint disappears and two new midpoints appear on either side. Dragging a midpoint handle directly also inserts a vertex and positions it in one gesture.
 
-Midpoints are only shown for the edge under the cursor — moving away hides them. This keeps the polygon visually clean during editing while still surfacing the insertion handle the moment you need it. The hover band has a small hysteresis so the handle stays visible as you nudge toward it.
+Midpoints are only shown for the edge under the cursor — moving away hides them (with a finger every edge shows its midpoint, see [Touch](#touch)). This keeps the polygon visually clean during editing while still surfacing the insertion handle the moment you need it. The hover band has a small hysteresis so the handle stays visible as you nudge toward it.
 
 Edge-drag also works: press anywhere along an edge (not just the midpoint; within about 15 px of it, where the edge snap diamond shows) and drag. A new vertex is inserted on that edge and follows the cursor until release, as one undo step. Dragging inside the shape away from its edges pans the map.
 
@@ -123,3 +126,39 @@ A rectangle (`_drawType: 'rectangle'`) edits like any polygon: dragging a corner
 - Click outside the feature on empty map space
 
 Changes are committed continuously as you edit — there is no separate confirm step. Undo (`Cmd/Ctrl+Z`) works on individual vertex operations.
+
+---
+
+## Touch
+
+On a phone or tablet every action has a tap. The editor decides per press: a finger gets the touch behaviour below, a mouse keeps everything above (a touch laptop gets both, whichever you used last).
+
+| Action | Touch |
+|---|---|
+| Start editing points | Tap the selected line or area again, or tap **Edit points** in the action bar |
+| Select a point | Tap it; the action bar shows **Delete** (and **Simplify**) |
+| Point menu (**Edit coordinates…**, **Delete point**) | Long-press the point (half a second) |
+| Insert a point | Every edge shows its midpoint handle (no hover needed): tap it, or drag it to place the new point |
+| Move a point | Drag it; the map doesn't pan |
+| Leave | Tap empty map, or **Edit points** again |
+
+Handles keep their small look but take a 44 px touch area, so a finger doesn't have to hit them exactly.
+
+---
+
+## From code
+
+An app that edits one record at a time can open its shape for editing straight away:
+
+```tsx
+<ElementEditor
+  ref={ref}
+  onVertexEditChange={(id) => setEditingShape(id !== null)}
+/>
+
+ref.current?.setVertexEdit(featureId) // select it and show its points
+ref.current?.getVertexEdit()          // featureId, or null
+ref.current?.setVertexEdit(null)      // leave point editing (the selection stays)
+```
+
+`setVertexEdit(id)` behaves like a double-click: it selects the feature, turns off a drawing tool that is on and shows the circle / rectangle / route notice. It returns `false`, changing nothing, for an unknown or hidden feature, a geometry other than a `LineString` or `Polygon`, or a `readonly` editor (with a warning in development). `onVertexEditChange` fires once for every start and end, whether the user or your app caused it.

@@ -64,6 +64,16 @@ export function vertexEditNotice(feature: Pick<GeoJSONFeature, '_drawType'> | un
 }
 
 /**
+ * Whether point editing can start on this feature from code (`ref.setVertexEdit`) or by Enter /
+ * double-click on both engines: a LineString or a Polygon. Multi* parts need a part picked on the
+ * map first, points have nothing to edit.
+ */
+export function canVertexEdit(feature: Pick<GeoJSONFeature, 'geometry'> | undefined): boolean {
+  const t = feature?.geometry?.type
+  return t === 'LineString' || t === 'Polygon'
+}
+
+/**
  * Removes `_drawType` from `f` (a copy the caller owns), plus the route metadata that only means
  * something with it: `properties._waypoints` (the clicks the route was requested with).
  */

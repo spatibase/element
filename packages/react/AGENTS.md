@@ -270,6 +270,8 @@ interface ElementEditorRef {
   select: (ids: string[], options?: { fit?: boolean }) => void
   setTool: (tool: DrawTool | null) => boolean                            // false if unavailable / readonly
   getTool: () => DrawTool | null                                         // also: onToolChange prop
+  setVertexEdit: (id: string | null) => boolean                          // line / area point editing; null leaves; false: point, hidden, readonly
+  getVertexEdit: () => string | null                                     // also: onVertexEditChange prop
   getMap: () => TMap | null                                              // null until mounted
   flyTo: {
     (options: FlyToOptions): void                                        // { center: [lng, lat], zoom? }, zoom default 15
@@ -317,6 +319,7 @@ interface ImportResult { skipped: number; duplicates: number; truncated: boolean
 | `onBasemapChange` | `(basemap) => void` | user picked a basemap or `ref.setBasemap()` |
 | `onMapReady` | `(map) => void` | once per map, after Element's layers are on it |
 | `onToolChange` | `(tool: DrawTool \| null) => void` | a drawing tool turned on (`null`: off), as `ref.getTool()` reports it |
+| `onVertexEditChange` | `(id: string \| null) => void` | a feature entered point editing (`null`: it ended), as `ref.getVertexEdit()` reports it |
 
 `ElementEditorEvent['type']`: `'feature:deleted' | 'features:deleted' | 'feature:duplicated' | 'features:duplicated' | 'feature:broken' | 'selection:copied' | 'selection:pasted' | 'undo' | 'redo' | 'error' | 'warning' | 'success'`.
 

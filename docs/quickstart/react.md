@@ -284,6 +284,7 @@ interface ElementEditorRef {
   getSelection: () => string[]
   select: (ids: string[], options?: { fit?: boolean }) => void        // fit: zoom to the selection
   setTool: (tool: DrawTool | null) => boolean                         // null exits; false if unavailable
+  setVertexEdit: (id: string | null) => boolean                       // edit a line's / area's points; null leaves
   getMap: () => maplibregl.Map | null                                 // L.Map on /leaflet; null until mounted
   getBasemap: () => BasemapInput                                      // the current basemap choice
   setBasemap: (basemap: BasemapInput) => void                         // switch like a user pick

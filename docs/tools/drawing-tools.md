@@ -17,6 +17,7 @@ A handful of conventions apply across the whole set, so you don't have to relear
 - **Backspace / Delete removes the last placed point** during multi-point drawing (line, area, route, slice, cut-hole, measure). The keyboard shortcut won't delete features while a draw is in progress.
 - **Drag-to-draw on Rectangle and Circle.** Click-and-drag to size in one gesture. A Circle click without dragging places a default-sized circle (25 px radius) at the click point and selects it; a Rectangle click without dragging creates nothing, so a stray click never drops a shape.
 - **Snap-aware.** If snapping is enabled (the default), each click locks to the nearest vertex or edge within 15 px. Hold `Cmd` / `Ctrl` to bypass snapping for the current gesture.
+- **Touch: Done and Undo point.** With a finger, the drawing bar says "Tap" and shows **Done** (finishes the line, area or measurement, like `Enter`) and **Undo point** (removes the last point, like `Backspace`). Tapping the first point still closes an area. A mouse keeps the keyboard hints; the editor follows whichever you used last, so a touch laptop gets both.
 - **Modifier-aware cursor.** Holding a modifier (`Shift`, `Cmd`/`Ctrl`) updates the cursor to reflect the modifier's effect — a small hint that the next click will behave differently.
 
 ---
@@ -32,7 +33,7 @@ The general-purpose tool for closed shapes. Click to add points, building the ar
 1. Press `G` or click the **Area** tool in the toolbar.
 2. Click to place the first vertex.
 3. Continue clicking to add vertices.
-4. Close the area by clicking the first vertex again, pressing `Enter`, or double-clicking.
+4. Close the area by clicking the first vertex again, pressing `Enter`, or double-clicking. On a touch screen, tap the first point or **Done**.
 
 Element doesn't check whether a polygon's edges cross each other (self-intersection), so you can save a polygon whose edges cross. Boolean operations may behave unexpectedly on such shapes.
 
@@ -67,7 +68,7 @@ Draws a multi-segment line between clicked waypoints.
 1. Press `L` or click the Line tool.
 2. Click to place the first point.
 3. Continue clicking to add waypoints. A live preview follows the cursor.
-4. Finish by pressing `Enter` or double-clicking the last point.
+4. Finish by pressing `Enter` or double-clicking the last point. On a touch screen, tap **Done**.
 
 **Minimum:** 2 points.
 
