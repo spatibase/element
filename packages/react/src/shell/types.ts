@@ -87,6 +87,14 @@ export interface ElementEditorBaseProps {
    */
   replaceAtLimit?: boolean
   /**
+   * `true`: every drawing tool turns off after a finished shape (the new shape is selected and
+   * `onToolChange(null)` fires), for a one-shape-at-a-time flow. `false`: tools stay on. Either
+   * wins over the user's saved setting ("Return to select after each shape"), is never saved to
+   * their browser, and makes that Settings toggle read-only. Unset: the user's setting decides
+   * (default: tools stay on).
+   */
+  autoExitAfterDraw?: boolean
+  /**
    * Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste,
    * undo/redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same
    * values. Both parts are off unless set:
