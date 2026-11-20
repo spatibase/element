@@ -9,6 +9,7 @@ What changed in Element, release by release, and what it means for you and the p
 ### Added
 
 - **Start and stop point editing from code.** `ref.setVertexEdit(id)` puts a line or area in point editing, as a double-click does (it selects the feature, turns off a drawing tool and shows the circle / rectangle / route notice); `ref.setVertexEdit(null)` leaves it; `ref.getVertexEdit()` returns the id. The new `onVertexEditChange` prop on `<ElementEditor>` and both adapters' `<ElementEditorControls>` fires once whenever point editing starts or ends, by the user or by your app. Points, hidden features and a `readonly` editor are refused (`false`, with a development warning). `uiStore` gains `vertexEditFeatureId` (`vertexEditActive` follows it).
+- **Drawing and point editing work with a finger**, on both maps. Drawing a line, area or measurement by taps finishes with **Done** in the drawing bar, and **Undo point** takes back the last point (tapping the first point still closes an area). A second tap on a selected line or area starts point editing, and the shape's action bar shows **Edit points** on a touch screen. While editing, every edge shows its midpoint, point and midpoint handles take a 44 px touch area (they look the same), and a long-press on a point opens the same menu as right-click. The editor decides per press, so a mouse keeps exactly today's behaviour and a touch laptop gets both.
 
 ---
 

@@ -4,11 +4,12 @@ import { getFixedShortcutDisplay } from '@element-editor/core'
 import { getPartCount, canProcessShape } from '@element-editor/core/internal'
 import { useShortcutConfig } from '../contexts/ShortcutConfigContext'
 import { useEmit } from '../contexts/EventContext'
-import { CopySimple, Trash, Resize, Scissors, Knife, Shapes, StackPlus, WaveSine, SquareLogo } from '@phosphor-icons/react'
+import { CopySimple, Trash, Resize, Scissors, Knife, Shapes, StackPlus, WaveSine, SquareLogo, BezierCurve } from '@phosphor-icons/react'
 import { KbdDark } from './ui/Kbd'
 import { EditToolbarBtn } from './ui/EditToolbarBtn'
 import { RowDivider } from './ui/RowDivider'
 import { useBalancedWrap } from '../hooks/useBalancedWrap'
+import { useTouchInput } from '../hooks/useTouchInput'
 
 // Lazy: defers loading the geometry worker client until the user multi-selects.
 const BooleanOperations = lazy(() => import('./BooleanOperations'))
@@ -23,6 +24,9 @@ export default function EditingToolbar() {
   const selectedIds = useDataStore((s) => s.selectedIds)
   const selectedFeatureId = selectedIds.length === 1 ? selectedIds[0] : null
   const closeDialog = useUIStore((s) => s.closeDialog)
+  const vertexEditFeatureId = useUIStore((s) => s.vertexEditFeatureId)
+  const setVertexEditFeature = useUIStore((s) => s.setVertexEditFeature)
+  const touch = useTouchInput()
   const { getKey } = useShortcutConfig()
   const emit = useEmit()
 
@@ -35,7 +39,7 @@ export default function EditingToolbar() {
 
   // Narrow screens: rows of even length, never a lone button on the second row.
   const barRef = useRef<HTMLDivElement>(null)
-  useBalancedWrap(barRef, `${readonly}|${selectedIds.length}|${selectedGeomType}`)
+  useBalancedWrap(barRef, `${readonly}|${selectedIds.length}|${selectedGeomType}|${touch}`)
 
   if (readonly) return null
 
@@ -57,6 +61,9 @@ export default function EditingToolbar() {
   const showTransform = hasSelection && !isSinglePoint
   const showPolygonGroup = isPolygonSelected
   const showShapeGroup = canProcessShape(selectedGeomType)
+  // A finger has no double-click / Enter: "Edit points" says point editing exists (a second tap
+  // on the selected shape enters it too). Lines and areas only, as for double-click.
+  const showEditPoints = touch && selectedFeatureId !== null && (selectedGeomType === 'LineString' || selectedGeomType === 'Polygon')
   const showBreakApart = isMultiGeometry
   const showMerge = selectedIds.length >= 2
   const showCombineGroup = showBreakApart || showMerge
@@ -107,6 +114,18 @@ export default function EditingToolbar() {
       {/* Contextual Feature Tools */}
       {hasSelection && (
         <div ref={barRef} className="flex flex-wrap items-center justify-center gap-2 max-w-full bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto antialiased">
+          {showEditPoints && (
+            <EditToolbarBtn
+              label="Edit points"
+              onClick={() => {
+                if (editingMode !== 'none') setEditingMode('none')
+                setVertexEditFeature(vertexEditFeatureId === selectedFeatureId ? null : selectedFeatureId)
+              }}
+              active={vertexEditFeatureId === selectedFeatureId}
+            >
+              <BezierCurve size={24} />
+            </EditToolbarBtn>
+          )}
           {showTransform && (
             <EditToolbarBtn
               label="Transform"

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Point, Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent } from 'maplibre-gl'
 import { useDataStore, useUIStore, useGeoStore } from '../store/StoreContext'
 import type { GeoJSONFeature, Geometry } from '@element-editor/core'
-import { offsetGeometry, project, isMultiGeometry, withXY, vertexEditNotice } from '@element-editor/core/internal'
+import { offsetGeometry, project, isMultiGeometry, withXY, vertexEditNotice, isTouchEvent, canVertexEdit } from '@element-editor/core/internal'
 import { findPartAtPoint } from '../utils/findPartAtPoint'
 import { INTERACTIVE_FEATURE_LAYERS, setHoverState } from './FeatureLayer'
 import VertexEditor from './VertexEditor'
@@ -377,7 +377,15 @@ export default function FeatureInteractionLayer({ map }: Props) {
         }
       } else {
         if (ds.selectedIds.length === 1 && ds.selectedIds[0] === id) {
-          // Second click on already-selected: do nothing (vertex edit via dblclick)
+          // Second click on already-selected: do nothing (vertex edit via dblclick). A finger has
+          // no double-click: its second tap on a selected line / area edits the points.
+          if (isTouchEvent(e.originalEvent) && !vertexEditActive) {
+            const feature = ds.features.find((f) => f.id === id)
+            if (canVertexEdit(feature)) {
+              uiStore.getState().setSelectedPartIndex(null)
+              uiStore.getState().setVertexEditFeature(id)
+            }
+          }
         } else {
           ds.selectFeature(id)
         }

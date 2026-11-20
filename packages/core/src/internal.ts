@@ -60,6 +60,7 @@ export type { PlaceMode, PlaceBounds } from './utils/placeBox'
 
 // Click handling
 export { createClickRepeatGuard, CLICK_SLOP_PX, CLICK_TOOL_MODES } from './utils/clickRepeat'
+export { isTouchEvent, lastPointerWasTouch, subscribeLastPointer, attachLongPress, TOUCH_HIT_PX, TOUCH_HANDLE_CSS, LONG_PRESS_MS, LONG_PRESS_SLOP_PX } from './utils/touch'
 
 // Error codes from HTTP status / load failures
 export { httpErrorCode, loadErrorCode } from './utils/errors'
