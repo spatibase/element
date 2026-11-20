@@ -8,6 +8,7 @@ import { toLeaflet } from '../../utils/geojson'
 import { usePartDrag } from '../../hooks/usePartDrag'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
 import { LINE_HIT_WEIGHT, useFeatureRenderer } from './renderer'
+import { SELECTED_FEATURE_CLASS } from '../../utils/selectedDrag'
 import { AccentContext, IDLE_LINE, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
 
 export const MultiLineLayer = memo(function MultiLineLayer({ feature, selected, isMultiSelected, multiDragDelta, readonly, interaction, onContextMenu }: {
@@ -123,7 +124,7 @@ export const MultiLineLayer = memo(function MultiLineLayer({ feature, selected, 
                   else hitRefs.current.delete(i)
                 }}
                 positions={linePositions}
-                pathOptions={{ color: '#000', weight: LINE_HIT_WEIGHT, opacity: 0.001 }}
+                pathOptions={{ color: '#000', weight: LINE_HIT_WEIGHT, opacity: 0.001, className: selected || isMultiSelected ? SELECTED_FEATURE_CLASS : '' }}
                 eventHandlers={handlers}
               />
             )}

@@ -48,7 +48,7 @@ test('a thin line is hovered, named and clicked from 7 px away, not from 12 px',
   await expect.poll(() => tooltip(page)).toBe(null)
 })
 
-test('cursor: pointer on a feature, grab off it (also after a quick exit and a selection), crosshair with a tool, grabbing while panning', async ({ page }) => {
+test('cursor: pointer on a feature, move on a selected one, grab off it (also after a quick exit and a selection), crosshair with a tool, grabbing while panning', async ({ page }) => {
   const on = await seed(page)
   const off = { x: on.x, y: on.y - 80 }
   await page.mouse.move(off.x, off.y)
@@ -66,7 +66,8 @@ test('cursor: pointer on a feature, grab off it (also after a quick exit and a s
   // Selected, then left.
   await page.mouse.click(on.x, on.y)
   await expect.poll(() => selectedIds(page)).toEqual(['L'])
-  await expect.poll(() => cursorAt(page, on.x, on.y)).toBe('pointer')
+  // A selected feature moves on a plain drag: move cursor.
+  await expect.poll(() => cursorAt(page, on.x, on.y)).toBe('move')
   await page.mouse.move(off.x, off.y, { steps: 2 })
   await expect.poll(() => cursorAt(page, off.x, off.y)).toBe('grab')
   await page.keyboard.press('Escape')

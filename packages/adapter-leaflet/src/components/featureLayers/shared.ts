@@ -3,6 +3,7 @@ import { divIcon, Polygon as LeafletPolygon, Polyline as LeafletPolyline, type L
 import { createContext } from 'react'
 import { useFeatureStyle, type FeatureStyleFn } from '../../contexts/FeatureStyleContext'
 import { PIN_PATH } from '../../utils/pinPath'
+import { SELECTED_FEATURE_CLASS } from '../../utils/selectedDrag'
 
 // ─── Feature styles ───────────────────────────────────────────────────────────
 //
@@ -80,7 +81,7 @@ export function makePinIcon(selected: boolean, multiSelected = false, idle?: str
   const lit = multiSelected || selected
   const color = lit ? 'var(--color-primary-500)' : idle ?? DEFAULT_FEATURE_COLOR
   return divIcon({
-    className: '',
+    className: lit ? SELECTED_FEATURE_CLASS : '',
     html: `<div style="position:relative;width:20px;height:28px">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="28" viewBox="0 0 20 28" style="position:relative;z-index:1;display:block">
         <path d="${PIN_PATH}" fill-rule="evenodd"${!lit && color === DEFAULT_FEATURE_COLOR ? ' data-elm-plain="1"' : ''} style="fill:${color}"/>
