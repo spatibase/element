@@ -37,10 +37,11 @@ export function SelectedDragSupport({ readonly }: { readonly: boolean }) {
     }))
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse') return
+      // A second finger, anywhere on the page (it may land on a toolbar): a pinch, not a move.
       if (active !== null) { active = null; cancelActiveFeatureDrag(); return }
       if (!e.isPrimary) return
       const t = e.target as Element | null
-      if (!t?.closest?.(`.${SELECTED_FEATURE_CLASS}`)) return
+      if (!t || !c.contains(t) || !t.closest?.(`.${SELECTED_FEATURE_CLASS}`)) return
       // Not cancelled: no handler took it (e.g. the press hit an overlay), let the map pan.
       if (!fire(t, 'mousedown', e)) active = e.pointerId
     }
@@ -55,15 +56,15 @@ export function SelectedDragSupport({ readonly }: { readonly: boolean }) {
       active = null
       cancelActiveFeatureDrag()
     }
-    c.addEventListener('pointerdown', down, true)
-    c.addEventListener('pointermove', move, true)
-    c.addEventListener('pointerup', up, true)
-    c.addEventListener('pointercancel', cancel, true)
+    document.addEventListener('pointerdown', down, true)
+    document.addEventListener('pointermove', move, true)
+    document.addEventListener('pointerup', up, true)
+    document.addEventListener('pointercancel', cancel, true)
     return () => {
-      c.removeEventListener('pointerdown', down, true)
-      c.removeEventListener('pointermove', move, true)
-      c.removeEventListener('pointerup', up, true)
-      c.removeEventListener('pointercancel', cancel, true)
+      document.removeEventListener('pointerdown', down, true)
+      document.removeEventListener('pointermove', move, true)
+      document.removeEventListener('pointerup', up, true)
+      document.removeEventListener('pointercancel', cancel, true)
       if (active !== null) cancelActiveFeatureDrag()
     }
   }, [map, can])
