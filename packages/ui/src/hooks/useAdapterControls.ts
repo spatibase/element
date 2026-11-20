@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { getFeatureCollectionBBox, isGeometry, ElementEditorError, subscribeToDataChanges, validateFeature } from '@element-editor/core'
 import { canVertexEdit, normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
-import type { DataChangeCallbacks, DataStore, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
+import type { DataChangeCallbacks, DataStore, CoordinateOptions, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { TOOL_MODES, useElementEditorConfig, type DrawTool } from '../contexts/ElementEditorConfigContext'
 import { useDataStore, useGeoStore, useUIStore } from '../store/StoreContext'
 import { useMapController } from '../contexts/MapControllerContext'
@@ -282,6 +282,8 @@ export interface UseAdapterControlsOptions {
    * allowed type are left out.
    */
   geometryTypes?: GeometryType[]
+  /** Opt-in clean-up of committed coordinates (see `ElementEditorProps.coordinates`). */
+  coordinates?: CoordinateOptions
   /**
    * The map engine; the adapters pass it. With it, the tools `config.network` turns off are
    * synced to `uiStore.unavailableTools` (the Picker needs Overpass only on Leaflet).
@@ -471,6 +473,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   const setEnabledTools = useUIStore((s) => s.setEnabledTools)
   const setMaxFeatures = useDataStore((s) => s.setMaxFeatures)
   const setGeometryTypes = useDataStore((s) => s.setGeometryTypes)
+  const setCoordinateOptions = useDataStore((s) => s.setCoordinateOptions)
   const setLayout = useUIStore((s) => s.setLayout)
   const setUnavailableTools = useUIStore((s) => s.setUnavailableTools)
   const { network } = useElementEditorConfig()
@@ -496,6 +499,8 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   useSyncProp(opts.geometryTypes, setGeometryTypes, () => dataStore.getState().geometryTypes)
   useSyncProp(opts.replaceAtLimit, (v) => dataStore.getState().setReplaceAtLimit(v ?? false), () => dataStore.getState().replaceAtLimit)
   if (opts.replaceAtLimit && opts.maxFeatures !== 1) warnOnce('replaceAtLimit-max', '`replaceAtLimit` only works with `maxFeatures={1}`; it is ignored.')
+  // Before initialData loads (effects), so the first commit is already clean; an inline object is fine (the setter compares values).
+  useSyncProp(opts.coordinates, setCoordinateOptions, () => dataStore.getState().coordinates)
   useSyncProp(opts.layout, (v) => setLayout(v ?? 'panel'), () => uiStore.getState().layout)
   useSyncProp(opts.engine && networkUnavailableTools(network, opts.engine), (v) => setUnavailableTools(v ?? []), () => uiStore.getState().unavailableTools)
 

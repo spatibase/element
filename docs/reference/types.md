@@ -401,6 +401,8 @@ interface DataStore {
   replaceAtLimit: boolean  // with maxFeatures 1: draw commits (addFeature `draw: true`) replace the only feature instead of being refused
   setReplaceAtLimit: (on: boolean) => void
   canDraw: () => boolean   // room for one more, or the only feature gets replaced (reports the limit otherwise)
+  coordinates?: CoordinateOptions  // { wrap?: boolean; precision?: number }; undefined = off
+  setCoordinateOptions: (options?: CoordinateOptions) => void  // also cleans the stored features once (no undo step)
   currentZoom: number
   geometryMode: 'visual' | 'spatial'
 

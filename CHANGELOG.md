@@ -16,6 +16,7 @@ What changed in Element, release by release, and what it means for you and the p
 
 - `updateFeature` and `updateFeatures` in the data store return `boolean` (false when `geometryTypes` refused the geometry), `mergeFeatures` returns `boolean` (false when nothing was merged), and `importGeoJSON` also returns `refused`. They returned nothing, or three counts, before.
 - **`replaceAtLimit`: a "pick the location" field in one line.** With `maxFeatures={1}`, add `replaceAtLimit` and every drawing tool (point, line, area, rectangle, circle, freehand, route, picker) replaces the one feature's shape instead of being refused at the limit. The feature keeps its id and properties, undo brings the old shape back, and `onFeatureUpdate` fires once. Paste, duplicate, import merge and `addFeature` still refuse. See [Restricting tools](docs/guides/restricting-tools.md#single-feature-fields).
+- New `coordinates` option on `<ElementEditor>` and both adapters' `<ElementEditorControls>`: `{ wrap?: boolean; precision?: number }` cleans every committed coordinate (longitude wrapped into [-180, 180] per feature, x/y rounded, altitude kept), so the store, `onChange` and undo history hold the same values. Off by default. Core: `CoordinateOptions`, `dataStore.setCoordinateOptions`.
 
 ---
 

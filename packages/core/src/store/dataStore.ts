@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create, type StateCreator } from 'zustand'
 import type { GeoJSONFeature, SchemaField, Schema, Group, DrawType } from '../types/geojson'
 import { DEFAULT_SCHEMAS, BOUNDARIES_SCHEMA_ID } from '../utils/schema'
 import { validateFeature } from '../utils/validation'
@@ -9,6 +9,7 @@ import { getMercatorLatCorrectionRatio } from '../mercator'
 import { readStorage, writeStorage, type PersistScope } from '../utils/persisted'
 import { ElementEditorError } from '../utils/errors'
 import { geometryTypeMessage, mergeResultType, breakResultTypes, type GeometryType } from '../utils/geometryTypes'
+import { hasCoordinateOptions, normaliseFeatures, type CoordinateOptions } from '../utils/normaliseCoordinates'
 
 const LAST_SCHEMA_KEY = 'elm_lastSchemaId'
 
@@ -230,6 +231,10 @@ export interface DataStore {
    *  adds features checks it (refuses, or truncates imports) and reports via `onError`. */
   maxFeatures?: number
   setMaxFeatures: (max?: number) => void
+  /** Opt-in clean-up of committed coordinates (`wrap`, `precision`); undefined = off. */
+  coordinates?: CoordinateOptions
+  /** Sets the clean-up and applies it once to the features already in the store (no undo step). */
+  setCoordinateOptions: (options?: CoordinateOptions) => void
   /** True when `count` more features fit under `maxFeatures`. On false it also
    *  reports the limit message via `onError` — callers can just bail. */
   canAddFeatures: (count: number) => boolean
@@ -501,6 +506,30 @@ function cloneFeature(feature: GeoJSONFeature, schemas: Schema[], zoom: number, 
   return validateAndFinalize({ ...feature, id: newId, geometry: newGeom, properties }, schemas)
 }
 
+/**
+ * Zustand middleware: when `coordinates` options are set, every write that replaces `features`
+ * (store actions and direct `setState`) passes through `normaliseFeatures` first, so the store,
+ * `onChange` and undo snapshots all hold the cleaned values. Off by default: the fast path is one
+ * property read.
+ */
+function normalisingWrites(init: StateCreator<DataStore>): StateCreator<DataStore> {
+  return (set, get, api) => {
+    const wrapped: typeof set = (partial, replace) => {
+      const opts = get().coordinates
+      if (!opts) return set(partial as never, replace as never)
+      const current = get()
+      const next = typeof partial === 'function' ? partial(current) : partial
+      if (next && next !== current && next.features && next.features !== current.features) {
+        const features = normaliseFeatures(next.features, opts)
+        if (features !== next.features) return set({ ...next, features } as never, replace as never)
+      }
+      return set(next as never, replace as never)
+    }
+    api.setState = wrapped
+    return init(wrapped, get, api)
+  }
+}
+
 export const createDataStore = (options?: DataStoreOptions) => {
   const reportError = options?.onError ?? ((err: ElementEditorError) => console.error(err))
   // Cross-store snapshot extras — set by the paired uiStore at construction.
@@ -544,7 +573,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
 
   const visibleSchemasMemo: { features: GeoJSONFeature[] | null; schemas: Schema[] | null; result: Schema[] } = { features: null, schemas: null, result: [] }
 
-  const store = create<DataStore>((set, get) => ({
+  const store = create<DataStore>(normalisingWrites((set, get) => ({
   geometryMode: 'visual',
   setGeometryMode: (mode) => set({ geometryMode: mode }),
   currentZoom: 14,
@@ -577,6 +606,17 @@ export const createDataStore = (options?: DataStoreOptions) => {
     if (!refused) return true
     reportError(new ElementEditorError('geometry-type-not-allowed', source, geometryTypeMessage(allowed, refused)))
     return false
+  },
+  coordinates: undefined,
+  setCoordinateOptions: (options) => {
+    const coordinates = hasCoordinateOptions(options) ? { ...options } : undefined
+    const prev = get().coordinates
+    if (prev === coordinates || (prev && coordinates && prev.wrap === coordinates.wrap && prev.precision === coordinates.precision)) return
+    set({ coordinates }) // the middleware normalises with the new options only on the next write
+    if (coordinates) {
+      const features = normaliseFeatures(get().features, coordinates)
+      if (features !== get().features) set({ features, lastModifiedAt: Date.now() })
+    }
   },
   canAddFeatures: (count) => {
     const { maxFeatures, features } = get()
@@ -1576,7 +1616,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
       lastModifiedAt: Date.now(),
     }))
   },
-}))
+})))
 
   return store
 }

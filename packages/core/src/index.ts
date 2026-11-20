@@ -42,6 +42,7 @@ export { createDataStore, isGeometry } from './store/dataStore'
 export type { DataStore, DataStoreOptions, FeaturePatch, StoreFeaturePatch, UndoEntry } from './store/dataStore'
 export { createUIStore } from './store/uiStore'
 export type { UIStore, UIStoreOptions, DialogState, CompletedMeasurement, PanelPrefs } from './store/uiStore'
+export type { CoordinateOptions } from './utils/normaliseCoordinates'
 export { subscribeToDataChanges } from './utils/subscribeToDataChanges'
 export type { DataChangeCallbacks } from './utils/subscribeToDataChanges'
 

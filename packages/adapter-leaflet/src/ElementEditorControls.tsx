@@ -14,6 +14,7 @@ import { useMap } from 'react-leaflet'
 import { latLng, type Map as LeafletMap, type LatLng } from 'leaflet'
 import { normalizeBounds, normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
 import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
+import type { BoundsInput, CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
 import {
   useKeyboardShortcuts,
   useApplyAccentToRoot,
@@ -98,6 +99,12 @@ export interface ElementEditorControlsProps {
   geometryTypes?: GeometryType[]
   /** With `maxFeatures={1}`: a draw tool replaces the only feature's geometry instead of being refused (a "pick the location" field). Paste, duplicate, import merge and `addFeature` still refuse. */
   replaceAtLimit?: boolean
+  /**
+   * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
+   * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
+   * to N decimals. The store, `onChange` and undo history hold the cleaned values. Both off by default.
+   */
+  coordinates?: CoordinateOptions
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -256,6 +263,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     maxFeatures: props.maxFeatures,
     geometryTypes: props.geometryTypes,
     replaceAtLimit: props.replaceAtLimit,
+    coordinates: props.coordinates,
     engine: 'leaflet',
     onChange: props.onChange,
     onSubmit: props.onSubmit,

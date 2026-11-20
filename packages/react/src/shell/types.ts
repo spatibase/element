@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { FeatureCollection, FeatureCollectionInput, Schema, GeoJSONFeature, GeoJSONFeatureInput } from '../types/geojson'
 import type { BoundsInput, GeometryType } from '@element-editor/core'
+import type { BoundsInput, CoordinateOptions } from '@element-editor/core'
 import type { InitialView } from './savedView'
 import type { ElementEditorEvent, ElementEditorErrorHandler, ElementEditorConfig, DrawTool } from '@element-editor/ui'
 
@@ -85,6 +86,21 @@ export interface ElementEditorBaseProps {
    * @default false
    */
   replaceAtLimit?: boolean
+   * Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste,
+   * undo/redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same
+   * values. Both parts are off unless set:
+   * - `wrap: true` shifts a feature as a whole by a multiple of 360 degrees so the centre of its
+   *   longitude range lies in [-180, 180] (RFC 7946 positions). Vertices stay continuous, so a shape
+   *   crossing the antimeridian keeps its outline; one side may then lie beyond +-180. Latitudes
+   *   beyond +-90 are clamped; others are left alone.
+   * - `precision: n` rounds x and y to `n` decimals (integer 0 to 15; 6 is about 0.1 m). Altitude is kept
+   *   untouched. Consecutive duplicate vertices created by rounding are dropped when the shape stays valid.
+   *
+   * Unrelated to `config.units.precision`, which only formats what is displayed.
+   *
+   * @default undefined (coordinates are stored as the map reports them)
+   */
+  coordinates?: CoordinateOptions
   /**
    * Restricts panning to this box: the user can't drag the map outside it. The map starts fitted
    * to it only when nothing else gives a start view (see `initialView`). A GeoJSON bbox `[west, south, east, north]`
