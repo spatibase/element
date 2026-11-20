@@ -226,6 +226,11 @@ const onError = onErrorMode ? (e: { code: string; source: string; message: strin
 // ?maxFeatures=N passes `maxFeatures`. (e2e)
 const maxFeaturesParam = params.get('maxFeatures')
 const maxFeatures = maxFeaturesParam ? Number(maxFeaturesParam) : undefined
+// ?coordinates=wrap,6 passes `coordinates` ({ wrap: true, precision: 6 }). (e2e)
+const coordinatesParam = params.get('coordinates')
+const coordinates = coordinatesParam
+  ? { wrap: coordinatesParam.includes('wrap') || undefined, precision: /\d+/.test(coordinatesParam) ? Number(/\d+/.exec(coordinatesParam)![0]) : undefined }
+  : undefined
 
 // ?host=inline (perf benchmark): like a typical integrator, the host passes fresh inline `config` /
 // `tools` objects every render; `window.__rerenderHost()` re-renders it. A Profiler sums the
@@ -259,7 +264,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, routingApiKey, onChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, coordinates, routingApiKey, onChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated

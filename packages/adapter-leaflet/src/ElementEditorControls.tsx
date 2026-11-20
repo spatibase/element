@@ -13,7 +13,7 @@ import { useEffect, useImperativeHandle, useRef, forwardRef } from 'react'
 import { useMap } from 'react-leaflet'
 import { latLng, type Map as LeafletMap, type LatLng } from 'leaflet'
 import { normalizeBounds, normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { BoundsInput, CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
 import {
   useKeyboardShortcuts,
   useApplyAccentToRoot,
@@ -94,6 +94,12 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. Drawing is disabled when reached. */
   maxFeatures?: number
+  /**
+   * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
+   * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
+   * to N decimals. The store, `onChange` and undo history hold the cleaned values. Both off by default.
+   */
+  coordinates?: CoordinateOptions
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -248,6 +254,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     readonly: props.readonly,
     tools: props.tools,
     maxFeatures: props.maxFeatures,
+    coordinates: props.coordinates,
     engine: 'leaflet',
     onChange: props.onChange,
     onSubmit: props.onSubmit,

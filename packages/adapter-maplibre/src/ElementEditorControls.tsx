@@ -15,7 +15,7 @@
  */
 import React, { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import type { FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
 import { normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
 import {
   useKeyboardShortcuts,
@@ -132,6 +132,12 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. */
   maxFeatures?: number
+  /**
+   * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
+   * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
+   * to N decimals. The store, `onChange` and undo history hold the cleaned values. Both off by default.
+   */
+  coordinates?: CoordinateOptions
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -236,6 +242,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       readonly: props.readonly,
       tools: props.tools,
       maxFeatures: props.maxFeatures,
+      coordinates: props.coordinates,
       engine: 'maplibre',
       onChange: props.onChange,
       onSubmit: props.onSubmit,
