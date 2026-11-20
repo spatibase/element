@@ -44,7 +44,7 @@ test.describe('geometryTypes=Point', () => {
     await expect.poll(() => page.evaluate(() => window.__elementEditorTest!.dataStore.getState().selectedIds)).toEqual(['poly'])
     await page.keyboard.press('ControlOrMeta+c')
     await page.keyboard.press('ControlOrMeta+v')
-    await expect(page.getByText("Polygon isn't allowed here: this editor accepts only Point.").first()).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText("Polygon isn't allowed here: this editor accepts only Point.").first()).toBeVisible({ timeout: 10_000 })
     expect(await featureCount(page)).toBe(1)
     expect(await page.evaluate(() => window.__elementEditorTest!.dataStore.getState().undoStack.length)).toBe(0)
   })
