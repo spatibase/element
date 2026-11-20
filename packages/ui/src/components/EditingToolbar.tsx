@@ -60,8 +60,7 @@ export default function EditingToolbar() {
   // - Duplicate / Delete are always shown when there is a selection.
   const isSinglePoint = selectedIds.length === 1 && selectedGeomType === 'Point'
   const showTransform = hasSelection && !isSinglePoint
-  // Cut hole yields a Polygon / MultiPolygon, slice Polygons, buffer a Polygon / MultiPolygon.
-  const polygonResultOk = allows('Polygon') || allows('MultiPolygon')
+  // Cut hole and buffer yield a Polygon / MultiPolygon, slice Polygons (`geometryTypes`).
   const showPolygonGroup = isPolygonSelected && polygonResultOk
   const showShapeGroup = canProcessShape(selectedGeomType)
   const showBreakApart = isMultiGeometry && breakOk

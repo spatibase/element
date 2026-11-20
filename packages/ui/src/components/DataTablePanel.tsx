@@ -114,6 +114,8 @@ export default function DataTablePanel({ embedded = false }: DataTablePanelProps
   // ONLY subscribe to the length to prevent this panel from re-rendering
   // on every single feature property/geometry update (which would be O(N) lag)
   const featureCount = useDataStore((s) => s.features.length)
+  // "Add new" adds a Point: not offered when `geometryTypes` leaves Point out.
+  const canAddPoint = useDataStore((s) => s.isGeometryTypeAllowed('Point') )
   const schemas = useDataStore(useShallow((s) => s.getVisibleSchemas()))
 
   const { getCenter } = useMapController()
@@ -227,7 +229,7 @@ export default function DataTablePanel({ embedded = false }: DataTablePanelProps
       )}
 
       <div className={`${panelHeaderBar} gap-3 px-4`}>
-        {!readonly && (
+        {!readonly && canAddPoint && (
         <Tooltip content="Add new entry">
         <Button
           variant="primary"
