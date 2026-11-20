@@ -7,6 +7,7 @@ import { useDataStore, useGeoStore } from '../../store/StoreContext'
 import { toLeaflet } from '../../utils/geojson'
 import { GHOST_LINE_OPTIONS } from '../../utils/dragUtils'
 import { bindFeatureTooltip, unbindFeatureTooltip } from '../../utils/featureTooltip'
+import { SELECTED_FEATURE_CLASS } from '../../utils/selectedDrag'
 import { useModifierDragCursor } from '../../hooks/useModifierDragCursor'
 import { useFeatureDrag } from '../../hooks/useFeatureDrag'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
@@ -104,7 +105,7 @@ export const LineLayer = memo(function LineLayer({ feature, selected, isMultiSel
         <Polyline
           ref={(l) => { hitRef.current = (l as unknown as L.Polyline | null) }}
           positions={positions}
-          pathOptions={{ color: '#000', weight: LINE_HIT_WEIGHT, opacity: 0.001 }}
+          pathOptions={{ color: '#000', weight: LINE_HIT_WEIGHT, opacity: 0.001, className: selected || isMultiSelected ? SELECTED_FEATURE_CLASS : '' }}
           eventHandlers={handlers}
         />
       )}
