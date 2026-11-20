@@ -87,6 +87,7 @@ Renders no visible HTML. Mounts the Element editing layer into the Leaflet map. 
 | `layout` | `'panel' \| 'minimal' \| 'split'` | `'panel'` | No | Layout hint read by the `@element-editor/ui` panels. |
 | `tools` | `DrawingTool[]` | all tools | No | Restrict which drawing tools are available. Keyboard shortcuts for excluded tools are suppressed. |
 | `maxFeatures` | `number` | — | No | Maximum number of features. Enforced by the store for every way of adding features: drawing tools and their shortcuts are disabled at the limit, duplicate, paste and break apart are refused, and imports are truncated (`ImportResult.truncated`). Each refusal reports an `error` event. Undo and redo are never blocked. |
+| `geometryTypes` | `GeometryType[]` | — | No | The geometry types the editor accepts, as GeoJSON type names (`'Point'`, `'MultiPoint'`, `'LineString'`, `'MultiLineString'`, `'Polygon'`, `'MultiPolygon'`, `'GeometryCollection'`). Omit to allow all. Enforced by the store for every way a geometry gets in (drawing, paste, imports, `initialData`, merge, break apart, boolean operations, buffer, the ref API): a refusal changes nothing and reports an `error` event with code `'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type leave the toolbar, and menu actions whose result would be refused are hidden. Imports skip the refused features (`ImportResult.refused`). See [Restricting tools](../guides/restricting-tools.md#allowed-geometry-types). |
 | `readonly` | `boolean` | `false` | No | Disable all editing interactions. Features remain visible. |
 | `onFeatureAdd` | `(feature: GeoJSONFeature) => void` | — | No | Fires when a feature is added. Fires after `onChange` for the same operation. |
 | `onFeatureUpdate` | `(id: string, feature: GeoJSONFeature) => void` | — | No | Fires when a feature's geometry or properties change. Fires after `onChange`. |
@@ -170,6 +171,7 @@ interface ImportResult {
   skipped: number
   duplicates: number
   truncated: boolean
+  refused: number
 }
 ```
 

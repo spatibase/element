@@ -85,7 +85,7 @@ describe('geometryTypes: addFeature / updateFeature(s)', () => {
 
   it('updateFeature: keeping the feature\'s own type is never refused (drags and point edits of older data)', () => {
     const { ds, codes } = setup([poly('p')], ['Point'])
-    const moved = { type: 'Polygon' as const, coordinates: [[[5, 5], [6, 5], [6, 6], [5, 5]]] }
+    const moved: Geometry = { type: 'Polygon', coordinates: [[[5, 5], [6, 5], [6, 6], [5, 5]]] }
     expect(ds.getState().updateFeature('p', { geometry: moved })).toBe(true)
     expect(ds.getState().features[0].geometry).toBe(moved)
     expect(codes()).toEqual([])

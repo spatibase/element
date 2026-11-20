@@ -397,6 +397,7 @@ interface DataStore {
   lastModifiedAt: number | null
   clipboard: GeoJSONFeature[]
   maxFeatures?: number     // undefined = unlimited
+  geometryTypes?: GeometryType[]   // undefined = every type; refusals report 'geometry-type-not-allowed' and change nothing
   currentZoom: number
   geometryMode: 'visual' | 'spatial'
 
@@ -410,12 +411,12 @@ interface DataStore {
     id: string,
     updates: Partial<Pick<GeoJSONFeature, 'properties' | 'geometry' | 'schemaId' | 'hidden'>> & { _drawType?: undefined },  // _drawType: undefined clears it
     options?: { skipValidation?: boolean },
-  ) => void
+  ) => boolean   // false: the geometry's type is new to the feature and not in geometryTypes (nothing written)
   /** updateFeature for many features: one array copy, one notification, at most one undo step. */
   updateFeatures: (
     updates: ReadonlyArray<{ id: string; patch: FeaturePatch }>,   // FeaturePatch = updateFeature's `updates`
     options?: { skipValidation?: boolean; undoable?: boolean },
-  ) => void
+  ) => boolean   // false: a patch's geometry type isn't allowed; the whole batch is refused
   updateFeatureValidation: (id: string, warnings: string[], errors: string[]) => void
   deleteFeature: (id: string) => void
   /** Removes many features in one step; returns how many were removed. `undoable: false` also drops them from undo/redo. */
@@ -441,7 +442,7 @@ interface DataStore {
 
   // Multi-geometry
   breakMultiGeometry: (id: string) => boolean
-  mergeFeatures: () => void
+  mergeFeatures: () => boolean   // false: nothing merged (fewer than two selected, or the merged type isn't in geometryTypes)
 
   // History
   undo: () => void
@@ -478,11 +479,14 @@ interface DataStore {
     raw: unknown,
     mode: 'replace' | 'merge',
     limits?: { maxFeatures?: number; maxInputSize?: number; undoable?: boolean },
-  ) => { skipped: number; duplicates: number; truncated: boolean }  // limits.maxFeatures defaults to the store's maxFeatures; undoable: false (replace) adds no undo step and clears the history
+  ) => { skipped: number; duplicates: number; truncated: boolean; refused: number }  // limits.maxFeatures defaults to the store's maxFeatures; undoable: false (replace) adds no undo step and clears the history
   updateFeaturesFromEditor: (raw: unknown) => void   // applies the GeoJSON inspector's edited text
 
   // Feature limit
   setMaxFeatures: (max?: number) => void
+  setGeometryTypes: (types?: GeometryType[]) => void
+  isGeometryTypeAllowed: (type: string) => boolean   // silent: for deciding what to offer
+  canUseGeometryTypes: (types: Iterable<string>, source?: 'editor' | 'import' | 'clipboard' | 'geometry') => boolean   // false also reports the refusal
   canAddFeatures: (count: number) => boolean  // false = over the limit; also reports the error
 
   // Geometry mode

@@ -294,7 +294,7 @@ type FeaturePatch = Partial<Pick<GeoJSONFeature, 'properties' | 'geometry' | 'sc
 interface MutationOptions { undoable?: boolean }  // default true; false = no undo step, applied to history too (server sync)
 interface SetFeatureCollectionOptions { silent?: boolean; undoable?: boolean } // silent default false; undoable default true (false clears history)
 interface ValidationReport { valid: boolean; errors: Record<string, string[]> }  // errors keyed by feature id
-interface ImportResult { skipped: number; duplicates: number; truncated: boolean }
+interface ImportResult { skipped: number; duplicates: number; truncated: boolean; refused: number }  // refused: type not in geometryTypes
 ```
 
 `FeaturePatch` is exported from `@element-editor/core`, not from `@element-editor/react`. `ImportResult`, `MutationOptions`, `SetFeatureCollectionOptions`, `ValidationReport`, `FeatureCollection`, `FeatureCollectionInput`, `GeoJSONFeature`, `GeoJSONFeatureInput`, `GeometryInput`, `Schema`, `DrawTool`, `FlyToOptions`, `BBox` and `BasemapInput` are.
@@ -332,6 +332,7 @@ interface ImportResult { skipped: number; duplicates: number; truncated: boolean
 | `invalid-data` | unreadable input/response (bad JSON, not a FeatureCollection, broken style) |
 | `too-large` | import file over the size cap |
 | `limit-reached` | `maxFeatures` refused or truncated an add |
+| `geometry-type-not-allowed` | `geometryTypes` refused a geometry type, or skipped features of that type in an import |
 | `geometry` | geometry operation failed or produced an empty shape |
 | `permission-denied` | browser refused geolocation / clipboard / file save |
 | `unsupported` | missing browser or map capability |
@@ -365,6 +366,7 @@ Shared by both drop-ins (`ElementEditorBaseProps`):
 | `schema` | `Schema` | `{ id, name, fields: SchemaField[] }` |
 | `tools` | `DrawTool[]` | omit for all: `'polygon' (Area tool) \| 'rectangle' \| 'circle' \| 'line' \| 'point' \| 'freehand' \| 'route' \| 'picker' \| 'measure' \| 'search'` |
 | `maxFeatures` | `number` | enforced for every way of adding |
+| `geometryTypes` | `GeometryType[]` | omit for all; GeoJSON type names; enforced for every way a geometry gets in (tools that can't draw one are left out) |
 | `bounds` | `BoundsInput` | restricts panning; bbox `[west, south, east, north]`; reactive |
 | `theme` | `'light' \| 'dark' \| 'auto'` | mode only; colours via `accentColor` or CSS variables in `style` (an object is ignored with a dev warning) |
 | `accentColor` | `string` | any CSS colour; derives the primary scale |

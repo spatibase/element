@@ -101,7 +101,7 @@ describe('importGeoJSON input validation', () => {
   it('a FeatureCollection without features replaces with an empty map', () => {
     const s = createDataStore()
     s.getState().importGeoJSON(fc([pt('a')]), 'replace')
-    expect(s.getState().importGeoJSON({ type: 'FeatureCollection' }, 'replace')).toEqual({ skipped: 0, duplicates: 0, truncated: false })
+    expect(s.getState().importGeoJSON({ type: 'FeatureCollection' }, 'replace')).toEqual({ skipped: 0, duplicates: 0, truncated: false, refused: 0 })
     expect(s.getState().features).toEqual([])
   })
 
@@ -227,7 +227,7 @@ describe('importGeoJSON foreign members', () => {
       schemas: [{ id: 'trees', name: 'Renamed', fields: [] }, schemas[1]],
       groups: [{ id: 'g1', name: 'Theirs', collapsed: true }, { id: 'g2', name: 'New', collapsed: false }],
     }), 'merge')
-    expect(r).toEqual({ skipped: 0, duplicates: 1, truncated: false })
+    expect(r).toEqual({ skipped: 0, duplicates: 1, truncated: false, refused: 0 })
     const st = s.getState()
     expect(st.features.map((f) => f.id)).toEqual(['a', 'b', 'c', 'd'])
     expect(st.features.map((f) => f.groupId)).toEqual(['g1', 'g1', 'g2', undefined])

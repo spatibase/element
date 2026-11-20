@@ -27,7 +27,7 @@ function mount(opts: Parameters<typeof useAdapterControls>[0]) {
   return { api: () => api!, rerender: (next: typeof opts) => view.rerender(<Harness {...next} />) }
 }
 
-let onError: ReturnType<typeof vi.fn>
+let onError: ReturnType<typeof vi.fn<(e: unknown) => void>>
 beforeEach(() => {
   resetStores()
   onError = vi.fn()

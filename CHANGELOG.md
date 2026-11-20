@@ -6,6 +6,14 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **`geometryTypes`: choose which geometry types the editor accepts.** Pass GeoJSON type names, for example `geometryTypes={['Polygon', 'MultiPolygon']}`, to `<ElementEditor />` (both engines) or to either adapter's `<ElementEditorControls />`. The limit holds for every way a shape can get in: drawing, paste, import, `initialData`, merge, break apart, boolean operations, buffer, cut and slice, the GeoJSON inspector and the ref API. A refused change leaves your data untouched and reports an `error` event with the new code `'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type leave the toolbar, and menu actions whose result would be refused are hidden. Imports skip the features that aren't allowed (`ImportResult.refused` counts them). See [Restricting tools](docs/guides/restricting-tools.md#allowed-geometry-types).
+
+### Changed
+
+- `updateFeature` and `updateFeatures` in the data store return `boolean` (false when `geometryTypes` refused the geometry), `mergeFeatures` returns `boolean` (false when nothing was merged), and `importGeoJSON` also returns `refused`. They returned nothing, or three counts, before.
+
 ---
 
 ## [0.2.3] — 2026-11-16
