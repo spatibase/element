@@ -1,0 +1,23 @@
+{
+  "name": "@element-editor/size-fixture",
+  "version": "0.2.3",
+  "private": true,
+  "type": "module",
+  "description": "Minimal consumer apps used only by scripts/check-bundle-size.mjs to measure what a host pays for each way of using Element.",
+  "dependencies": {
+    "@element-editor/adapter-leaflet": "workspace:*",
+    "@element-editor/adapter-maplibre": "workspace:*",
+    "@element-editor/core": "workspace:*",
+    "@element-editor/react": "workspace:*",
+    "@element-editor/ui": "workspace:*",
+    "leaflet": "^1.9.0",
+    "maplibre-gl": "^6.18.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.5"
+  }
+}

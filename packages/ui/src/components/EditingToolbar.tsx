@@ -13,7 +13,7 @@ import { useTouchInput } from '../hooks/useTouchInput'
 import { useGeometryGates } from '../hooks/useGeometryGates'
 
 // Lazy: defers loading the geometry worker client until the user multi-selects.
-const BooleanOperations = lazy(() => import('./BooleanOperations'))
+const BooleanOperations = /*#__PURE__*/ lazy(() => import('./BooleanOperations'))
 
 export default function EditingToolbar() {
   const { dataStore } = useGeoStore()

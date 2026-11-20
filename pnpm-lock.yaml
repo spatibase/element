@@ -107,6 +107,46 @@ importers:
         specifier: ^6.0.5
         version: 6.4.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)
 
+  apps/size-fixture:
+    dependencies:
+      '@element-editor/adapter-leaflet':
+        specifier: workspace:*
+        version: link:../../packages/adapter-leaflet
+      '@element-editor/adapter-maplibre':
+        specifier: workspace:*
+        version: link:../../packages/adapter-maplibre
+      '@element-editor/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@element-editor/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      '@element-editor/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      leaflet:
+        specifier: ^1.9.0
+        version: 1.9.4
+      maplibre-gl:
+        specifier: ^6.18.0
+        version: 6.18.0
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
+      react-leaflet:
+        specifier: ^5.0.0
+        version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: ^4.3.4
+        version: 4.7.0(vite@6.4.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0))
+      vite:
+        specifier: ^6.0.5
+        version: 6.4.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)
+
   packages/adapter-leaflet:
     dependencies:
       '@element-editor/core':

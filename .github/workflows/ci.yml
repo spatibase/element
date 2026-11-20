@@ -35,6 +35,9 @@ jobs:
       - name: Dist smoke check
         run: pnpm check:dist
 
+      - name: Headless bundle size
+        run: pnpm check:size
+
       - name: Type-check (app, configs, unit + e2e tests)
         run: pnpm --filter @element-editor/react typecheck
 
