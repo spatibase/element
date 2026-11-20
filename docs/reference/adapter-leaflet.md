@@ -87,6 +87,7 @@ Renders no visible HTML. Mounts the Element editing layer into the Leaflet map. 
 | `layout` | `'panel' \| 'minimal' \| 'split'` | `'panel'` | No | Layout hint read by the `@element-editor/ui` panels. |
 | `tools` | `DrawingTool[]` | all tools | No | Restrict which drawing tools are available. Keyboard shortcuts for excluded tools are suppressed. |
 | `maxFeatures` | `number` | — | No | Maximum number of features. Enforced by the store for every way of adding features: drawing tools and their shortcuts are disabled at the limit, duplicate, paste and break apart are refused, and imports are truncated (`ImportResult.truncated`). Each refusal reports an `error` event. Undo and redo are never blocked. |
+| `replaceAtLimit` | `boolean` | `false` | No | With `maxFeatures={1}`: drawing tools (point, line, area, rectangle, circle, freehand, route, picker) replace the only feature's geometry instead of being refused, keeping its `id`, properties, schema and group (`_drawType` follows the new shape). One undo step, one `onFeatureUpdate`. Paste, duplicate, import merge and `addFeature` still refuse. Ignored for any other limit. |
 | `readonly` | `boolean` | `false` | No | Disable all editing interactions. Features remain visible. |
 | `onFeatureAdd` | `(feature: GeoJSONFeature) => void` | — | No | Fires when a feature is added. Fires after `onChange` for the same operation. |
 | `onFeatureUpdate` | `(id: string, feature: GeoJSONFeature) => void` | — | No | Fires when a feature's geometry or properties change. Fires after `onChange`. |

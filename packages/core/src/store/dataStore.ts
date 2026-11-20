@@ -217,6 +217,12 @@ export interface DataStore {
   /** True when `count` more features fit under `maxFeatures`. On false it also
    *  reports the limit message via `onError` — callers can just bail. */
   canAddFeatures: (count: number) => boolean
+  /** Draw tools replace the only feature instead of being refused at the limit (`replaceAtLimit` prop).
+   *  Effective only with `maxFeatures === 1`; paste, duplicate, import merge and the ref's `addFeature` still refuse. */
+  replaceAtLimit: boolean
+  setReplaceAtLimit: (on: boolean) => void
+  /** Can a draw tool start or commit: room for one more, or the single feature gets replaced. Reports the limit otherwise. */
+  canDraw: () => boolean
 
   /** When `skipSnapshot` is true the call does NOT push to undoStack — used
    *  by atomic multi-feature operations (e.g. slice/cut) that take their own
@@ -226,8 +232,11 @@ export interface DataStore {
    * is reached. `programmatic` (the ref API): leave the selection alone and don't inherit the last
    * active group (an explicit `groupId` is kept only if that group exists). `undoable: false`: push
    * no undo entry and add the feature to every undo/redo snapshot (see `rewriteHistory`).
+   * `draw` (a draw tool's commit): with `replaceAtLimit` on and exactly one feature held under
+   * `maxFeatures: 1`, the new geometry replaces that feature's (same id, properties, schema and
+   * group; `_drawType` / `_waypoints` follow the new shape) as one undo step, and it is selected.
    */
-  addFeature: (feature: GeoJSONFeature, options?: { insertAfterId?: string; skipSnapshot?: boolean; programmatic?: boolean; undoable?: boolean }) => GeoJSONFeature | null
+  addFeature: (feature: GeoJSONFeature, options?: { insertAfterId?: string; skipSnapshot?: boolean; programmatic?: boolean; undoable?: boolean; draw?: boolean }) => GeoJSONFeature | null
   /**
    * Patches one feature (`properties` replaces the whole object, `geometry`, `schemaId`, `hidden`;
    * `_drawType: undefined` clears it, see `freeGeometry`) and re-validates it. A property edit is an
@@ -529,8 +538,36 @@ export const createDataStore = (options?: DataStoreOptions) => {
     reportError(new ElementEditorError('limit-reached', 'editor', featureLimitMessage(maxFeatures)))
     return false
   },
+  replaceAtLimit: false,
+  setReplaceAtLimit: (replaceAtLimit) => set({ replaceAtLimit }),
+  canDraw: () => {
+    const { replaceAtLimit, maxFeatures } = get()
+    return (replaceAtLimit && maxFeatures === 1) || get().canAddFeatures(1)
+  },
 
   addFeature: (feature, options) => {
+    const cur = get()
+    if (options?.draw && cur.replaceAtLimit && cur.maxFeatures === 1 && cur.features.length === 1) {
+      let replaced: GeoJSONFeature | null = null
+      set((state) => {
+        const prev = state.features[0]
+        const { _waypoints: _old, ...keptProps } = prev.properties ?? {}
+        const properties = feature.properties && '_waypoints' in feature.properties
+          ? { ...keptProps, _waypoints: feature.properties._waypoints }
+          : keptProps
+        const next = patchFeature(state.schemas, { ...prev, _drawType: feature._drawType }, { geometry: feature.geometry, properties })
+        if (!next._drawType) delete next._drawType
+        replaced = next
+        return {
+          undoStack: [...state.undoStack, snap(state.features, state.groups)].slice(-25),
+          redoStack: [],
+          features: [next],
+          selectedIds: [next.id],
+          lastModifiedAt: Date.now()
+        }
+      })
+      return replaced
+    }
     if (!get().canAddFeatures(1)) return null
     let stored: GeoJSONFeature | null = null
     set((state) => {

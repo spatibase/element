@@ -469,7 +469,7 @@ export function useKeyboardShortcuts(container?: HTMLElement | null) {
         // Toggle a tool that adds a feature. Like the toolbar, refuse to turn it
         // on at the `maxFeatures` limit (canAddFeatures reports the message).
         const toggleAddTool = (mode: EditingMode) => {
-          if (us.editingMode !== mode && !ds.canAddFeatures(1)) return
+          if (us.editingMode !== mode && !ds.canDraw()) return
           flash(mode === 'pick-shape' ? 'picker' : mode)
           us.setEditingMode(us.editingMode === mode ? 'none' : mode)
         }

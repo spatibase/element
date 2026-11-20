@@ -465,7 +465,7 @@ export function overpassResultToFeature(result: OverpassResult, schemaId: string
  * honoured. No-op when the feature limit is reached (addFeature reports it).
  */
 export function addPickedFeature(data: DataStore, ui: UIStore, result: OverpassResult): void {
-  if (!data.addFeature(overpassResultToFeature(result, data.getDefaultSchema().id))) return
+  if (!data.addFeature(overpassResultToFeature(result, data.getDefaultSchema().id), { draw: true })) return
   if (ui.autoExitAfterDraw) ui.setEditingMode('none')
 }
 

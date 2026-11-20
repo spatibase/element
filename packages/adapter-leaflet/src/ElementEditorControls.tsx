@@ -94,6 +94,8 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. Drawing is disabled when reached. */
   maxFeatures?: number
+  /** With `maxFeatures={1}`: a draw tool replaces the only feature's geometry instead of being refused (a "pick the location" field). Paste, duplicate, import merge and `addFeature` still refuse. */
+  replaceAtLimit?: boolean
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -248,6 +250,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     readonly: props.readonly,
     tools: props.tools,
     maxFeatures: props.maxFeatures,
+    replaceAtLimit: props.replaceAtLimit,
     engine: 'leaflet',
     onChange: props.onChange,
     onSubmit: props.onSubmit,

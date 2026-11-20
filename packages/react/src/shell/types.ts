@@ -66,6 +66,16 @@ export interface ElementEditorBaseProps {
    */
   maxFeatures?: number
   /**
+   * With `maxFeatures={1}`: a draw tool (point, line, area, rectangle, circle, freehand, route, picker)
+   * replaces the only feature's geometry instead of being refused, keeping its `id`, properties, schema
+   * and group. One undo step, one `onFeatureUpdate`. Tools stay available at the limit. Paste, duplicate,
+   * import merge and the ref's `addFeature` still refuse. Ignored (with a dev warning) for any other
+   * `maxFeatures`. For a "pick the location" field: `tools={['point']} maxFeatures={1} replaceAtLimit`.
+   *
+   * @default false
+   */
+  replaceAtLimit?: boolean
+  /**
    * Restricts panning to this box: the user can't drag the map outside it. The map starts fitted
    * to it only when nothing else gives a start view (see `initialView`). A GeoJSON bbox `[west, south, east, north]`
    * (`[lng, lat]` order, same as your data), on both engines. Reactive; `undefined` removes the

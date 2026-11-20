@@ -257,6 +257,8 @@ export interface UseAdapterControlsOptions {
   readonly?: boolean
   tools?: DrawTool[] | null
   maxFeatures?: number
+  /** With `maxFeatures: 1`: a draw tool replaces the only feature's geometry instead of being refused. */
+  replaceAtLimit?: boolean
   /**
    * The map engine; the adapters pass it. With it, the tools `config.network` turns off are
    * synced to `uiStore.unavailableTools` (the Picker needs Overpass only on Leaflet).
@@ -460,6 +462,8 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   useSyncProp(opts.readonly, (v) => setReadonly(v ?? false), () => uiStore.getState().readonly)
   useSyncProp(opts.tools, (v) => setEnabledTools(v ?? null), () => uiStore.getState().enabledTools)
   useSyncProp(opts.maxFeatures, setMaxFeatures, () => dataStore.getState().maxFeatures)
+  useSyncProp(opts.replaceAtLimit, (v) => dataStore.getState().setReplaceAtLimit(v ?? false), () => dataStore.getState().replaceAtLimit)
+  if (opts.replaceAtLimit && opts.maxFeatures !== 1) warnOnce('replaceAtLimit-max', '`replaceAtLimit` only works with `maxFeatures={1}`; it is ignored.')
   useSyncProp(opts.layout, (v) => setLayout(v ?? 'panel'), () => uiStore.getState().layout)
   useSyncProp(opts.engine && networkUnavailableTools(network, opts.engine), (v) => setUnavailableTools(v ?? []), () => uiStore.getState().unavailableTools)
 
@@ -692,7 +696,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       }
       if (us.editingMode === mode) return true // already on: keep the shape in progress
       // Like the toolbar: a tool that adds features won't turn on at maxFeatures (canAddFeatures reports it).
-      if (tool !== 'measure' && !dataStore.getState().canAddFeatures(1)) return false
+      if (tool !== 'measure' && !dataStore.getState().canDraw()) return false
       us.setEditingMode(mode)
       return true
     },

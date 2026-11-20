@@ -397,6 +397,9 @@ interface DataStore {
   lastModifiedAt: number | null
   clipboard: GeoJSONFeature[]
   maxFeatures?: number     // undefined = unlimited
+  replaceAtLimit: boolean  // with maxFeatures 1: draw commits (addFeature `draw: true`) replace the only feature instead of being refused
+  setReplaceAtLimit: (on: boolean) => void
+  canDraw: () => boolean   // room for one more, or the only feature gets replaced (reports the limit otherwise)
   currentZoom: number
   geometryMode: 'visual' | 'spatial'
 
@@ -404,7 +407,7 @@ interface DataStore {
   // Refused by `maxFeatures` (the error is reported via onError): addFeature returns null, the other adding actions false
   addFeature: (
     feature: GeoJSONFeature,
-    options?: { insertAfterId?: string; skipSnapshot?: boolean; programmatic?: boolean; undoable?: boolean },
+    options?: { insertAfterId?: string; skipSnapshot?: boolean; programmatic?: boolean; undoable?: boolean; draw?: boolean },
   ) => GeoJSONFeature | null   // the stored feature
   updateFeature: (
     id: string,

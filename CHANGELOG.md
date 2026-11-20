@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **`replaceAtLimit`: a "pick the location" field in one line.** With `maxFeatures={1}`, add `replaceAtLimit` and every drawing tool (point, line, area, rectangle, circle, freehand, route, picker) replaces the one feature's shape instead of being refused at the limit. The feature keeps its id and properties, undo brings the old shape back, and `onFeatureUpdate` fires once. Paste, duplicate, import merge and `addFeature` still refuse. See [Restricting tools](docs/guides/restricting-tools.md#single-feature-fields).
+
 ---
 
 ## [0.2.3] — 2026-11-16
