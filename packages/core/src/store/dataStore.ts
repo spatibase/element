@@ -855,7 +855,7 @@ export const createDataStore = (options?: DataStoreOptions) => {
     const state = get()
     // ponytail: all-or-nothing — a partial paste of a selection would be a surprise.
     if (state.clipboard.length === 0 || !state.canAddFeatures(state.clipboard.length)) return false
-    if (!state.canUseGeometryTypes(state.clipboard.map((f) => f.geometry.type), 'clipboard')) return false
+    if (!state.canUseGeometryTypes(state.clipboard.map((f) => f.geometry?.type), 'clipboard')) return false
     const pasted = state.clipboard.map(f => cloneFeature(f, state.schemas, state.currentZoom, state.geometryMode))
     set((s) => ({
       undoStack: [...s.undoStack, snap(s.features, s.groups)].slice(-25),
