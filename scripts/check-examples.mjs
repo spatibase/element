@@ -26,6 +26,11 @@ const maplibre = args.find((a) => a.startsWith('--maplibre='))?.slice('--maplibr
 const EXAMPLES = {
   'vite-maplibre': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
   'vite-leaflet': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.leaflet-container']] },
+  // CSS hosts: the published stylesheets must build and apply in any CSS setup. vite-tailwind3 runs every
+  // stylesheet through Tailwind v3's PostCSS (fails on `@layer` without `@tailwind`); vite-plain-css has
+  // no Tailwind and pulls the entries in with CSS `@import` as well as JS imports.
+  'vite-tailwind3': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
+  'vite-plain-css': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
   // Next 16 builds with Turbopack; the extra webpack build (Next 15's default, still common) is the
   // one served for --smoke. webpack resolves next/dynamic's require.resolveWeak with the "require"
   // condition, which is where ESM-only maplibre-gl 6 broke (see the "module" export condition).
