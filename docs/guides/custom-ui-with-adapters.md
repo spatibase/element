@@ -30,6 +30,12 @@ import '@element-editor/adapter-maplibre/style.css'
 
 ---
 
+## Only using the tools (no stock panels)
+
+If you build your own toolbar and only drive tools through the `ElementEditorControls` ref, import nothing but the providers, `ElementEditorControls` and your own components. The inspector, data table, layers list and modals are never part of your bundle, and the editor doesn't download them in the background, unless you import and render them. Rendering any of them pulls in its chunk (CodeMirror for the GeoJSON inspector, react-data-grid for the table, drag-and-drop for the layers list), and from then on the editor fetches the panels you imported when the browser is idle, so they open instantly.
+
+---
+
 ## The provider stack
 
 Before rendering any UI components, wrap the editor in these, from outermost to innermost:

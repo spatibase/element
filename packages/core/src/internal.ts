@@ -60,6 +60,7 @@ export type { PlaceMode, PlaceBounds } from './utils/placeBox'
 
 // Click handling
 export { createClickRepeatGuard, CLICK_SLOP_PX, CLICK_TOOL_MODES } from './utils/clickRepeat'
+export { isTouchEvent, lastPointerWasTouch, subscribeLastPointer, attachLongPress, TOUCH_HIT_PX, TOUCH_HANDLE_CSS, LONG_PRESS_MS, LONG_PRESS_SLOP_PX } from './utils/touch'
 
 // Error codes from HTTP status / load failures
 export { httpErrorCode, loadErrorCode } from './utils/errors'
@@ -102,7 +103,8 @@ export { setGeometryRunner } from './utils/geometryRunner'
 export type { GeometryRunner } from './utils/geometryRunner'
 
 // Store helpers
-export { featureLimitMessage, freeGeometry, vertexEditNotice, vertexEditPatch } from './store/dataStore'
+export { ALL_GEOMETRY_TYPES, TOOL_GEOMETRY_TYPES, geometryTypeMessage, mergeResultType, breakResultTypes } from './utils/geometryTypes'
+export { canVertexEdit, featureLimitMessage, freeGeometry, vertexEditNotice, vertexEditPatch } from './store/dataStore'
 export { makeCircleCoords, makeRectCoords, NARROW_EDITOR_WIDTH, sidebarTakesSpace } from './store/uiStore'
 export { resolveUnitSystem } from './utils/format'
 

@@ -81,6 +81,9 @@ The component fills its container element. The parent element must have an expli
 | `basemaps` | `BasemapInput[] \| false` | `'auto'` + all built-ins | No | Choices offered in the basemap picker. `false` hides the picker. |
 | `tools` | `DrawTool[]` | all tools | No | Restrict which tools appear (drawing tools plus `'picker'`, `'measure'`, `'search'`). Keyboard shortcuts for excluded tools are suppressed automatically. |
 | `maxFeatures` | `number` | — | No | Maximum number of features. Enforced by the store for every way of adding features: drawing tools and their shortcuts are disabled at the limit, duplicate, paste and break apart are refused, and imports are truncated (`ImportResult.truncated`). Each refusal reports an `error` event. Undo and redo are never blocked. |
+| `geometryTypes` | `GeometryType[]` | — | No | The geometry types the editor accepts, as GeoJSON type names (`'Point'`, `'MultiPoint'`, `'LineString'`, `'MultiLineString'`, `'Polygon'`, `'MultiPolygon'`, `'GeometryCollection'`). Omit to allow all. Enforced by the store for every way a geometry gets in (drawing, paste, imports, `initialData`, merge, break apart, boolean operations, buffer, the ref API): a refusal changes nothing and reports an `error` event with code `'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type leave the toolbar, and menu actions whose result would be refused are hidden. Imports skip the refused features (`ImportResult.refused`). See [Restricting tools](../guides/restricting-tools.md#allowed-geometry-types). |
+| `replaceAtLimit` | `boolean` | `false` | No | With `maxFeatures={1}`: drawing tools (point, line, area, rectangle, circle, freehand, route, picker) replace the only feature's geometry instead of being refused, keeping its `id`, properties, schema and group (`_drawType` follows the new shape). One undo step, one `onFeatureUpdate`. Paste, duplicate, import merge and `addFeature` still refuse. Ignored for any other limit. |
+| `coordinates` | `CoordinateOptions` | — | No | Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste, undo and redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same values. `{ wrap?: boolean; precision?: number }`, both off by default. `wrap: true` shifts a feature as a whole by a multiple of 360° so the centre of its longitude range lies in [-180, 180] (vertices stay continuous; a shape crossing the antimeridian may keep one side beyond ±180; latitudes beyond ±90 are clamped). `precision: n` rounds x and y to `n` decimals (integer 0 to 15) and keeps altitude as is. Not the same as `config.units.precision`, which only formats displayed values. See [Clean coordinates](../guides/persisting-data.md#clean-coordinates). |
 | `bounds` | `BBox` (`[west, south, east, north]`) | — | No | Maximum map bounds: the user can't pan outside this box. The map starts fitted to it only when nothing else gives a start view (see `initialView`). A GeoJSON bbox in `[lng, lat]` order, on both engines, e.g. `bounds={[14.2, 49.9, 14.7, 50.2]}`. Reactive. *Deprecated:* the nested `[[south, west], [north, east]]` (`[lat, lng]`) form still works and logs a one-time dev warning with the bbox equivalent. |
 | `theme` | `'light' \| 'dark' \| 'auto'` | follows the OS (`config.mode`, default `'system'`) | No | Light or dark mode only. `'light'` / `'dark'`: that mode (never saved to `localStorage`). `'auto'`: follows the OS preference. Colours go through `accentColor` or CSS variables in `style` (see [Theming](../guides/theming.md)). |
 | `accentColor` | `string` | `config.accentColor`, else blue (`#3b82f6`) | No | Brand accent: any CSS colour. The whole primary 50–950 scale (buttons, active tools, selection, checkboxes, map highlights, portals) is generated from it. Wins over `config.accentColor`; updates live. See [Theming](../guides/theming.md#approach-1--one-brand-colour). |
@@ -104,6 +107,7 @@ The component fills its container element. The parent element must have an expli
 | `onFeatureDelete` | `(id: string) => void` | — | No | Fires once per deleted feature, including bulk and group deletions. |
 | `onSelectionChange` | `(ids: string[]) => void` | — | No | Fires with the selected ids whenever the selection changes, including multi-select and lasso (`[]` when cleared). |
 | `onToolChange` | `(tool: DrawTool \| null) => void` | — | No | Fires with the tool that turned on (as `ref.getTool()` reports it), or `null` when the active tool turned off, whether the user or your app changed it. |
+| `onVertexEditChange` | `(id: string \| null) => void` | — | No | Fires with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when point editing ended: double-click, `Enter`, `Escape`, a click away, delete, undo, or `ref.setVertexEdit`. Once per change. |
 | `routingApiKey` | `string` | — | No | **Deprecated** (dev warning): use `config.network.routing.apiKey`, which wins when both are set. OpenRouteService key for the Route tool, per editor. |
 | `mapOptions` | `Partial<Omit<maplibregl.MapOptions, OwnedMapOption>>` | — | No | Extra `maplibregl.Map` options: `pitch`, `bearing`, `minZoom`, `maxZoom`, `hash`, `locale`, `transformRequest`, … Read once, when the map is created; change them later on the map (`onMapReady` / `ref.getMap()`, e.g. `map.setMaxZoom(18)`). Options Element sets itself are left out of the type and, if passed anyway, dropped with a dev warning: `container`, `style` (use `basemap`), `center` / `zoom` / `bounds` / `fitBoundsOptions` (use `initialView`), `maxBounds` (use `bounds`), `attributionControl`, `interactive`, `dragPan`, `boxZoom`, `doubleClickZoom` (Element turns these on and off while editing). `transformRequest` covers every tile, glyph and sprite request MapLibre makes: use it for headers on the servers you set in `config.network` (the built-in styles themselves are bundled, not fetched). |
 | `onMapReady` | `(map: maplibregl.Map) => void` | — | No | Called once per map, as soon as Element's sources and layers (`elm-*`) are on it: the place to add your own sources and layers (pass an `elm-*` layer id as `beforeId` to put yours under Element's). Basemap switches (the picker, `'auto'` following the theme) keep them. Your own `map.setStyle(...)` drops them and Element's: Element restores its own (on top, with the current features and selection) by itself, and a `map.on('style.load', ...)` listener added here runs after that, so it can re-add yours. `map.addImage` images are dropped by every style switch: re-add them on `styleimagemissing`. If the editor remounts, it is called again with the new map. Saves polling `ref.getMap()`. |
@@ -192,6 +196,15 @@ interface ElementEditorRef {
   setTool: (tool: DrawTool | null) => boolean
   /** The tool that is on (as setTool takes it), or null. Shape operations (cut, buffer, …) aren't tools: null. */
   getTool: () => DrawTool | null
+  /**
+   * Puts a LineString or Polygon in point editing, as double-click / Enter does: selects it, turns
+   * off a drawing tool, shows the handles (and the circle / rectangle / route notice). null leaves
+   * point editing, keeping the selection. False, changing nothing, for an unknown or hidden feature,
+   * any other geometry, or readonly. The id already in point editing: true, nothing changes.
+   */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing, or null. */
+  getVertexEdit: () => string | null
   /** Whether undo() / redo() would change something. */
   canUndo: () => boolean
   canRedo: () => boolean
@@ -265,6 +278,7 @@ interface ImportResult {
   skipped: number      // features with unsupported geometry types (or geometry: null)
   duplicates: number   // features whose `id` repeated an earlier one (in 'merge' mode, also ids already in the editor)
   truncated: boolean   // import was capped by the internal 50,000-feature safety limit
+  refused: number      // features whose geometry type isn't in `geometryTypes` (0 when it isn't set)
 }
 ```
 
@@ -323,6 +337,9 @@ ref.current?.getSelection()                            // ['a', 'b']
 ref.current?.clearSelection()
 ref.current?.setTool('polygon')                        // false if unavailable
 ref.current?.setTool(null)                             // exit the tool
+ref.current?.setVertexEdit('a')                        // edit a's points (false for points, hidden, readonly)
+ref.current?.getVertexEdit()                           // 'a' | null
+ref.current?.setVertexEdit(null)                       // leave point editing
 
 // The map itself (null until mounted):
 ref.current?.getMap()?.on('moveend', save)

@@ -9,6 +9,7 @@ import { useMapController } from '../../contexts/MapControllerContext'
 import { ContextMenu } from '../ui/ContextMenu'
 import { KbdDark } from '../ui/Kbd'
 import { featureLabel } from './FeatureRow'
+import { useGeometryGates } from '../../hooks/useGeometryGates'
 
 interface Props {
   x: number
@@ -33,8 +34,9 @@ export function FeatureRowContextMenu({ x, y, feature, onClose, showGrouping = t
   // Readonly: only viewing items (zoom, details, show/hide).
   const readonly = useUIStore((s) => s.readonly)
 
-  const canMerge = selectedIds.length >= 2 && selectedSet.has(feature.id)
-  const canBreak = isMultiGeometry(feature.geometry)
+  const { mergeOk, breakOk } = useGeometryGates(selectedIds, feature.geometry)
+  const canMerge = selectedIds.length >= 2 && selectedSet.has(feature.id) && mergeOk
+  const canBreak = isMultiGeometry(feature.geometry) && breakOk
 
   // Unlike a row click (which only pans to points), this always zooms —
   // points fly in to street level.
@@ -126,8 +128,7 @@ export function FeatureRowContextMenu({ x, y, feature, onClose, showGrouping = t
             label: `Merge ${selectedIds.length} features`,
             icon: <StackPlus size={16} />,
             onClick: () => {
-              dataStore.getState().mergeFeatures()
-              emit({ type: 'success', message: `Merged ${selectedIds.length} features` })
+              if (dataStore.getState().mergeFeatures()) emit({ type: 'success', message: `Merged ${selectedIds.length} features` })
             },
           }] : []),
           ...(canBreak ? [{

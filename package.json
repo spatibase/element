@@ -8,6 +8,7 @@
     "dev:lib": "pnpm --filter @element-editor/react dev",
     "build": "pnpm -r --filter './packages/**' build",
     "check:dist": "node scripts/check-dist.mjs",
+    "check:size": "node scripts/check-bundle-size.mjs",
     "check:docs": "node scripts/check-doc-snippets.mjs && node scripts/check-api-docs.mjs",
     "check:examples": "node scripts/check-examples.mjs",
     "test": "pnpm --filter @element-editor/core --filter @element-editor/ui --filter @element-editor/adapter-leaflet --filter @element-editor/adapter-maplibre test && pnpm --filter @element-editor/react test:run",

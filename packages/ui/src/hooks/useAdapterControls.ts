@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { getFeatureCollectionBBox, isGeometry, ElementEditorError, subscribeToDataChanges, validateFeature } from '@element-editor/core'
-import { normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
-import type { DataChangeCallbacks, DataStore, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import { canVertexEdit, normalizeFlyToTarget, warnOnce } from '@element-editor/core/internal'
+import type { DataChangeCallbacks, DataStore, CoordinateOptions, EditingMode, FeatureCollection, FeatureCollectionInput, FeaturePatch, FlyToOptions, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { TOOL_MODES, useElementEditorConfig, type DrawTool } from '../contexts/ElementEditorConfigContext'
 import { useDataStore, useGeoStore, useUIStore } from '../store/StoreContext'
 import { useMapController } from '../contexts/MapControllerContext'
@@ -32,6 +32,8 @@ export interface ImportResult {
   duplicates: number
   /** True if the import was capped by `maxFeatures` / internal safety limits. */
   truncated: boolean
+  /** Features skipped because their geometry type isn't in `geometryTypes` (0 when it isn't set). */
+  refused: number
 }
 
 /**
@@ -123,8 +125,8 @@ export interface ElementEditorImperativeAPI<TMap = unknown> {
    * Imports a FeatureCollection (or anything parseable as one). `'replace'` (default) swaps the
    * data, `'merge'` appends. It is one undo step (undo restores the previous features, schemas and
    * groups; no file backup). Returns counts of skipped (unsupported
-   * geometry) / duplicate (repeated id) features and whether the import was truncated
-   * (`maxFeatures` or the internal 50,000-feature limit).
+   * geometry) / duplicate (repeated id) / refused (type not in `geometryTypes`) features and whether
+   * the import was truncated (`maxFeatures` or the internal 50,000-feature limit).
    */
   importGeoJSON: (raw: FeatureCollectionInput | unknown, mode?: 'replace' | 'merge') => ImportResult
   /**
@@ -180,6 +182,21 @@ export interface ElementEditorImperativeAPI<TMap = unknown> {
    * (cut, slice, simplify, smooth, buffer) aren't tools: `null` while they run.
    */
   getTool: () => DrawTool | null
+  /**
+   * Puts a feature in point editing (vertex edit), as double-click or Enter does: it selects the
+   * feature (like `select([id])`), turns off a drawing tool that is on, shows its point handles and,
+   * for a drawn circle / rectangle / route, the one-line notice. `null` leaves point editing (the
+   * selection is kept). Returns `false`, changing nothing, for an unknown or hidden feature, a
+   * geometry other than a LineString or Polygon, or in `readonly` mode (each warns in development).
+   * The id already in point editing returns `true` and changes nothing.
+   *
+   * ```ts
+   * ref.current?.setVertexEdit(record.featureId) // the shape is editable straight away
+   * ```
+   */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing (vertex edit), or `null`. */
+  getVertexEdit: () => string | null
   /** `true` when `undo()` would change something (there is an edit to undo). */
   canUndo: () => boolean
   /** `true` when `redo()` would change something (there is an undone edit to redo). */
@@ -257,6 +274,16 @@ export interface UseAdapterControlsOptions {
   readonly?: boolean
   tools?: DrawTool[] | null
   maxFeatures?: number
+  /** With `maxFeatures: 1`: a draw tool replaces the only feature's geometry instead of being refused. */
+  replaceAtLimit?: boolean
+  /**
+   * The geometry types the editor accepts (`undefined` = all). Enforced for every way a geometry gets
+   * in; a refusal reports `'geometry-type-not-allowed'` and changes nothing. Tools that can't draw an
+   * allowed type are left out.
+   */
+  geometryTypes?: GeometryType[]
+  /** Opt-in clean-up of committed coordinates (see `ElementEditorProps.coordinates`). */
+  coordinates?: CoordinateOptions
   /**
    * The map engine; the adapters pass it. With it, the tools `config.network` turns off are
    * synced to `uiStore.unavailableTools` (the Picker needs Overpass only on Leaflet).
@@ -273,6 +300,12 @@ export interface UseAdapterControlsOptions {
   onZoomChange?: (zoom: number) => void
   /** Called with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. */
   onToolChange?: (tool: DrawTool | null) => void
+  /**
+   * Called with the id of the feature that entered point editing (vertex edit), or `null` when
+   * point editing ended, whether the user (double-click, Enter, Esc, deselect, delete, undo) or
+   * your app (`ref.setVertexEdit`) changed it.
+   */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * @internal Called after `initialData` was applied: `late` is true for data that arrived after
    * mount. The drop-in uses it to fit the late data.
@@ -432,12 +465,15 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
     onFeatureSelect,
     onZoomChange,
     onToolChange,
+    onVertexEditChange,
   } = opts
 
   const { dataStore, uiStore } = useGeoStore()
   const setReadonly = useUIStore((s) => s.setReadonly)
   const setEnabledTools = useUIStore((s) => s.setEnabledTools)
   const setMaxFeatures = useDataStore((s) => s.setMaxFeatures)
+  const setGeometryTypes = useDataStore((s) => s.setGeometryTypes)
+  const setCoordinateOptions = useDataStore((s) => s.setCoordinateOptions)
   const setLayout = useUIStore((s) => s.setLayout)
   const setUnavailableTools = useUIStore((s) => s.setUnavailableTools)
   const { network } = useElementEditorConfig()
@@ -460,6 +496,11 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   useSyncProp(opts.readonly, (v) => setReadonly(v ?? false), () => uiStore.getState().readonly)
   useSyncProp(opts.tools, (v) => setEnabledTools(v ?? null), () => uiStore.getState().enabledTools)
   useSyncProp(opts.maxFeatures, setMaxFeatures, () => dataStore.getState().maxFeatures)
+  useSyncProp(opts.geometryTypes, setGeometryTypes, () => dataStore.getState().geometryTypes)
+  useSyncProp(opts.replaceAtLimit, (v) => dataStore.getState().setReplaceAtLimit(v ?? false), () => dataStore.getState().replaceAtLimit)
+  if (opts.replaceAtLimit && opts.maxFeatures !== 1) warnOnce('replaceAtLimit-max', '`replaceAtLimit` only works with `maxFeatures={1}`; it is ignored.')
+  // Before initialData loads (effects), so the first commit is already clean; an inline object is fine (the setter compares values).
+  useSyncProp(opts.coordinates, setCoordinateOptions, () => dataStore.getState().coordinates)
   useSyncProp(opts.layout, (v) => setLayout(v ?? 'panel'), () => uiStore.getState().layout)
   useSyncProp(opts.engine && networkUnavailableTools(network, opts.engine), (v) => setUnavailableTools(v ?? []), () => uiStore.getState().unavailableTools)
 
@@ -582,6 +623,15 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
     })
   }, [uiStore])
 
+  // onVertexEditChange — fire when the feature in vertex edit changes (the store is the source of truth).
+  const onVertexEditChangeRef = useRef(onVertexEditChange)
+  onVertexEditChangeRef.current = onVertexEditChange
+  useEffect(() => {
+    return uiStore.subscribe((state, prev) => {
+      if (state.vertexEditFeatureId !== prev.vertexEditFeatureId) onVertexEditChangeRef.current?.(state.vertexEditFeatureId)
+    })
+  }, [uiStore])
+
   // Imperative API — stable across renders. Only `dataStore` is in deps because
   // every other dynamic dependency is read via a ref.
   const api = useMemo<ElementEditorImperativeAPI<TMap>>(() => ({
@@ -644,8 +694,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       if (!clean) return false
       const ds = dataStore.getState()
       if (!ds.features.some((f) => f.id === id)) { warnUnknownIds('updateFeature', [String(id)]); return false }
-      ds.updateFeatures([{ id, patch: clean }], { undoable: options?.undoable ?? true })
-      return true
+      return ds.updateFeatures([{ id, patch: clean }], { undoable: options?.undoable ?? true })
     },
     removeFeatures: (ids, options) => {
       if (!Array.isArray(ids)) { warnOnce('ref-removeFeatures-array', 'removeFeatures: expected an array of ids.'); return 0 }
@@ -687,16 +736,43 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
         return false
       }
       if (!us.isToolAvailable(tool)) {
-        warnOnce(`ref-setTool-disabled-${tool}`, `setTool: ${JSON.stringify(tool)} is not in the \`tools\` list${us.unavailableTools.includes(tool) ? ' (config.network turns it off)' : ''}.`)
+        warnOnce(`ref-setTool-disabled-${tool}`, `setTool: ${JSON.stringify(tool)} is not available: it is not in the \`tools\` list${us.unavailableTools.includes(tool) ? ' (config.network turns it off)' : ''}, or \`geometryTypes\` allows none of the shapes it draws.`)
         return false
       }
       if (us.editingMode === mode) return true // already on: keep the shape in progress
       // Like the toolbar: a tool that adds features won't turn on at maxFeatures (canAddFeatures reports it).
-      if (tool !== 'measure' && !dataStore.getState().canAddFeatures(1)) return false
+      if (tool !== 'measure' && !dataStore.getState().canDraw()) return false
       us.setEditingMode(mode)
       return true
     },
     getTool: () => toolOf(uiStore.getState().editingMode),
+    setVertexEdit: (id) => {
+      const us = uiStore.getState()
+      if (id === null) { us.setVertexEditFeature(null); return true }
+      if (us.readonly) {
+        warnOnce('ref-setVertexEdit-readonly', 'setVertexEdit: the editor is readonly; points can\'t be edited.')
+        return false
+      }
+      const ds = dataStore.getState()
+      const { keep } = selectableIds(ds, [id])
+      const feature = keep[0]
+      if (!feature) {
+        warnOnce('ref-setVertexEdit-unknown', `setVertexEdit: no visible feature with id ${JSON.stringify(id)}; nothing changed.`)
+        return false
+      }
+      if (!canVertexEdit(feature)) {
+        warnOnce('ref-setVertexEdit-geometry', `setVertexEdit: a ${feature.geometry.type} has no points to edit (only a LineString or Polygon has); nothing changed.`)
+        return false
+      }
+      if (us.vertexEditFeatureId === id && ds.selectedIds.length === 1 && ds.selectedIds[0] === id) return true
+      if (us.editingMode !== 'none') us.setEditingMode('none')
+      if (us.transformActive) us.setTransformActive(false)
+      if (!(ds.selectedIds.length === 1 && ds.selectedIds[0] === id)) ds.selectFeature(id)
+      us.setSelectedPartIndex(null)
+      uiStore.getState().setVertexEditFeature(id)
+      return true
+    },
+    getVertexEdit: () => uiStore.getState().vertexEditFeatureId,
     canUndo: () => dataStore.getState().undoStack.length > 0,
     canRedo: () => dataStore.getState().redoStack.length > 0,
     validate: () => {

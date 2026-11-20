@@ -21,6 +21,7 @@ import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
 import * as maplibregl from 'maplibre-gl'
 import { Crosshair, Trash } from '@phosphor-icons/react'
 import { ContextMenu, VertexSelectionBar, useEmit, useIsEventForEditor } from '@element-editor/ui'
+import { useTouchInput } from '@element-editor/ui/internal'
 import PreciseCoordsOverlay from './PreciseCoordsOverlay'
 import { useDataStore, useUIStore, useGeoStore } from '../store/StoreContext'
 import { setFeatureDragActive } from '../utils/featureTooltip'
@@ -39,6 +40,8 @@ import {
   insertedPosition,
   vertexEditPatch,
   withXY,
+  attachLongPress,
+  TOUCH_HANDLE_CSS,
 } from '@element-editor/core/internal'
 
 /**
@@ -88,7 +91,7 @@ let _stylesInjected = false
 function ensureStyles() {
   if (_stylesInjected) return
   const s = document.createElement('style')
-  s.textContent = '.elm-midpoint-marker{pointer-events:auto!important}'
+  s.textContent = '.elm-midpoint-marker{pointer-events:auto!important}' + TOUCH_HANDLE_CSS
   document.head.appendChild(s)
   _stylesInjected = true
 }
@@ -201,6 +204,21 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
   const selectedIds = useDataStore((s) => s.selectedIds)
   const selectedPartIndex = useUIStore((s) => s.selectedPartIndex)
   const markersRef = useRef<maplibregl.Marker[]>([])
+
+  // A finger can't hover: every midpoint shows, and handles get a 44 px hit area
+  // (the `elm-touch` class, see TOUCH_HANDLE_CSS). A mouse keeps the hovered-edge midpoint.
+  const touch = useTouchInput()
+  const touchRef = useRef(touch)
+  touchRef.current = touch
+  useEffect(() => {
+    const el = map.getContainer()
+    el.classList.toggle('elm-touch', touch)
+    if (!hoverLockRef.current) {
+      midsRef.current.forEach((m) => { m.el.style.display = touch ? 'flex' : 'none' })
+      hoveredMidRef.current = null
+    }
+    return () => el.classList.remove('elm-touch')
+  }, [map, touch])
 
   // Multi-vertex selection. Keys are "${ringIdx}:${vertIdx}" — stable across
   // rebuilds as long as indices don't shift. Stored as state so the floating
@@ -317,11 +335,14 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
         // The browser still fires `click` after a marker drag (mousedown and
         // mouseup land on the same element), so `dragged` swallows that one.
         let dragged = false
+        // Long-press (finger) opens the right-click menu.
+        const longPress = attachLongPress(el, (pe) => setPointMenu({ ringIdx, vertIdx, x: pe.clientX, y: pe.clientY }))
         el.addEventListener('click', (e) => {
           // Keep the map from seeing it (would exit vertex edit / reselect).
           e.stopPropagation()
           e.preventDefault()
           if (dragged) { dragged = false; return }
+          if (longPress.fired()) return
           if (e.shiftKey) {
             setSelectedVertexKeys((prev) => {
               const next = new Set(prev)
@@ -403,7 +424,8 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
           const b = verts[(i + 1) % verts.length]
           const mid = mids[i]
           const midEl = makeVertexEl(false, true)
-          midEl.style.display = 'none' // shown only while its edge is hovered (see the mousemove effect)
+          // Shown only while its edge is hovered (see the mousemove effect); always for a finger.
+          midEl.style.display = touchRef.current ? 'flex' : 'none'
           midsRef.current.push({ el: midEl, a, b })
 
           const midMarker = new maplibregl.Marker({ element: midEl, draggable: true })
@@ -488,7 +510,7 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
       hoveredMidRef.current = idx
     }
     const onMove = (e: MapMouseEvent) => {
-      if (hoverLockRef.current) return
+      if (hoverLockRef.current || touchRef.current) return
       const { x, y } = e.point
       let best = -1, bestSq = Infinity
       midsRef.current.forEach(({ a, b }, i) => {
@@ -505,7 +527,7 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
     // Fires also when the cursor moves onto a marker inside the map: only a real exit hides.
     const onOut = (e: MapMouseEvent) => {
       const to = e.originalEvent.relatedTarget
-      if (!hoverLockRef.current && !(to instanceof Node && map.getContainer().contains(to))) show(null)
+      if (!hoverLockRef.current && !touchRef.current && !(to instanceof Node && map.getContainer().contains(to))) show(null)
     }
     map.on('mousemove', onMove)
     map.on('mouseout', onOut)

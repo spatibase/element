@@ -4,6 +4,7 @@ import { useElementEditorConfig } from '../contexts/ElementEditorConfigContext'
 import { EditToolbarBtn } from './ui/EditToolbarBtn'
 import { RowDivider } from './ui/RowDivider'
 import { Kbd, KbdInvert } from './ui/Kbd'
+import { useTouchInput } from '../hooks/useTouchInput'
 
 // Same hover as the EditToolbarBtn icons beside them: one step stronger than the
 // shared ghost Button, and no colour transition.
@@ -70,6 +71,14 @@ export default function ActiveDrawingToolbar() {
   const measurePoints = useUIStore((s) => s.measurePoints)
   const measureMode = useUIStore((s) => s.measureMode)
   const setMeasureMode = useUIStore((s) => s.setMeasureMode)
+  const removeLastLineVertex = useUIStore((s) => s.removeLastLineVertex)
+  const removeLastPolygonVertex = useUIStore((s) => s.removeLastPolygonVertex)
+  const removeLastRouteWaypoint = useUIStore((s) => s.removeLastRouteWaypoint)
+  const removeLastMeasurePoint = useUIStore((s) => s.removeLastMeasurePoint)
+  const completeMeasure = useUIStore((s) => s.completeMeasure)
+  // A finger: tap wording, a Done button (no key chip) and Undo point, since there is no
+  // Enter / Backspace and a double-tap is easy to miss. A mouse keeps the UI as it was.
+  const touch = useTouchInput()
 
   const isDrawingLine = editingMode === 'draw-line' || editingMode === 'slice-shape'
   const isDrawingPolygon = editingMode === 'draw-polygon' || editingMode === 'cut-hole'
@@ -110,9 +119,32 @@ export default function ActiveDrawingToolbar() {
   const canFinish = isDrawingLine ? lineInProgress.length >= 2
     : isDrawingPolygon ? polygonInProgress.length >= 3
     : isDrawingRoute ? routeWaypoints.length >= 2 && !routeLoading
+    : touch && isMeasuring ? measurePoints.length >= 2
     : false
 
-  const hint: HintPart[] | null = isPlacingPoint
+  /** Touch: the points placed so far that Undo point can take back (Backspace with a keyboard). */
+  const undoablePoints = isDrawingLine ? lineInProgress.length
+    : isDrawingPolygon ? polygonInProgress.length
+    : isDrawingRoute ? routeWaypoints.length
+    : isMeasuring ? measurePoints.length
+    : 0
+  function handleUndoPoint() {
+    if (isDrawingLine) removeLastLineVertex()
+    else if (isDrawingPolygon) removeLastPolygonVertex()
+    else if (isDrawingRoute) removeLastRouteWaypoint()
+    else if (isMeasuring) removeLastMeasurePoint()
+  }
+
+  const touchHint: HintPart[] | null = !touch ? null
+    : isPlacingPoint ? ['Tap to place a point']
+    : (isDrawingLine || isMeasuring) ? [undoablePoints === 0 ? 'Tap to place the first point' : 'Tap to add points']
+    : isDrawingPolygon ? [polygonInProgress.length === 0 ? 'Tap to place the first point' : polygonInProgress.length < 3 ? 'Tap to continue' : 'Tap the first point to close']
+    : isDrawingRoute ? [routeWaypoints.length === 0 ? 'Tap to place the first waypoint' : 'Tap to add waypoints']
+    : (isDrawingCircle || isDrawingRect || isDrawingFreehand) ? ['Drag to draw']
+    : isPickingShape ? ['Tap anywhere to import a shape from the map']
+    : null
+
+  const hint: HintPart[] | null = touchHint ?? (isPlacingPoint
     ? ['Click to place a point']
     : editingMode === 'draw-line'
       ? (lineInProgress.length === 0 ? ['Click to place the first point'] : ['Click to add points', 'Double-click to finish', UNDO_LAST])
@@ -136,7 +168,7 @@ export default function ActiveDrawingToolbar() {
           : ['Click to add points', 'Double-click to finish', UNDO_LAST])
     : isPickingShape
       ? ['Click anywhere to import a shape from the map']
-    : null
+    : null)
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 max-w-full bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto">
@@ -173,14 +205,24 @@ export default function ActiveDrawingToolbar() {
 
       {ui.hints && hint && <RowDivider />}
 
+      {touch && undoablePoints > 0 && (
+        <button
+          type="button"
+          onClick={handleUndoPoint}
+          className={`${ACTION_BTN} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
+        >
+          Undo point
+        </button>
+      )}
+
       {canFinish && (
         <button
           type="button"
-          onClick={handleFinish}
+          onClick={isMeasuring ? completeMeasure : handleFinish}
           className={`${ACTION_BTN} shadow-sm bg-primary-500 text-white hover:bg-primary-600`}
         >
-          {isDrawingRoute ? 'Save route' : editingMode === 'slice-shape' ? 'Slice' : editingMode === 'cut-hole' ? 'Cut' : 'Finish'}
-          <KbdInvert>↵</KbdInvert>
+          {isDrawingRoute ? 'Save route' : editingMode === 'slice-shape' ? 'Slice' : editingMode === 'cut-hole' ? 'Cut' : touch ? 'Done' : 'Finish'}
+          {!touch && <KbdInvert>↵</KbdInvert>}
         </button>
       )}
 
@@ -190,7 +232,7 @@ export default function ActiveDrawingToolbar() {
         className={`${ACTION_BTN} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
       >
         {hasProgress ? 'Cancel' : 'Exit'}
-        <Kbd>Esc</Kbd>
+        {!touch && <Kbd>Esc</Kbd>}
       </button>
     </div>
   )

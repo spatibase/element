@@ -1,6 +1,6 @@
 import type React from 'react'
 import type { FeatureCollection, FeatureCollectionInput, Schema, GeoJSONFeature, GeoJSONFeatureInput } from '../types/geojson'
-import type { BoundsInput } from '@element-editor/core'
+import type { BoundsInput, CoordinateOptions, GeometryType } from '@element-editor/core'
 import type { InitialView } from './savedView'
 import type { ElementEditorEvent, ElementEditorErrorHandler, ElementEditorConfig, DrawTool } from '@element-editor/ui'
 
@@ -65,6 +65,43 @@ export interface ElementEditorBaseProps {
    * @default undefined (no limit; imports are still capped at 50,000 features)
    */
   maxFeatures?: number
+  /**
+   * Geometry types the editor accepts, as GeoJSON type names; omit to allow all. Enforced for every
+   * way a geometry gets in (drawing, paste, import, `initialData`, merge, break apart, boolean ops,
+   * buffer, the ref API, ...): a refusal changes nothing and reports an `error` event, `code:
+   * 'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type are left out, and
+   * menu actions whose result would be refused are hidden. Works with `tools` and `maxFeatures`.
+   *
+   * @default undefined (every type)
+   * @example geometryTypes={['Polygon', 'MultiPolygon']}
+   */
+  geometryTypes?: GeometryType[]
+  /**
+   * With `maxFeatures={1}`: a draw tool (point, line, area, rectangle, circle, freehand, route, picker)
+   * replaces the only feature's geometry instead of being refused, keeping its `id`, properties, schema
+   * and group. One undo step, one `onFeatureUpdate`. Tools stay available at the limit. Paste, duplicate,
+   * import merge and the ref's `addFeature` still refuse. Ignored (with a dev warning) for any other
+   * `maxFeatures`. For a "pick the location" field: `tools={['point']} maxFeatures={1} replaceAtLimit`.
+   *
+   * @default false
+   */
+  replaceAtLimit?: boolean
+  /**
+   * Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste,
+   * undo/redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same
+   * values. Both parts are off unless set:
+   * - `wrap: true` shifts a feature as a whole by a multiple of 360 degrees so the centre of its
+   *   longitude range lies in [-180, 180] (RFC 7946 positions). Vertices stay continuous, so a shape
+   *   crossing the antimeridian keeps its outline; one side may then lie beyond +-180. Latitudes
+   *   beyond +-90 are clamped; others are left alone.
+   * - `precision: n` rounds x and y to `n` decimals (integer 0 to 15; 6 is about 0.1 m). Altitude is kept
+   *   untouched. Consecutive duplicate vertices created by rounding are dropped when the shape stays valid.
+   *
+   * Unrelated to `config.units.precision`, which only formats what is displayed.
+   *
+   * @default undefined (coordinates are stored as the map reports them)
+   */
+  coordinates?: CoordinateOptions
   /**
    * Restricts panning to this box: the user can't drag the map outside it. The map starts fitted
    * to it only when nothing else gives a start view (see `initialView`). A GeoJSON bbox `[west, south, east, north]`
@@ -188,6 +225,12 @@ export interface ElementEditorBaseProps {
    * changed it.
    */
   onToolChange?: (tool: DrawTool | null) => void
+  /**
+   * Called with the id of the feature that entered point editing (vertex edit, as
+   * `ref.getVertexEdit()` reports it), or `null` when point editing ended, whether the user
+   * (double-click, Enter, Esc, a click away, delete, undo) or your app (`ref.setVertexEdit`) changed it.
+   */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * Receives every message the editor would show the user (errors, warnings, confirmations,
    * `feature:deleted` with an `undo`, …). With it set, the editor shows no toasts: your app

@@ -270,6 +270,8 @@ interface ElementEditorRef {
   select: (ids: string[], options?: { fit?: boolean }) => void
   setTool: (tool: DrawTool | null) => boolean                            // false if unavailable / readonly
   getTool: () => DrawTool | null                                         // also: onToolChange prop
+  setVertexEdit: (id: string | null) => boolean                          // line / area point editing; null leaves; false: point, hidden, readonly
+  getVertexEdit: () => string | null                                     // also: onVertexEditChange prop
   getMap: () => TMap | null                                              // null until mounted
   flyTo: {
     (options: FlyToOptions): void                                        // { center: [lng, lat], zoom? }, zoom default 15
@@ -294,7 +296,7 @@ type FeaturePatch = Partial<Pick<GeoJSONFeature, 'properties' | 'geometry' | 'sc
 interface MutationOptions { undoable?: boolean }  // default true; false = no undo step, applied to history too (server sync)
 interface SetFeatureCollectionOptions { silent?: boolean; undoable?: boolean } // silent default false; undoable default true (false clears history)
 interface ValidationReport { valid: boolean; errors: Record<string, string[]> }  // errors keyed by feature id
-interface ImportResult { skipped: number; duplicates: number; truncated: boolean }
+interface ImportResult { skipped: number; duplicates: number; truncated: boolean; refused: number }  // refused: type not in geometryTypes
 ```
 
 `FeaturePatch` is exported from `@element-editor/core`, not from `@element-editor/react`. `ImportResult`, `MutationOptions`, `SetFeatureCollectionOptions`, `ValidationReport`, `FeatureCollection`, `FeatureCollectionInput`, `GeoJSONFeature`, `GeoJSONFeatureInput`, `GeometryInput`, `Schema`, `DrawTool`, `FlyToOptions`, `BBox` and `BasemapInput` are.
@@ -317,6 +319,7 @@ interface ImportResult { skipped: number; duplicates: number; truncated: boolean
 | `onBasemapChange` | `(basemap) => void` | user picked a basemap or `ref.setBasemap()` |
 | `onMapReady` | `(map) => void` | once per map, after Element's layers are on it |
 | `onToolChange` | `(tool: DrawTool \| null) => void` | a drawing tool turned on (`null`: off), as `ref.getTool()` reports it |
+| `onVertexEditChange` | `(id: string \| null) => void` | a feature entered point editing (`null`: it ended), as `ref.getVertexEdit()` reports it |
 
 `ElementEditorEvent['type']`: `'feature:deleted' | 'features:deleted' | 'feature:duplicated' | 'features:duplicated' | 'feature:broken' | 'selection:copied' | 'selection:pasted' | 'undo' | 'redo' | 'error' | 'warning' | 'success'`.
 
@@ -332,6 +335,7 @@ interface ImportResult { skipped: number; duplicates: number; truncated: boolean
 | `invalid-data` | unreadable input/response (bad JSON, not a FeatureCollection, broken style) |
 | `too-large` | import file over the size cap |
 | `limit-reached` | `maxFeatures` refused or truncated an add |
+| `geometry-type-not-allowed` | `geometryTypes` refused a geometry type, or skipped features of that type in an import |
 | `geometry` | geometry operation failed or produced an empty shape |
 | `permission-denied` | browser refused geolocation / clipboard / file save |
 | `unsupported` | missing browser or map capability |
@@ -365,6 +369,7 @@ Shared by both drop-ins (`ElementEditorBaseProps`):
 | `schema` | `Schema` | `{ id, name, fields: SchemaField[] }` |
 | `tools` | `DrawTool[]` | omit for all: `'polygon' (Area tool) \| 'rectangle' \| 'circle' \| 'line' \| 'point' \| 'freehand' \| 'route' \| 'picker' \| 'measure' \| 'search'` |
 | `maxFeatures` | `number` | enforced for every way of adding |
+| `geometryTypes` | `GeometryType[]` | omit for all; GeoJSON type names; enforced for every way a geometry gets in (tools that can't draw one are left out) |
 | `bounds` | `BoundsInput` | restricts panning; bbox `[west, south, east, north]`; reactive |
 | `theme` | `'light' \| 'dark' \| 'auto'` | mode only; colours via `accentColor` or CSS variables in `style` (an object is ignored with a dev warning) |
 | `accentColor` | `string` | any CSS colour; derives the primary scale |

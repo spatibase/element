@@ -11,6 +11,7 @@ import { destination as turfDestination } from '@turf/destination'
 import { project, unproject } from '../mercator'
 import { ElementEditorError } from '../utils/errors'
 import { getGeometryRunner } from '../utils/geometryRunner'
+import { TOOL_GEOMETRY_TYPES } from '../utils/geometryTypes'
 import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson'
 
 export type DialogState =
@@ -89,6 +90,9 @@ export interface UIStore {
   // [south, north, west, east] — set by useBoundaryFromURL, consumed+cleared by BoundaryAutoFit inside MapContainer
   boundaryAutofitBbox: [number, number, number, number] | null
   panelPrefs: PanelPrefs
+  /** Id of the feature in vertex edit, or `null`. The source of truth for vertex edit. */
+  vertexEditFeatureId: string | null
+  /** `vertexEditFeatureId !== null`, kept in step with it (many readers only need the flag). */
   vertexEditActive: boolean
   transformActive: boolean
   transformDragging: boolean
@@ -139,7 +143,10 @@ export interface UIStore {
   toggleSchemaModal: () => void
   toggleCodeModal: () => void
   setPanelPref: (key: keyof PanelPrefs, value: boolean) => void
+  /** `true` puts the single selected feature in vertex edit (nothing when the selection isn't one feature); `false` leaves it. */
   setVertexEditActive: (active: boolean) => void
+  /** Puts this feature in vertex edit (`null` leaves it). Doesn't select it or check its geometry: callers do. */
+  setVertexEditFeature: (id: string | null) => void
   setTransformActive: (active: boolean) => void
   setTransformDragging: (dragging: boolean) => void
   setGeometryProcessing: (processing: boolean) => void
@@ -307,7 +314,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   function finishDrawing(feature: GeoJSONFeature, toolState: Partial<UIStore> = {}) {
     // Over `maxFeatures`: addFeature reports the limit; keep the in-progress
     // shape so the user can delete something and finish, or Esc.
-    if (!dataStore.getState().addFeature(feature)) { set({ dialogState: { type: 'closed' } as DialogState }); return }
+    if (!dataStore.getState().addFeature(feature, { draw: true })) { set({ dialogState: { type: 'closed' } as DialogState }); return }
     const exit = get().autoExitAfterDraw
     const patch: Partial<UIStore> = {
       dialogState: { type: 'closed' } as DialogState,
@@ -326,7 +333,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
       // Nothing selected (deselect, delete, an undo that removed the feature): vertex edit and
       // transform end too, so the next click doesn't drop straight into a stale mode.
       if (state.selectedIds.length === 0 && (get().vertexEditActive || get().transformActive)) {
-        set({ vertexEditActive: false, transformActive: false })
+        set({ vertexEditFeatureId: null, vertexEditActive: false, transformActive: false })
       }
     }
   })
@@ -387,6 +394,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   narrow: false,
   boundaryAutofitBbox: null,
   panelPrefs: loadPanelPrefs(scope),
+  vertexEditFeatureId: null,
   vertexEditActive: false,
   transformActive: false,
   transformDragging: false,
@@ -428,7 +436,14 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   setUnavailableTools: (tools) => set((s) => (s.unavailableTools.join() === tools.join() ? s : { unavailableTools: tools })),
   isToolAvailable: (tool) => {
     const s = get()
-    return (!s.enabledTools || s.enabledTools.includes(tool)) && !s.unavailableTools.includes(tool)
+    if ((s.enabledTools && !s.enabledTools.includes(tool)) || s.unavailableTools.includes(tool)) return false
+    // `geometryTypes`: a tool none of whose output types is allowed can't produce anything the editor accepts.
+    const need = TOOL_GEOMETRY_TYPES[tool]
+    if (need) {
+      const ds = dataStore.getState()
+      if (ds.geometryTypes && !need.some((t) => ds.isGeometryTypeAllowed(t))) return false
+    }
+    return true
   },
   openShortcutsModal: () => set({ shortcutsModalOpen: true }),
   closeShortcutsModal: () => set({ shortcutsModalOpen: false }),
@@ -438,7 +453,14 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   setCodeDockWidth: (width) => set({ codeDockWidth: width }),
   setLayout: (layout) => set({ layout }),
   setSelectedPartIndex: (index) => set({ selectedPartIndex: index }),
-  setVertexEditActive: (active) => set({ vertexEditActive: active }),
+  setVertexEditActive: (active) => {
+    const sel = dataStore.getState().selectedIds
+    get().setVertexEditFeature(active && sel.length === 1 ? sel[0] : null)
+  },
+  setVertexEditFeature: (id) => {
+    if (get().vertexEditFeatureId === id) return
+    set({ vertexEditFeatureId: id, vertexEditActive: id !== null })
+  },
   setTransformActive: (active) => set({ transformActive: active }),
   setTransformDragging: (dragging) => set({ transformDragging: dragging }),
   setGeometryProcessing: (processing) => set({ geometryProcessing: processing }),
@@ -453,6 +475,8 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
     const ds = dataStore.getState()
     const targetId = ds.selectedIds[0]
     if (!targetId) return
+    // Refused (reported) before the snapshot, so a refusal leaves no undo step.
+    if (!ds.canUseGeometryTypes([geometryPreview.type], 'geometry')) { set({ editingMode: 'none', geometryPreview: null }); return }
     ds.takeSnapshot()
     ds.updateFeature(targetId, freeGeometry(geometryPreview as GeoJSONFeature['geometry']))
     set({ editingMode: 'none', geometryPreview: null })
@@ -465,6 +489,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
     const targetId = ds.selectedIds[0]
     if (!targetId) return
     if (bufferCreateNew && !ds.canAddFeatures(1)) return
+    if (!ds.canUseGeometryTypes([geometryPreview.type], 'geometry')) { set({ editingMode: 'none', geometryPreview: null }); return }
     ds.takeSnapshot()
     if (bufferCreateNew) {
       const source = ds.features.find(f => f.id === targetId)
@@ -655,6 +680,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
         return
       }
 
+      if (!freshDs.canUseGeometryTypes([geometry.type], 'geometry')) return
       freshDs.takeSnapshot()
       freshDs.updateFeature(targetId!, freeGeometry(geometry as GeoJSONFeature['geometry']))
     } catch (err) {
@@ -717,6 +743,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
       }
 
       if (!freshDs.canAddFeatures(partsAfter - 1)) return
+      if (!freshDs.canUseGeometryTypes(['Polygon'], 'geometry')) return // every piece becomes its own Polygon
       freshDs.takeSnapshot()
       if (geometry.type === 'MultiPolygon') {
         const coords = geometry.coordinates as [number, number][][][]

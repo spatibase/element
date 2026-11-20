@@ -8,9 +8,9 @@ export type { MutationOptions, SetFeatureCollectionOptions, ValidationReport } f
 export { ElementEditorError } from '@element-editor/core'
 export { IconButton, Tooltip } from '@element-editor/ui'
 export { accentPalette, DEFAULT_ACCENT, ACCENT_STEPS } from '@element-editor/core'
-export type { AccentShade } from '@element-editor/core'
+export type { AccentShade, GeometryType } from '@element-editor/core'
 // Return shape of `getFeatureStyle` (type-only; works for both engines).
 export type { FeatureStyle } from '@element-editor/core'
 export type { ElementEditorBaseProps } from './shell/types'
 export type { InitialView } from './shell/savedView'
-export type { BBox, BoundsInput, FlyToOptions } from '@element-editor/core'
+export type { BBox, BoundsInput, CoordinateOptions, FlyToOptions } from '@element-editor/core'

@@ -8,6 +8,7 @@ import { Trash, Resize, Scissors, Knife, Shapes, StackPlus, WaveSine, SquareLogo
 import { centroid } from '@turf/centroid'
 import { ContextMenu, type ContextMenuItem } from './ui/ContextMenu'
 import { KbdDark } from './ui/Kbd'
+import { useGeometryGates } from '../hooks/useGeometryGates'
 
 export interface FeatureContextMenuData {
   feature: GeoJSONFeature
@@ -70,6 +71,7 @@ export function FeatureMapContextMenu({ x, y, data, onClose }: Props) {
   const selectedIds = useDataStore((s) => s.selectedIds)
   const emit = useEmit()
   const { getKey } = useShortcutConfig()
+  const { allows, mergeOk, breakOk, polygonResultOk } = useGeometryGates(selectedIds, feature.geometry)
 
   if (readonly) return null
 
@@ -103,7 +105,9 @@ export function FeatureMapContextMenu({ x, y, data, onClose }: Props) {
 
   if (canProcessShape(geomType)) {
     items.push({ separator: true })
-    for (const entry of [...(isPolygon ? POLYGON_MODE_ENTRIES : []), ...SHAPE_MODE_ENTRIES]) {
+    for (const entry of [...(isPolygon && polygonResultOk ? POLYGON_MODE_ENTRIES : []), ...SHAPE_MODE_ENTRIES]) {
+      // Slice gives Polygons; buffer and cut hole a Polygon or MultiPolygon (`geometryTypes`).
+      if ((entry.mode === 'slice-shape' && !allows('Polygon')) || (entry.mode === 'buffer-shape' && !polygonResultOk)) continue
       items.push({
         label: entry.label,
         icon: entry.icon,
@@ -113,7 +117,7 @@ export function FeatureMapContextMenu({ x, y, data, onClose }: Props) {
     }
   }
 
-  if (isPolygon) {
+  if (isPolygon && allows('Point')) {
     items.push({
       label: 'Center point',
       icon: <DotOutline size={16} weight="fill" />,
@@ -137,9 +141,11 @@ export function FeatureMapContextMenu({ x, y, data, onClose }: Props) {
     })
   }
 
-  if (isMulti || inMultiSelection) {
+  const showBreak = isMulti && breakOk
+  const showMerge = inMultiSelection && mergeOk
+  if (showBreak || showMerge) {
     items.push({ separator: true })
-    if (isMulti) {
+    if (showBreak) {
       items.push({
         label: 'Break apart',
         icon: <Shapes size={16} />,
@@ -150,14 +156,13 @@ export function FeatureMapContextMenu({ x, y, data, onClose }: Props) {
         },
       })
     }
-    if (inMultiSelection) {
+    if (showMerge) {
       items.push({
         label: `Merge ${selectedIds.length} features`,
         icon: <StackPlus size={16} />,
         onClick: () => {
           const n = selectedIds.length
-          dataStore.getState().mergeFeatures()
-          emit({ type: 'success', message: `Merged ${n} features` })
+          if (dataStore.getState().mergeFeatures()) emit({ type: 'success', message: `Merged ${n} features` })
         },
       })
     }

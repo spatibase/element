@@ -4,6 +4,7 @@ import { divIcon, type LeafletEvent, type LeafletMouseEvent, type Marker as LMar
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Marker, Polygon as RLPolygon, Polyline as RLPolyline, Popup, useMap, useMapEvents } from 'react-leaflet'
 import { ContextMenu, useEmit, useIsEventForEditor } from '@element-editor/ui'
+import { useTouchInput } from '@element-editor/ui/internal'
 import { useDataStore, useGeoStore } from '../../store/StoreContext'
 import type { GeoJSONFeature } from '@element-editor/core'
 import {
@@ -17,6 +18,8 @@ import {
   insertedPosition,
   vertexEditPatch,
   withXY,
+  attachLongPress,
+  TOUCH_HANDLE_CSS,
   type NeighborVertex,
 } from '@element-editor/core/internal'
 import { toLeaflet } from '../../utils/geojson'
@@ -46,6 +49,7 @@ function ensureStyles() {
   s.textContent = [
     '.elm-midpoint-marker{pointer-events:auto!important}',
     '.elm-vertex:hover{background:var(--color-primary-100)!important}',
+    TOUCH_HANDLE_CSS,
   ].join('')
   document.head.appendChild(s)
   stylesInjected = true
@@ -206,6 +210,21 @@ export function VertexEditor({
   // Force re-render on pan/zoom so viewport-culled vertices update
   const [viewTick, setViewTick] = useState(0)
   const hoverMap = useMap()
+
+  // A finger can't hover: every midpoint shows, and handles get a 44 px hit area
+  // (the `elm-touch` class, see TOUCH_HANDLE_CSS). A mouse keeps the hovered-edge midpoint.
+  const touch = useTouchInput()
+  useEffect(() => {
+    const el = hoverMap.getContainer()
+    el.classList.toggle('elm-touch', touch)
+    return () => el.classList.remove('elm-touch')
+  }, [hoverMap, touch])
+  // Long-press on a point (finger) opens the right-click menu; one handle per marker.
+  const longPressRef = useRef(new Map<LMarker, ReturnType<typeof attachLongPress>>())
+  useEffect(() => {
+    const lp = longPressRef.current
+    return () => { lp.forEach((h) => h.detach()); lp.clear() }
+  }, [])
   useMapEvents({
     click: () => { if (Date.now() < suppressExitUntilRef.current) return; onExit() },
     moveend: () => setViewTick((t) => t + 1),
@@ -808,7 +827,7 @@ export function VertexEditor({
         />
       ))}
 
-      {!readonly && midpoints.filter((mp) => mp.index === hoveredEdgeIndex).map((mp) => (
+      {!readonly && midpoints.filter((mp) => touch || mp.index === hoveredEdgeIndex).map((mp) => (
         <Marker
           key={`mid-${mp.coord[0].toFixed(8)},${mp.coord[1].toFixed(8)}`}
           position={toLeaflet(mp.coord)}
@@ -854,8 +873,23 @@ export function VertexEditor({
             },
             drag: (e) => dragFrame.schedule(() => handleDrag(i, e)),
             dragend: (e) => { dragFrame.flush(); handleDragEnd(i, e); setFeatureDragActive(false) },
-            click: (e) => handleVertexClick(i, e as unknown as LeafletMouseEvent),
+            click: (e) => {
+              if (longPressRef.current.get(e.target as LMarker)?.fired()) return // the long-press opened the menu
+              handleVertexClick(i, e as unknown as LeafletMouseEvent)
+            },
             contextmenu: (e) => handleContextMenu(i, e as unknown as LeafletMouseEvent),
+            add: (e) => {
+              const m = e.target as LMarker
+              const el = m.getElement()
+              if (!el || readonly) return
+              longPressRef.current.get(m)?.detach()
+              longPressRef.current.set(m, attachLongPress(el, (pe) => setPointMenu({ index: i, x: pe.clientX, y: pe.clientY })))
+            },
+            remove: (e) => {
+              const m = e.target as LMarker
+              longPressRef.current.get(m)?.detach()
+              longPressRef.current.delete(m)
+            },
           }}
         />
       )})}

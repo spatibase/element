@@ -50,7 +50,7 @@ interface FeatureRowProps {
   joinBottom?: boolean
 }
 
-const FeatureRow = memo(function FeatureRow({
+const FeatureRow = /*#__PURE__*/ memo(function FeatureRow({
   feature,
   isSelected,
   onRowClick,

@@ -2,7 +2,7 @@ import { ElementEditor as LeafletEditor } from './leaflet/index'
 import { ElementEditor as MapLibreEditor } from './index'
 import type { ElementEditorConfig } from '@element-editor/ui'
 import { withLayout } from './index'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, GeoJSONFeature, InitialView } from './index'
+import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, GeoJSONFeature, GeometryType, InitialView } from './index'
 import { Agentation } from 'agentation'
 import { Profiler, useState, type CSSProperties } from 'react'
 import { TileLayer } from 'react-leaflet'
@@ -202,6 +202,11 @@ const onChange = params.get('changes') === '1' ? (data: FeatureCollection) => {
   const w = window as unknown as { __changes?: number[] }
   ;(w.__changes ??= []).push(data.features.length)
 } : undefined
+// Every `onVertexEditChange` call pushes its id (or null) to `window.__vertexEditChanges`. (e2e)
+const onVertexEditChange = (id: string | null) => {
+  const w = window as unknown as { __vertexEditChanges?: (string | null)[] }
+  ;(w.__vertexEditChanges ??= []).push(id)
+}
 const mapOptionsParam = params.get('mapOptions')
 const mapOptions = mapOptionsParam ? JSON.parse(mapOptionsParam) : undefined
 type ReadyWin = { __readyMaps?: unknown[]; __readyHadElm?: boolean[] }
@@ -226,6 +231,16 @@ const onError = onErrorMode ? (e: { code: string; source: string; message: strin
 // ?maxFeatures=N passes `maxFeatures`. (e2e)
 const maxFeaturesParam = params.get('maxFeatures')
 const maxFeatures = maxFeaturesParam ? Number(maxFeaturesParam) : undefined
+// ?geometryTypes=Point,MultiPoint passes `geometryTypes` (e2e).
+const geometryTypesParam = params.get('geometryTypes')
+const geometryTypes = geometryTypesParam ? (geometryTypesParam.split(',') as GeometryType[]) : undefined
+// ?replaceAtLimit passes `replaceAtLimit` (draw tools replace the only feature at `maxFeatures=1`). (e2e)
+const replaceAtLimit = params.has('replaceAtLimit')
+// ?coordinates=wrap,6 passes `coordinates` ({ wrap: true, precision: 6 }). (e2e)
+const coordinatesParam = params.get('coordinates')
+const coordinates = coordinatesParam
+  ? { wrap: coordinatesParam.includes('wrap') || undefined, precision: /\d+/.test(coordinatesParam) ? Number(/\d+/.exec(coordinatesParam)![0]) : undefined }
+  : undefined
 
 // ?host=inline (perf benchmark): like a typical integrator, the host passes fresh inline `config` /
 // `tools` objects every render; `window.__rerenderHost()` re-renders it. A Profiler sums the
@@ -259,7 +274,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, routingApiKey, onChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, replaceAtLimit, coordinates, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated

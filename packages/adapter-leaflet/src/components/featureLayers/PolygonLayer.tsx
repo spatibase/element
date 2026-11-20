@@ -2,6 +2,7 @@ import { memo, useContext, useMemo, useRef, useState } from 'react'
 import { Polygon } from 'react-leaflet'
 import type { LatLngExpression, LeafletMouseEvent } from 'leaflet'
 import { DEFAULT_FEATURE_COLOR, type GeoJSONFeature } from '@element-editor/core'
+import { isTouchEvent } from '@element-editor/core/internal'
 import { useDataStore, useGeoStore } from '../../store/StoreContext'
 import { toLeaflet } from '../../utils/geojson'
 import { GHOST_FILL_OPTIONS } from '../../utils/dragUtils'
@@ -67,13 +68,18 @@ export const PolygonLayer = memo(function PolygonLayer({ feature, selected, isMu
           if (e.originalEvent.shiftKey && !readonly) {
             toggleSelection(feature.id)
           } else {
+            // A finger has no double-click: a second tap on the selected shape edits its points.
+            const sel = dataStore.getState().selectedIds
+            const again = isTouchEvent(e.originalEvent) && sel.length === 1 && sel[0] === feature.id
             interaction.markFeatureClick()
             dataStore.getState().selectFeature(feature.id)
+            if (again && !readonly && !uiStore.getState().vertexEditActive) onVertexEdit()
           }
         },
         dblclick: (e: LeafletMouseEvent) => {
           if (uiStore.getState().editingMode !== 'none') return
           e.originalEvent.stopPropagation()
+          if (isTouchEvent(e.originalEvent) && uiStore.getState().vertexEditFeatureId === feature.id) return
           if (!readonly) onVertexEdit()
         },
         contextmenu: makeContextMenuHandler(feature, readonly, onContextMenu),

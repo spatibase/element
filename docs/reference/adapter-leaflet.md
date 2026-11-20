@@ -87,6 +87,9 @@ Renders no visible HTML. Mounts the Element editing layer into the Leaflet map. 
 | `layout` | `'panel' \| 'minimal' \| 'split'` | `'panel'` | No | Layout hint read by the `@element-editor/ui` panels. |
 | `tools` | `DrawingTool[]` | all tools | No | Restrict which drawing tools are available. Keyboard shortcuts for excluded tools are suppressed. |
 | `maxFeatures` | `number` | — | No | Maximum number of features. Enforced by the store for every way of adding features: drawing tools and their shortcuts are disabled at the limit, duplicate, paste and break apart are refused, and imports are truncated (`ImportResult.truncated`). Each refusal reports an `error` event. Undo and redo are never blocked. |
+| `geometryTypes` | `GeometryType[]` | — | No | The geometry types the editor accepts, as GeoJSON type names (`'Point'`, `'MultiPoint'`, `'LineString'`, `'MultiLineString'`, `'Polygon'`, `'MultiPolygon'`, `'GeometryCollection'`). Omit to allow all. Enforced by the store for every way a geometry gets in (drawing, paste, imports, `initialData`, merge, break apart, boolean operations, buffer, the ref API): a refusal changes nothing and reports an `error` event with code `'geometry-type-not-allowed'`. Drawing tools that can't draw an allowed type leave the toolbar, and menu actions whose result would be refused are hidden. Imports skip the refused features (`ImportResult.refused`). See [Restricting tools](../guides/restricting-tools.md#allowed-geometry-types). |
+| `replaceAtLimit` | `boolean` | `false` | No | With `maxFeatures={1}`: drawing tools (point, line, area, rectangle, circle, freehand, route, picker) replace the only feature's geometry instead of being refused, keeping its `id`, properties, schema and group (`_drawType` follows the new shape). One undo step, one `onFeatureUpdate`. Paste, duplicate, import merge and `addFeature` still refuse. Ignored for any other limit. |
+| `coordinates` | `CoordinateOptions` | — | No | Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste, undo and redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same values. `{ wrap?: boolean; precision?: number }`, both off by default. `wrap: true` shifts a feature as a whole by a multiple of 360° so the centre of its longitude range lies in [-180, 180] (vertices stay continuous; a shape crossing the antimeridian may keep one side beyond ±180; latitudes beyond ±90 are clamped). `precision: n` rounds x and y to `n` decimals (integer 0 to 15) and keeps altitude as is. Not the same as `config.units.precision`, which only formats displayed values. See [Clean coordinates](../guides/persisting-data.md#clean-coordinates). |
 | `readonly` | `boolean` | `false` | No | Disable all editing interactions. Features remain visible. |
 | `onFeatureAdd` | `(feature: GeoJSONFeature) => void` | — | No | Fires when a feature is added. Fires after `onChange` for the same operation. |
 | `onFeatureUpdate` | `(id: string, feature: GeoJSONFeature) => void` | — | No | Fires when a feature's geometry or properties change. Fires after `onChange`. |
@@ -95,6 +98,7 @@ Renders no visible HTML. Mounts the Element editing layer into the Leaflet map. 
 | `onFeatureSelect` | `(feature: GeoJSONFeature \| null) => void` | — | No | Fires with the single selected feature, or `null` when nothing or several features are selected. |
 | `onZoomChange` | `(zoom: number) => void` | — | No | Fires when the map zoom changes. |
 | `onToolChange` | `(tool: DrawingTool \| null) => void` | — | No | Fires with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. |
+| `onVertexEditChange` | `(id: string \| null) => void` | — | No | Fires with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended, by the user or by `ref.setVertexEdit`. |
 | `routingApiKey` | `string` | — | No | **Deprecated** (dev warning): set `config.network.routing.apiKey` on the surrounding `ElementEditorUIProvider`, which wins when both are set. All servers the controls use (routing, Overpass, search) come from `config.network`: see [Third-party services and self-hosting](../guides/third-party-services.md). |
 | `bounds` | `[number, number, number, number] \| null` | — | No | Leaflet max bounds: the user can't pan outside this box. A GeoJSON bbox `[west, south, east, north]` (`[lng, lat]` order, like your data). `null` clears. *Deprecated:* the nested `[[south, west], [north, east]]` Leaflet-order form still works and logs a one-time dev warning with the bbox equivalent. |
 | `getFeatureStyle` | `(feature: GeoJSONFeature) => (FeatureStyle & PathOptions) \| undefined \| null` | — | No | `FeatureStyle` plus any Leaflet `PathOptions` per feature (`null`/`undefined` = default look), applied to polygons, lines and point pins (pins take `fillColor`, then `color`). `fillColor` falls back to `color`, as on MapLibre, so a `FeatureStyle` callback works unchanged. Wins over `config.featureColor` per key; the selected look wins over it, hover keeps the colour. Called on every render; keep it fast. See [Colouring features](../guides/theming.md#colouring-features). |
@@ -140,6 +144,10 @@ interface ElementEditorControlsRef {
   setTool: (tool: DrawingTool | null) => boolean
   /** The tool that is on, or null (also while a shape operation such as cut or buffer runs). */
   getTool: () => DrawingTool | null
+  /** Puts a LineString / Polygon in point editing (selects it, tool off); null leaves. False for unknown, hidden, other geometries, readonly. */
+  setVertexEdit: (id: string | null) => boolean
+  /** Id of the feature in point editing, or null. */
+  getVertexEdit: () => string | null
   /** Whether undo() / redo() would change something. */
   canUndo: () => boolean
   canRedo: () => boolean
@@ -170,6 +178,7 @@ interface ImportResult {
   skipped: number
   duplicates: number
   truncated: boolean
+  refused: number
 }
 ```
 

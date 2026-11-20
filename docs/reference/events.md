@@ -66,6 +66,14 @@ Fires when the set of selected feature IDs changes. Fires **independently** of f
 />
 ```
 
+### `onVertexEditChange`
+
+```ts
+onVertexEditChange?: (id: string | null) => void
+```
+
+Fires with the id of the feature that entered point editing, or `null` when point editing ended, once per change: double-click, `Enter`, `Escape`, a click away, deleting or undoing the feature, and `ref.setVertexEdit(id | null)` alike. `ref.getVertexEdit()` returns the same id. See [Vertex editing: From code](../tools/vertex-editing.md#from-code).
+
 ---
 
 ## Selection, zoom, submit and notification events
@@ -144,6 +152,7 @@ The return value decides what Element shows:
 | `invalid-data` | Unreadable input or response: invalid JSON, not a FeatureCollection, an HTML error page; features in `initialData` / `setFeatureCollection` data that have no usable geometry (`geometry: null`) and were left out. | `import`, `picker`, `search`, `basemap` |
 | `too-large` | A file over the import size cap. | `import` |
 | `limit-reached` | `maxFeatures` refused an add or truncated an import. | `editor`, `import` |
+| `geometry-type-not-allowed` | `geometryTypes` refused a geometry type (an add, paste, merge, break apart, geometry operation) or skipped features of that type in an import. Nothing was changed. | `editor`, `clipboard`, `geometry`, `import` |
 | `geometry` | A geometry operation failed or produced an empty shape. | `geometry`, `editor` |
 | `permission-denied` | The browser refused a permission (geolocation, clipboard). | `locate`, `clipboard` |
 | `unsupported` | The browser or the map lacks something (no geolocation / clipboard API, a style without glyphs). | `locate`, `clipboard`, `basemap` |
@@ -251,6 +260,7 @@ The `undo()` function on `feature:deleted`, `features:deleted`, and `feature:bro
 | Real-time sync / CRDT | Granular events (`onFeatureAdd/Update/Delete`) |
 | 500+ features | Granular events |
 | React to selection in your UI | `onSelectionChange` |
+| Show your own "editing shape" state | `onVertexEditChange` |
 | Custom toast notifications | `onEvent` |
 | Error logging, own error UI, translated error messages | `onError` |
 | Validation gate before save | `onSubmit` + `onValidationError` |

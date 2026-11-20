@@ -15,7 +15,7 @@
  */
 import React, { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import type { FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
 import {
   useKeyboardShortcuts,
@@ -132,6 +132,16 @@ export interface ElementEditorControlsProps {
   tools?: DrawingTool[]
   /** Maximum number of features allowed. */
   maxFeatures?: number
+  /** Geometry types the editor accepts (GeoJSON type names); omit to allow all. A refusal reports `'geometry-type-not-allowed'`; tools that can't draw an allowed type are left out. */
+  geometryTypes?: GeometryType[]
+  /** With `maxFeatures={1}`: a draw tool replaces the only feature's geometry instead of being refused (a "pick the location" field). Paste, duplicate, import merge and `addFeature` still refuse. */
+  replaceAtLimit?: boolean
+  /**
+   * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
+   * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
+   * to N decimals. The store, `onChange` and undo history hold the cleaned values. Both off by default.
+   */
+  coordinates?: CoordinateOptions
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -151,6 +161,8 @@ export interface ElementEditorControlsProps {
   onZoomChange?: (zoom: number) => void
   /** Called with the tool that turned on (as `ref.getTool()` reports it), or `null` when it turned off. */
   onToolChange?: (tool: DrawingTool | null) => void
+  /** Called with the id of the feature that entered point editing (as `ref.getVertexEdit()` reports it), or `null` when it ended. */
+  onVertexEditChange?: (id: string | null) => void
   /**
    * Optional per-feature style callback. Return a `FeatureStyle` ({ color,
    * fillColor, opacity, fillOpacity, weight }) to override the default paint
@@ -236,6 +248,9 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       readonly: props.readonly,
       tools: props.tools,
       maxFeatures: props.maxFeatures,
+      geometryTypes: props.geometryTypes,
+      replaceAtLimit: props.replaceAtLimit,
+      coordinates: props.coordinates,
       engine: 'maplibre',
       onChange: props.onChange,
       onSubmit: props.onSubmit,
@@ -247,6 +262,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       onFeatureSelect: props.onFeatureSelect,
       onZoomChange: props.onZoomChange,
       onToolChange: props.onToolChange,
+      onVertexEditChange: props.onVertexEditChange,
     })
     useImperativeHandle(ref, () => api, [api])
 
