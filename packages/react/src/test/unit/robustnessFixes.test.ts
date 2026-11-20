@@ -66,6 +66,24 @@ describe('storage blocked', () => {
   })
 })
 
+describe('autoExitAfterDraw prop', () => {
+  it('wins over the stored value, is not persisted, locks the setter and restores on unset', () => {
+    localStorage.setItem('elm_autoExitAfterDraw', 'false')
+    const ui = createUIStore(createDataStore())
+    expect(ui.getState().autoExitAfterDraw).toBe(false)
+    ui.getState().setAutoExitProp(true)
+    expect(ui.getState().autoExitAfterDraw).toBe(true)
+    expect(ui.getState().autoExitLocked).toBe(true)
+    ui.getState().setAutoExitAfterDraw(false)
+    expect(ui.getState().autoExitAfterDraw).toBe(true)
+    expect(localStorage.getItem('elm_autoExitAfterDraw')).toBe('false')
+    ui.getState().setAutoExitProp(undefined)
+    expect(ui.getState().autoExitLocked).toBe(false)
+    expect(ui.getState().autoExitAfterDraw).toBe(false)
+    localStorage.removeItem('elm_autoExitAfterDraw')
+  })
+})
+
 describe('fetchRoute per-call api key', () => {
   it('uses the passed key, not the global, and OSRM when no key is passed', async () => {
     const fetchMock = vi.fn(async (url: string) => ({

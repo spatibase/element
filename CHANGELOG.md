@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **`autoExitAfterDraw` prop: one shape at a time.** Pass `autoExitAfterDraw` to `<ElementEditor />` (both engines) or either adapter's `<ElementEditorControls />` and every drawing tool turns off after a finished shape; the new shape is selected and `onToolChange(null)` fires once. `false` keeps tools on. The prop wins over the user's saved setting without overwriting it, and the "Return to select after each shape" Settings toggle (and `Cmd+J`) becomes read-only with a "Set by the app" note. Unset keeps today's behaviour. Core: `uiStore.autoExitLocked`, `setAutoExitProp`. See [Drawing tools](docs/tools/drawing-tools.md).
+
 ---
 
 ## [0.3.0] — 2026-11-20
