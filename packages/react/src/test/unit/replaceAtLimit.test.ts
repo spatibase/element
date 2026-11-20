@@ -91,6 +91,20 @@ describe('replaceAtLimit', () => {
     expect(limitMsgs(onError)[0][0].message).toBe(featureLimitMessage(1))
   })
 
+  it('search-result adds (point and shape, draw: true) replace like a draw tool', () => {
+    const { s, ui, onError } = setup()
+    ui.getState().commitPoint([1, 2])
+    const id = s().features[0].id
+    const point = { type: 'Feature' as const, id: 'n1', schemaId: s().features[0].schemaId, geometry: { type: 'Point' as const, coordinates: [7, 8] as [number, number] }, properties: { name: 'Prague' } }
+    expect(s().addFeature(point, { draw: true })).toMatchObject({ id })
+    const shape = { type: 'Feature' as const, id: 'n2', schemaId: 'boundaries', geometry: { type: 'Polygon' as const, coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }, properties: { name: 'Area' } }
+    expect(s().addFeature(shape, { draw: true })).toMatchObject({ id })
+    expect(s().features).toHaveLength(1)
+    expect(s().features[0].geometry.type).toBe('Polygon')
+    expect(s().features[0].schemaId).toBe(point.schemaId)
+    expect(onError).not.toHaveBeenCalled()
+  })
+
   it('import replace and an empty editor behave as before', () => {
     const { s, ui } = setup()
     ui.getState().commitPoint([1, 2]) // empty: a normal add

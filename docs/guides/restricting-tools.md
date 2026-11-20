@@ -78,7 +78,8 @@ For a field that holds one shape, such as "pick the location", add `replaceAtLim
 - **Every drawing tool** (point, line, area, rectangle, circle, freehand, route and the OSM picker) replaces the only feature when one exists, and stays available in the toolbar and by shortcut. With no feature yet, a draw adds one as usual.
 - The feature keeps its `id`, properties, schema and group. `_drawType` and a route's waypoints follow the new shape: drawing a circle over a polygon tags it a circle, drawing a plain polygon over a circle drops the tag.
 - It is one undo step (undo restores the old geometry), one `onChange`, and one `onFeatureUpdate` (not add or delete). The feature stays selected.
-- **Paste, duplicate (Cmd+D), search results, import in `merge` mode and `ref.addFeature` are still refused** with the usual `limit-reached` error; `ref.importGeoJSON` in `replace` mode and `setFeatureCollection` are unchanged.
+- **Search results** (adding a place or its outline from the search box) replace the feature too.
+- **Paste, duplicate (Cmd+D), the context menu's Center point, import in `merge` mode and `ref.addFeature` are still refused** with the usual `limit-reached` error; `ref.importGeoJSON` in `replace` mode and `setFeatureCollection` are unchanged.
 - `replaceAtLimit` only takes effect with `maxFeatures={1}`. With any other limit it is ignored (a development warning says so).
 
 ---
