@@ -397,6 +397,8 @@ interface DataStore {
   lastModifiedAt: number | null
   clipboard: GeoJSONFeature[]
   maxFeatures?: number     // undefined = unlimited
+  coordinates?: CoordinateOptions  // { wrap?: boolean; precision?: number }; undefined = off
+  setCoordinateOptions: (options?: CoordinateOptions) => void  // also cleans the stored features once (no undo step)
   currentZoom: number
   geometryMode: 'visual' | 'spatial'
 

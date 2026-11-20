@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- New `coordinates` option on `<ElementEditor>` and both adapters' `<ElementEditorControls>`: `{ wrap?: boolean; precision?: number }` cleans every committed coordinate (longitude wrapped into [-180, 180] per feature, x/y rounded, altitude kept), so the store, `onChange` and undo history hold the same values. Off by default. Core: `CoordinateOptions`, `dataStore.setCoordinateOptions`.
+
 ---
 
 ## [0.2.3] — 2026-11-16

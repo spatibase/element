@@ -221,6 +221,23 @@ Both work the same with the drop-ins and with adapters (`ElementEditorUIProvider
 
 ---
 
+## Clean coordinates
+
+Element stores coordinates as the map reports them. Drag a shape across a world copy and you get longitudes like `190` or `-540`; every value carries about 15 decimals. [RFC 7946](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1) positions are `[longitude, latitude]` in WGS 84, and most back ends expect longitude in range and a sane precision. Cleaning up in `onChange` leaves your data different from the editor's, so the next undo hands you the unrounded copy. Ask Element to do it instead:
+
+```tsx
+<ElementEditor coordinates={{ wrap: true, precision: 6 }} onChange={save} />
+```
+
+Both parts are off by default, because `wrap` changes what you see on a map that shows repeated worlds (a shape drawn on the right-hand copy jumps to the main one).
+
+- `wrap: true` shifts each feature as a whole by a multiple of 360° so the centre of its longitude range (the middle of its bounding box) lies in [-180, 180]. The centre is used so the result does not depend on where a ring starts. Vertices stay continuous, so a shape that crosses the antimeridian keeps its outline, with one side beyond ±180. Element does not split such shapes at ±180. Latitude is left alone unless it is beyond ±90, where it is clamped.
+- `precision: n` rounds x and y to `n` decimals (integer 0 to 15; 6 is about 0.1 m). Altitude (a third value) is never touched. If rounding makes consecutive vertices identical, they are merged only when the line or ring stays valid; otherwise the rounded values stay as they are.
+
+The clean-up runs on every committed change: drawing, vertex edits, moves, boolean operations, import, paste, `initialData`, and ref methods like `addFeature`. Live previews during a drag are not rounded; the value written when you let go is. The store, `onChange`, `exportGeoJSON()` and the undo history hold the same values. Setting the option on an editor that already has data cleans that data once, without an undo step. `precision` here is separate from `config.units.precision`, which only affects displayed numbers.
+
+---
+
 ## Persisting your own app state with a version guard
 
 If you store app-specific preferences alongside Element's own keys, use the versioned helpers from `@element-editor/core` so a shape change doesn't silently drop (or, worse, silently corrupt) stored values when users upgrade.
