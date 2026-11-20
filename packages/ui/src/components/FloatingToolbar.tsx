@@ -34,7 +34,8 @@ const positionMap: Record<ToolbarPosition, { style: CSSProperties; className: st
 export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {}) {
   const featuresCount = useDataStore((s) => s.features.length)
   const maxFeatures = useDataStore((s) => s.maxFeatures)
-  const isAtMax = maxFeatures != null && featuresCount >= maxFeatures
+  const replaceAtLimit = useDataStore((s) => s.replaceAtLimit)
+  const isAtMax = maxFeatures != null && featuresCount >= maxFeatures && !(replaceAtLimit && maxFeatures === 1)
   const emit = useEmit()
   const cfg = useElementEditorConfig()
   const { toolbar } = cfg

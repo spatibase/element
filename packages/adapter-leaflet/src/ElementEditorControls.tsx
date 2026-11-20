@@ -96,6 +96,8 @@ export interface ElementEditorControlsProps {
   maxFeatures?: number
   /** Geometry types the editor accepts (GeoJSON type names); omit to allow all. A refusal reports `'geometry-type-not-allowed'`; tools that can't draw an allowed type are left out. */
   geometryTypes?: GeometryType[]
+  /** With `maxFeatures={1}`: a draw tool replaces the only feature's geometry instead of being refused (a "pick the location" field). Paste, duplicate, import merge and `addFeature` still refuse. */
+  replaceAtLimit?: boolean
   /** When true, all editing interactions are disabled. */
   readonly?: boolean
   /** Called when a feature is added. */
@@ -253,6 +255,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
     tools: props.tools,
     maxFeatures: props.maxFeatures,
     geometryTypes: props.geometryTypes,
+    replaceAtLimit: props.replaceAtLimit,
     engine: 'leaflet',
     onChange: props.onChange,
     onSubmit: props.onSubmit,

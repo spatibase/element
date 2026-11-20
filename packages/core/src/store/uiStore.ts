@@ -314,7 +314,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   function finishDrawing(feature: GeoJSONFeature, toolState: Partial<UIStore> = {}) {
     // Over `maxFeatures`: addFeature reports the limit; keep the in-progress
     // shape so the user can delete something and finish, or Esc.
-    if (!dataStore.getState().addFeature(feature)) { set({ dialogState: { type: 'closed' } as DialogState }); return }
+    if (!dataStore.getState().addFeature(feature, { draw: true })) { set({ dialogState: { type: 'closed' } as DialogState }); return }
     const exit = get().autoExitAfterDraw
     const patch: Partial<UIStore> = {
       dialogState: { type: 'closed' } as DialogState,

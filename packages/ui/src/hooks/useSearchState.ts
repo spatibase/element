@@ -85,7 +85,7 @@ export function useSearchState() {
       geometry: { type: 'Point', coordinates: [lng, lat] },
       properties,
     }
-    dataStore.getState().addFeature(feature)
+    dataStore.getState().addFeature(feature, { draw: true })
     flyTo?.([lat, lng], 15)
     clear()
   }
@@ -111,7 +111,7 @@ export function useSearchState() {
       geometry,
       properties: { name: r.display_name.split(',')[0].trim() },
     }
-    dataStore.getState().addFeature(feature)
+    dataStore.getState().addFeature(feature, { draw: true })
     fitBounds?.(getGeometryBBox(geometry))
     clear()
   }
