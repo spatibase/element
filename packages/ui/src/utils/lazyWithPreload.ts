@@ -1,5 +1,7 @@
 import { createElement, lazy, useState, type ComponentProps, type ComponentType } from 'react'
 
+const preloaders: Array<() => Promise<unknown>> = []
+
 type Loader<T extends ComponentType<any>> = () => Promise<{ default: T }>
 
 /**
@@ -19,18 +21,16 @@ export function lazyWithPreload<T extends ComponentType<any>>(load: Loader<T>): 
     const [C] = useState<ComponentType<any>>(() => loaded ?? Lazy)
     return createElement(C, props)
   }
+  // Self-registers for preloadEditorPanelsWhenIdle(). Call sites are marked /*#__PURE__*/, so a host
+  // that never renders (or imports) a panel drops it, its registration and its chunk from its bundle.
+  preloaders[preloaders.length] = once
   // Typed as T so the emitted .d.ts names the component, not its (unexported) props.
   return Object.assign(Preloaded as unknown as T, { preload: once })
 }
 
-const preloaders: Array<() => Promise<unknown>> = []
-export function registerPreload(...items: Array<{ preload: () => Promise<unknown> }>) {
-  for (const i of items) preloaders.push(i.preload)
-}
-
 let scheduled = false
 /**
- * Fetch every lazy editor panel (GeoJSON inspector, data table, modals…) once
+ * Fetch every lazy editor panel that is part of the host's bundle (GeoJSON inspector, data table, modals…) once
  * the browser is idle, so their first open is instant instead of waiting on a
  * chunk download. Idle-time only: never competes with the initial render.
  */

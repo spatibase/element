@@ -20,7 +20,7 @@ import { useShortcutConfig } from '../../contexts/ShortcutConfigContext'
 
 // memo: the editor shell re-renders on every host render (inline props); the
 // list only needs to when the stores it reads change.
-export default memo(function LayersPanel({ footer }: { footer?: ReactNode }) {
+export default /*#__PURE__*/ memo(function LayersPanel({ footer }: { footer?: ReactNode }) {
   const { dataStore } = useGeoStore()
   const emit = useEmit()
   const open = useUIStore((s) => s.sidebarOpen)

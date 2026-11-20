@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Changed
+
+- **Using an adapter without the stock panels now ships and fetches much less.** A host that only mounts `ElementEditorControls` and drives tools through the ref no longer bundles the GeoJSON inspector, data table, layers list, drag-and-drop or boolean-operations code, and the browser no longer downloads them in the background after load (about 24 KB gzipped less in the main bundle, and roughly 290 KB gzipped of idle-time downloads gone). The drop-in and hosts that render the panels behave as before.
+
 ---
 
 ## [0.2.3] — 2026-11-16

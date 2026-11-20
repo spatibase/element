@@ -37,7 +37,7 @@ function shortAddress(displayName: string): string {
   return meaningful.slice(-2).join(', ')
 }
 
-export const SearchDropdown = forwardRef<SearchDropdownHandle, Props>(function SearchDropdown(
+export const SearchDropdown = /*#__PURE__*/ forwardRef<SearchDropdownHandle, Props>(function SearchDropdown(
   { results, loading, error, onGo, onAdd, onAddShape, activeIndex = -1, onHoverIndex, onNavigate, className, layout = 'stack' },
   ref,
 ) {

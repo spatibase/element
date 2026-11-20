@@ -1,4 +1,4 @@
-import { lazyWithPreload, registerPreload } from './utils/lazyWithPreload'
+import { lazyWithPreload } from './utils/lazyWithPreload'
 
 // ─── Store context ────────────────────────────────────────────────────────────
 export { GeoStoreProvider, StoreContext, useDataStore, useUIStore, useGeoStore } from './store/StoreContext'
@@ -35,17 +35,16 @@ export { FeatureList, SchemaEditor, DataTable } from './components/lazyParts'
 // Heavy optional modals — lazy-loaded so their deps (CodeMirror, react-data-grid,
 // @hello-pangea/dnd reuse, etc.) split into their own chunks. Callers must wrap
 // render sites in <Suspense>.
-export const GeoJSONModal = lazyWithPreload(() => import('./components/sidebar/GeoJSONModal'))
+export const GeoJSONModal = /*#__PURE__*/ lazyWithPreload(() => import('./components/sidebar/GeoJSONModal'))
 // Eager: the inspector's Suspense fallback (an empty dock frame while the chunk loads).
 export { GeoJSONDockPlaceholder } from './components/sidebar/codeDock'
-export const SchemaModal = lazyWithPreload(() => import('./components/sidebar/SchemaModal'))
-export const FeatureEditModal = lazyWithPreload(() => import('./components/sidebar/FeatureEditModal'))
-export const DataTablePanel = lazyWithPreload(() => import('./components/DataTablePanel'))
-export const SettingsModal = lazyWithPreload(() => import('./components/dialogs/SettingsModal'))
-export const ShortcutsModal = lazyWithPreload(() =>
+export const SchemaModal = /*#__PURE__*/ lazyWithPreload(() => import('./components/sidebar/SchemaModal'))
+export const FeatureEditModal = /*#__PURE__*/ lazyWithPreload(() => import('./components/sidebar/FeatureEditModal'))
+export const DataTablePanel = /*#__PURE__*/ lazyWithPreload(() => import('./components/DataTablePanel'))
+export const SettingsModal = /*#__PURE__*/ lazyWithPreload(() => import('./components/dialogs/SettingsModal'))
+export const ShortcutsModal = /*#__PURE__*/ lazyWithPreload(() =>
   import('./components/ShortcutsModal').then((m) => ({ default: m.ShortcutsModal }))
 )
-registerPreload(GeoJSONModal, SchemaModal, FeatureEditModal, DataTablePanel, SettingsModal, ShortcutsModal)
 export { preloadEditorPanelsWhenIdle } from './utils/lazyWithPreload'
 
 // ─── Toolbars ─────────────────────────────────────────────────────────────────
@@ -61,8 +60,7 @@ export { default as FitBoundsButton } from './components/FitBoundsButton'
 export { default as ZoomIndicator } from './components/ZoomIndicator'
 export { default as LocateButton } from './components/LocateButton'
 export { default as ReadonlyBanner } from './components/ReadonlyBanner'
-export const BooleanOperations = lazyWithPreload(() => import('./components/BooleanOperations'))
-registerPreload(BooleanOperations)
+export const BooleanOperations = /*#__PURE__*/ lazyWithPreload(() => import('./components/BooleanOperations'))
 export { default as SimplifyPanel } from './components/SimplifyPanel'
 export { default as SmoothPanel } from './components/SmoothPanel'
 export { default as BufferPanel } from './components/BufferPanel'
