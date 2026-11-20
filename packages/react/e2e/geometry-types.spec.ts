@@ -41,6 +41,7 @@ test.describe('geometryTypes=Point', () => {
     }, POLYGON)
     await page.locator(MAP).click({ position: { x: 5, y: 5 } })
     await page.evaluate(() => window.__elementEditorTest!.dataStore.getState().selectFeature('poly'))
+    await expect.poll(() => page.evaluate(() => window.__elementEditorTest!.dataStore.getState().selectedIds)).toEqual(['poly'])
     await page.keyboard.press('ControlOrMeta+c')
     await page.keyboard.press('ControlOrMeta+v')
     await expect(page.getByText("Polygon isn't allowed here: this editor accepts only Point.").first()).toBeVisible({ timeout: 3000 })
