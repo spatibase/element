@@ -11,12 +11,13 @@ import {
 import type { GeoJSONFeature } from '@element-editor/core'
 import { useDataStore, useUIStore, useGeoStore } from '@element-editor/ui'
 import type { MapInteractionMachine } from './useMapInteractionMachine'
+import { canPlainDragSelected, markSelectedPress, pastSlop, setActiveFeatureDrag, MOVING_FEATURE_CLASS } from '../utils/selectedDrag'
 
 /**
  * Shared drag logic for Multi* and GeometryCollection layers.
  *
  * Handles:
- * - Cmd/Ctrl+drag initiation
+ * - Cmd/Ctrl+drag initiation, and a plain drag on an already-selected feature
  * - Visual vs spatial mode delta computation
  * - Per-part or whole-geometry offset on commit
  *
@@ -55,11 +56,19 @@ export function usePartDrag(
   function handleMouseDown(_partIndex: number, e: LeafletMouseEvent) {
     if (readonly) return
     dragged.current = false
-    if (!e.originalEvent.ctrlKey && !e.originalEvent.metaKey) return
+    const ev = e.originalEvent
+    // No modifier: only a press on an already-selected feature moves it (past the click slop).
+    const plain = !ev.ctrlKey && !ev.metaKey
+    if (plain) {
+      if (ev.altKey || ev.shiftKey || ev.button !== 0 || !(selected || isMultiSelected)) return
+      if (!canPlainDragSelected(uiStore.getState())) return
+      markSelectedPress(ev)
+    }
     if (isMultiSelected && dataStore.getState().selectedIds.length >= 2) return
-    e.originalEvent.preventDefault()
-    e.originalEvent.stopPropagation()
+    ev.preventDefault()
+    ev.stopPropagation()
     map.dragging.disable()
+    const startPx = { x: ev.clientX, y: ev.clientY }
     const mode = dataStore.getState().geometryMode
     if (mode === 'visual') {
       const startProj = project([e.latlng.lng, e.latlng.lat])
@@ -68,10 +77,18 @@ export function usePartDrag(
       dragStart.current = { lng: e.latlng.lng, lat: e.latlng.lat }
     }
     if (!selected && !isMultiSelected) dataStore.getState().selectFeature(feature.id)
-    setDragDelta([0, 0])
+    const begin = () => {
+      setDragDelta([0, 0])
+      map.getContainer().classList.add(MOVING_FEATURE_CLASS)
+    }
+    if (!plain) begin()
 
     function onMove(ev: LeafletMouseEvent) {
       if (!dragStart.current) return
+      if (plain && !dragged.current) {
+        if (!pastSlop(startPx, ev.originalEvent)) return
+        begin()
+      }
       interaction.markDragStart()
       dragged.current = true
       const mode = dataStore.getState().geometryMode
@@ -90,10 +107,29 @@ export function usePartDrag(
       }
     }
 
-    function onUp(ev: LeafletMouseEvent) {
+    function end() {
       map.off('mousemove', onMove)
       map.off('mouseup', onUp)
       map.dragging.enable()
+      map.getContainer().classList.remove(MOVING_FEATURE_CLASS)
+      setActiveFeatureDrag(null)
+    }
+
+    // A second finger: the gesture is a pinch. Put the shape back, commit nothing.
+    function cancel() {
+      const wasDragged = dragged.current
+      end()
+      dragStart.current = null
+      liveDeltaRef.current = null
+      setDragDelta(null)
+      if (wasDragged) {
+        onLiveMoveRef.current?.([0, 0], dataStore.getState().geometryMode, selected ? uiStore.getState().selectedPartIndex : null)
+        interaction.markDragEnd()
+      }
+    }
+
+    function onUp(ev: LeafletMouseEvent) {
+      end()
       if (!dragStart.current || !dragged.current) {
         dragStart.current = null
         liveDeltaRef.current = null
@@ -129,6 +165,7 @@ export function usePartDrag(
       interaction.markDragEnd()
     }
 
+    setActiveFeatureDrag(cancel)
     map.on('mousemove', onMove)
     map.on('mouseup', onUp)
   }
