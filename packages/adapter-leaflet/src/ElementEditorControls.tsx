@@ -13,8 +13,7 @@ import { useEffect, useImperativeHandle, useRef, forwardRef } from 'react'
 import { useMap } from 'react-leaflet'
 import { latLng, type Map as LeafletMap, type LatLng } from 'leaflet'
 import { normalizeBounds, normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
-import type { BoundsInput, CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, Schema } from '@element-editor/core'
+import type { BoundsInput, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, CoordinateOptions, GeometryType, Schema } from '@element-editor/core'
 import {
   useKeyboardShortcuts,
   useApplyAccentToRoot,

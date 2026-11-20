@@ -1,7 +1,6 @@
 import type React from 'react'
 import type { FeatureCollection, FeatureCollectionInput, Schema, GeoJSONFeature, GeoJSONFeatureInput } from '../types/geojson'
-import type { BoundsInput, GeometryType } from '@element-editor/core'
-import type { BoundsInput, CoordinateOptions } from '@element-editor/core'
+import type { BoundsInput, CoordinateOptions, GeometryType } from '@element-editor/core'
 import type { InitialView } from './savedView'
 import type { ElementEditorEvent, ElementEditorErrorHandler, ElementEditorConfig, DrawTool } from '@element-editor/ui'
 
@@ -77,6 +76,7 @@ export interface ElementEditorBaseProps {
    * @example geometryTypes={['Polygon', 'MultiPolygon']}
    */
   geometryTypes?: GeometryType[]
+  /**
    * With `maxFeatures={1}`: a draw tool (point, line, area, rectangle, circle, freehand, route, picker)
    * replaces the only feature's geometry instead of being refused, keeping its `id`, properties, schema
    * and group. One undo step, one `onFeatureUpdate`. Tools stay available at the limit. Paste, duplicate,
@@ -86,6 +86,7 @@ export interface ElementEditorBaseProps {
    * @default false
    */
   replaceAtLimit?: boolean
+  /**
    * Opt-in clean-up of every committed coordinate (drawing, vertex edits, transforms, import, paste,
    * undo/redo, `initialData`, ref methods), so the store, `onChange` and undo history hold the same
    * values. Both parts are off unless set:

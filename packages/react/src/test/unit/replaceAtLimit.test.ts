@@ -98,7 +98,7 @@ describe('replaceAtLimit', () => {
     const point = { type: 'Feature' as const, id: 'n1', schemaId: s().features[0].schemaId, geometry: { type: 'Point' as const, coordinates: [7, 8] as [number, number] }, properties: { name: 'Prague' } }
     expect(s().addFeature(point, { draw: true })).toMatchObject({ id })
     const shape = { type: 'Feature' as const, id: 'n2', schemaId: 'boundaries', geometry: { type: 'Polygon' as const, coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }, properties: { name: 'Area' } }
-    expect(s().addFeature(shape, { draw: true })).toMatchObject({ id })
+    expect(s().addFeature(shape as never, { draw: true })).toMatchObject({ id })
     expect(s().features).toHaveLength(1)
     expect(s().features[0].geometry.type).toBe('Polygon')
     expect(s().features[0].schemaId).toBe(point.schemaId)

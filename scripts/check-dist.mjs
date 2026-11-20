@@ -2,7 +2,7 @@
 // Smoke-check the published dist of the library packages (run after `pnpm build`): `pnpm check:dist`.
 // Nothing in the repo consumes packages/*/dist (apps alias to src), so packaging bugs are invisible
 // in dev; this catches the ones we've already shipped once.
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -157,6 +157,19 @@ for (const spec of ['@element-editor/react', '@element-editor/react/leaflet']) {
     }
   }
   if (res.esm && res.cjs) check(JSON.stringify(res.esm) === JSON.stringify(res.cjs), '@element-editor/core + /internal: ESM and CJS export the same names')
+}
+
+// 7. Idle preloading: lazyWithPreload registers each panel with `arr[arr.length] = loader`. Rollup once
+//    dropped a `.push()` there (the call sits inside a /*#__PURE__*/ call); the build must keep the
+//    registration next to preloadEditorPanelsWhenIdle's requestIdleCallback.
+{
+  const uiDist = join(pkgDir('@element-editor/ui'), 'dist')
+  const files = readdirSync(uiDist).filter((f) => /\.c?js$/.test(f))
+  for (const ext of ['js', 'cjs']) {
+    const f = files.filter((n) => n.endsWith(`.${ext}`)).find((n) => readFileSync(join(uiDist, n), 'utf8').includes('requestIdleCallback'))
+    const registered = f && /([\w$]+)\[\1\.length\]\s*=\s*[\w$]+/.test(readFileSync(join(uiDist, f), 'utf8'))
+    check(!!registered, `@element-editor/ui (${ext}): lazy panels still self-register for idle preloading`)
+  }
 }
 
 if (failures.length) {
