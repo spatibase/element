@@ -41,6 +41,16 @@ body.leaflet-dragging .leaflet-container.drawing-mode * {
     cursor: pointer !important;
 }
 
+/* A plain drag on a selected feature moves it (utils/selectedDrag.ts): move cursor on
+   hover, grabbing while any feature drag runs. */
+.leaflet-container.elm-can-move-selected .elm-selected-feature.leaflet-interactive {
+    cursor: move;
+}
+.leaflet-container.elm-moving-feature,
+.leaflet-container.elm-moving-feature * {
+    cursor: grabbing !important;
+}
+
 /* Spacebar pan mode — grab/grabbing cursors are set via inline !important in DrawingLayer.tsx
    (inline !important beats class-based !important, so JS owns this cursor state). */
 

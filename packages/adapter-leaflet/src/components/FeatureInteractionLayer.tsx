@@ -20,6 +20,7 @@ import { RectPreview } from './previews/RectPreview'
 import { LinePreview } from './previews/LinePreview'
 import { MapClickHandler } from './tools/MapClickHandler'
 import { MultiDragHandler } from './tools/MultiDragHandler'
+import { SelectedDragSupport } from './tools/SelectedDragSupport'
 import { PendingPointMarker } from './PendingPointMarker'
 import { useMapInteractionMachine } from '../hooks/useMapInteractionMachine'
 import { isFreehandCommitConsumed } from '../utils/freehandCommitFlag'
@@ -504,7 +505,8 @@ export default function FeatureInteractionLayer({ renderer: rendererMode = 'canv
         if (selectedIds.length > 0 && !readonly) clearSelection()
         if (selectedFeatureId) { selectFeature(null); closeDialog() }
       }} />
-      <MultiDragHandler onDragDelta={setMultiDragDelta} onDragEnd={(d, dup) => { setMultiDuplicateDrag(false); handleMultiDragEnd(d, dup) }} onDuplicateDragChange={setMultiDuplicateDrag} readonly={readonly} />
+      <MultiDragHandler onDragDelta={setMultiDragDelta} onDragEnd={(d, dup) => { setMultiDuplicateDrag(false); handleMultiDragEnd(d, dup) }} onDuplicateDragChange={setMultiDuplicateDrag} onDragCancel={() => { setMultiDragDelta(null); setMultiDuplicateDrag(false) }} readonly={readonly} />
+      <SelectedDragSupport readonly={readonly} />
       {/* Keyed by mode: switching renderer remounts the features onto the new one. */}
       <IdleRendererContext.Provider key={rendererMode} value={idleRenderer}>
         <ComposedFeatureStyle>

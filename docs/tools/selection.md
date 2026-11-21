@@ -48,9 +48,13 @@ Click any feature on the map. The feature highlights and its properties open in 
 
 ## Dragging selected features
 
-Hold `Cmd` (macOS) or `Ctrl` (Windows / Linux) and drag any selected feature to move it. If multiple features are selected, all of them move together, preserving their relative positions. The cursor changes to a move-cursor while the modifier is held to confirm drag mode is armed.
+Drag a selected feature to move it: press on it and drag (mouse or one finger). If several features are selected, a drag on any of them moves them all together, keeping their relative positions. The cursor turns into a move cursor over a selected feature and a grabbing hand while it moves. Each move is one undo step. A press that moves less than about 8 px stays a click, so clicking, double-clicking (point editing) and a second tap still work as before.
 
-Element uses `Cmd`/`Ctrl`-drag rather than plain drag to avoid conflicting with map panning — without the modifier, dragging on a feature pans the map, which matches Leaflet's default behaviour.
+A drag that starts on an **unselected** feature, or on empty map, pans the map. To move a feature without selecting it first, hold `Cmd` (macOS) or `Ctrl` (Windows / Linux) and drag it; `Alt` / `Option`-drag drops a copy instead. Both work while a drawing tool is active too, where a plain drag belongs to the tool.
+
+With one finger on a touch screen, the same rule applies: drag a selected feature to move it, anywhere else to pan. Two fingers always zoom and pan the map, even when one lands on a selected feature.
+
+Moving is off in `readonly`, while point editing (drag the points instead; a drag inside the shape pans) and while a drawing tool is active. In transform mode the whole box moves the selection (see [Transform](./transform.md#moving)). This works the same on Leaflet and MapLibre.
 
 ---
 

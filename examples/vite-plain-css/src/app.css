@@ -1,0 +1,8 @@
+/* A plain-CSS host with no Tailwind: the stylesheets also work through a CSS @import. */
+@import '@element-editor/react/leaflet/style.css';
+@import '@element-editor/adapter-leaflet/style.css';
+@import '@element-editor/adapter-maplibre/style.css';
+
+html, body, #root { height: 100%; margin: 0; }
+/* Unlayered host rules like this one apply on top of Element, as in any app. */
+h1 { margin: 0 0 8px; }

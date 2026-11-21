@@ -14,6 +14,11 @@ A handful of conventions apply across the whole set, so you don't have to relear
 
 - **Spacebar pans without dropping the tool.** Hold `Space` to drag the map, release to keep drawing. Useful for panning to a faraway anchor mid-shape.
 - **Tools stay active after a shape.** By default the tool stays armed after you commit a shape, so you can draw several in a row; press the tool key again or `Esc` to exit. To drop back to selection after each shape, press `Cmd+J` / `Ctrl+J` or switch on **Return to select after each shape** in **Settings**. The choice is remembered in `localStorage`.
+  - **One shape at a time, set by your app.** Pass `autoExitAfterDraw` to `<ElementEditor />` (or either adapter's `<ElementEditorControls />`) and every tool turns off after each finished shape; the new shape is selected and `onToolChange(null)` fires. The prop wins over the user's saved setting, is never saved to their browser, and the Settings toggle becomes read-only. `autoExitAfterDraw={false}` pins the opposite.
+
+    ```tsx
+    <ElementEditor autoExitAfterDraw onToolChange={(tool) => tool === null && save()} />
+    ```
 - **Backspace / Delete removes the last placed point** during multi-point drawing (line, area, route, slice, cut-hole, measure). The keyboard shortcut won't delete features while a draw is in progress.
 - **Drag-to-draw on Rectangle and Circle.** Click-and-drag to size in one gesture. A Circle click without dragging places a default-sized circle (25 px radius) at the click point and selects it; a Rectangle click without dragging creates nothing, so a stray click never drops a shape.
 - **Snap-aware.** If snapping is enabled (the default), each click locks to the nearest vertex or edge within 15 px. Hold `Cmd` / `Ctrl` to bypass snapping for the current gesture.

@@ -21,7 +21,7 @@ Press `A` again or `Escape`, or click empty map, to exit transform mode. Clickin
 
 ## Moving
 
-Press anywhere inside the box (on a selected feature or on the empty space around it) and drag to move the whole selection; the map doesn't pan. With several features selected, a plain drag on any one of them moves them all. A press without a drag stays a click. This works the same on Leaflet and MapLibre.
+Press anywhere inside the box (on a selected feature or on the empty space around it) and drag to move the whole selection; the map doesn't pan. With several features selected, a plain drag on any one of them moves them all. A press without a drag stays a click. This works the same on Leaflet and MapLibre. Outside transform mode a plain drag on a selected feature moves it too (see [Dragging selected features](./selection.md#dragging-selected-features)); the box adds the empty space around the shapes as a grab area.
 
 ---
 

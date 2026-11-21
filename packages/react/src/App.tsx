@@ -207,6 +207,11 @@ const onVertexEditChange = (id: string | null) => {
   const w = window as unknown as { __vertexEditChanges?: (string | null)[] }
   ;(w.__vertexEditChanges ??= []).push(id)
 }
+// Every `onToolChange` call pushes its tool (or null) to `window.__toolChanges`. (e2e)
+const onToolChange = (tool: string | null) => {
+  const w = window as unknown as { __toolChanges?: (string | null)[] }
+  ;(w.__toolChanges ??= []).push(tool)
+}
 const mapOptionsParam = params.get('mapOptions')
 const mapOptions = mapOptionsParam ? JSON.parse(mapOptionsParam) : undefined
 type ReadyWin = { __readyMaps?: unknown[]; __readyHadElm?: boolean[] }
@@ -236,6 +241,9 @@ const geometryTypesParam = params.get('geometryTypes')
 const geometryTypes = geometryTypesParam ? (geometryTypesParam.split(',') as GeometryType[]) : undefined
 // ?replaceAtLimit passes `replaceAtLimit` (draw tools replace the only feature at `maxFeatures=1`). (e2e)
 const replaceAtLimit = params.has('replaceAtLimit')
+// ?autoExitAfterDraw=1 / =0 passes `autoExitAfterDraw` true / false (the prop wins over the stored setting). (e2e)
+const autoExitParam = params.get('autoExitAfterDraw')
+const autoExitAfterDraw = autoExitParam === null ? undefined : autoExitParam === '1'
 // ?coordinates=wrap,6 passes `coordinates` ({ wrap: true, precision: 6 }). (e2e)
 const coordinatesParam = params.get('coordinates')
 const coordinates = coordinatesParam
@@ -274,7 +282,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, replaceAtLimit, coordinates, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, replaceAtLimit, autoExitAfterDraw, coordinates, routingApiKey, onChange, onVertexEditChange, onToolChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated

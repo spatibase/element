@@ -28,6 +28,7 @@ export default function SettingsModal() {
   const topoEditEnabled = useUIStore((s) => s.topoEditEnabled)
   const setTopoEditEnabled = useUIStore((s) => s.setTopoEditEnabled)
   const autoExitAfterDraw = useUIStore((s) => s.autoExitAfterDraw)
+  const autoExitLocked = useUIStore((s) => s.autoExitLocked)
   const setAutoExitAfterDraw = useUIStore((s) => s.setAutoExitAfterDraw)
   const snapEnabled = useUIStore((s) => s.snapEnabled)
   const setSnapEnabled = useUIStore((s) => s.setSnapEnabled)
@@ -249,10 +250,10 @@ export default function SettingsModal() {
         {/* Return to select after each shape — placed last so it's the most
             findable workflow toggle. */}
         <div className="pt-4 border-t border-elm-border-subtle">
-          <label className="flex items-center justify-between cursor-pointer group">
+          <label className={`flex items-center justify-between group ${autoExitLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
             <div className="flex flex-col gap-0.5 pr-4">
               <span className="text-sm font-semibold text-(--elm-text,var(--color-gray-800)) dark:text-(--elm-text,var(--color-gray-100))">Return to select after each shape</span>
-              <span className="text-xs text-elm-text-muted">Drawing tools deactivate after every shape, so you go back to selection. Turn off to keep the tool active and draw multiple shapes in a row.</span>
+              <span className="text-xs text-elm-text-muted">Drawing tools deactivate after every shape, so you go back to selection. Turn off to keep the tool active and draw multiple shapes in a row.{autoExitLocked ? ' Set by the app, so it can’t be changed here.' : ''}</span>
             </div>
             <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-elm-focus-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-elm-surface ${autoExitAfterDraw ? 'bg-primary-500' : 'bg-(--elm-border-strong,var(--color-gray-200)) dark:bg-(--elm-border-strong,var(--color-gray-600))'}`}>
               <span className={`${autoExitAfterDraw ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
@@ -260,6 +261,7 @@ export default function SettingsModal() {
                 type="checkbox"
                 className="sr-only"
                 checked={autoExitAfterDraw}
+                disabled={autoExitLocked}
                 onChange={(e) => setAutoExitAfterDraw(e.target.checked)}
               />
             </div>

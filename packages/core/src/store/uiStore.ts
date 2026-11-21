@@ -109,6 +109,8 @@ export interface UIStore {
   /** When true, drawing/measure tools deactivate to 'none' after each commit.
    *  When false, the tool stays active so the user can keep drawing. Default false. */
   autoExitAfterDraw: boolean
+  /** True while the `autoExitAfterDraw` prop is set: it wins over the saved setting and the Settings toggle is read-only. */
+  autoExitLocked: boolean
   userTheme: 'light' | 'dark' | 'system'
   setUserTheme: (theme: 'light' | 'dark' | 'system') => void
   snappedCoord: [number, number] | null
@@ -168,6 +170,8 @@ export interface UIStore {
   setSnapEnabled: (snap: boolean) => void
   setTopoEditEnabled: (enabled: boolean) => void
   setAutoExitAfterDraw: (enabled: boolean) => void
+  /** Sync of the `autoExitAfterDraw` prop (`undefined` = unset). Not persisted. */
+  setAutoExitProp: (value: boolean | undefined) => void
   setSnappedCoord: (coord: [number, number] | null) => void
   /** Accepts a bbox or the deprecated `[[s, w], [n, e]]` form; always stores a bbox. */
   setBounds: (bounds?: BoundsInput | null) => void
@@ -410,6 +414,7 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
   // Default: tools stay active after each commit. Stored absent → false; only an
   // explicit 'true' (the user turned it on) returns to select after each shape.
   autoExitAfterDraw: read('elm_autoExitAfterDraw') === 'true',
+  autoExitLocked: false,
   snappedCoord: null,
   bounds: undefined,
   settingsModalOpen: false,
@@ -526,7 +531,13 @@ export const createUIStore = (dataStore: StoreApi<DataStore>, options?: UIStoreO
     write('elm_topoEditEnabled', String(enabled))
     set({ topoEditEnabled: enabled })
   },
+  setAutoExitProp: (value) => {
+    // A prop value wins over the saved preference and is never written to storage; unset restores the saved one.
+    if (value === undefined) set({ autoExitLocked: false, autoExitAfterDraw: read('elm_autoExitAfterDraw') === 'true' })
+    else set({ autoExitLocked: true, autoExitAfterDraw: value })
+  },
   setAutoExitAfterDraw: (enabled) => {
+    if (get().autoExitLocked) return
     write('elm_autoExitAfterDraw', String(enabled))
     set({ autoExitAfterDraw: enabled })
   },

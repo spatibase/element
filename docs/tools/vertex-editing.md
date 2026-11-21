@@ -140,6 +140,7 @@ On a phone or tablet every action has a tap. The editor decides per press: a fin
 | Point menu (**Edit coordinates…**, **Delete point**) | Long-press the point (half a second) |
 | Insert a point | Every edge shows its midpoint handle (no hover needed): tap it, or drag it to place the new point |
 | Move a point | Drag it; the map doesn't pan |
+| Move the whole shape (or a point feature) | Outside point editing: drag the selected feature with one finger. Inside point editing a drag on the shape pans; two fingers always zoom |
 | Leave | Tap empty map, or **Edit points** again |
 
 Handles keep their small look but take a 44 px touch area, so a finger doesn't have to hit them exactly.

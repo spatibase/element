@@ -42,6 +42,8 @@ import '@element-editor/react/style.css'
 
 The stylesheet only styles the editor. It doesn't reset your page's headings, buttons or other elements.
 
+It is plain CSS, so the import works in any setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It contains no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and its rules are scoped to the editor (the element with `data-elm-theme` and Element's portals), so your own unlayered CSS stays in charge of the rest of the page.
+
 ---
 
 ## Step 3 — Add the component
