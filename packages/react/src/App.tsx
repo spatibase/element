@@ -215,8 +215,12 @@ const onToolChange = (tool: string | null) => {
 const mapOptionsParam = params.get('mapOptions')
 const mapOptions = mapOptionsParam ? JSON.parse(mapOptionsParam) : undefined
 type ReadyWin = { __readyMaps?: unknown[]; __readyHadElm?: boolean[] }
+// ?readyVertexEdit=<feature id> calls `ref.setVertexEdit(id)` from inside `onMapReady` (e2e vertex-edit-ready.spec).
+const readyVertexEdit = params.get('readyVertexEdit')
+const editorRefHolder: { current: { setVertexEdit: (id: string | null) => boolean } | null } = { current: null }
 const onMapReady = (map: { getLayer?: (id: string) => unknown; getPane?: (id: string) => unknown }) => {
-  const w = window as unknown as ReadyWin
+  const w = window as unknown as ReadyWin & { __readyVertexEdit?: boolean | null }
+  if (readyVertexEdit) w.__readyVertexEdit = editorRefHolder.current?.setVertexEdit(readyVertexEdit) ?? null
   ;(w.__readyMaps ??= []).push(map)
   ;(w.__readyHadElm ??= []).push(!!(map.getLayer ? map.getLayer('elm-features-fill') : map.getPane?.('elmIdleFeatures')))
 }
@@ -292,10 +296,10 @@ export default function App() {
       <div className="w-screen h-screen">
         <Profiler id="editor" onRender={onRender}>
         {maplibre
-          ? <MapLibreEditor key={mounts} {...setupProps} layout={editorLayout} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
+          ? <MapLibreEditor key={mounts} ref={editorRefHolder as never} {...setupProps} layout={editorLayout} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
               {...basemapProps as { basemap?: BasemapInput; defaultBasemap?: BasemapInput }} basemaps={basemaps}
               featureColor={featureColor} getFeatureStyle={getFeatureStyle} bounds={bounds} />
-          : <LeafletEditor key={mounts} {...setupProps} layout={editorLayout} renderer={renderer} tileLayer={tileLayer} basemaps={leafletBasemaps?.length ? leafletBasemaps : undefined}
+          : <LeafletEditor key={mounts} ref={editorRefHolder as never} {...setupProps} layout={editorLayout} renderer={renderer} tileLayer={tileLayer} basemaps={leafletBasemaps?.length ? leafletBasemaps : undefined}
               {...basemapProps as { basemap?: LeafletBasemap; defaultBasemap?: LeafletBasemap }} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
               featureColor={featureColor} getFeatureStyle={getFeatureStyle} bounds={bounds} />}
         </Profiler>

@@ -553,7 +553,12 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       silentRef.current = false
     }
   }
+  // Once per mount: StrictMode re-runs this effect, and a second replace load would clear the
+  // selection (and with it a vertex edit a host's `onReady` / mount effect entered in between).
+  const mountAppliedRef = useRef(false)
   useEffect(() => {
+    if (mountAppliedRef.current) return
+    mountAppliedRef.current = true
     if (initialData) applyInitialData(initialData, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
