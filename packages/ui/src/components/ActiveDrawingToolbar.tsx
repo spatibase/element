@@ -27,11 +27,16 @@ const hintText = (parts: HintPart[]) =>
 /** Narrower than this (the bar's own space, not the viewport) the bar uses its compact one-row layout. */
 const COMPACT_BELOW = 420
 
-/** True while the element this bar sits in is narrower than `COMPACT_BELOW`. */
+/**
+ * True while the space the bar sits in is narrower than `COMPACT_BELOW`: the portal wrapper of `MapDrawingBar`
+ * (as wide as the map container or the host's slot), or else the editor root. Never the direct parent: in the
+ * drop-in shell that is a shrink-to-fit row, whose width follows the bar and would feed back into this.
+ * Wide until a real (non-zero) measurement says otherwise.
+ */
 function useNarrowParent(el: HTMLElement | null): boolean {
   const [narrow, setNarrow] = useState(false)
   useEffect(() => {
-    const parent = el?.parentElement
+    const parent = el?.closest<HTMLElement>('[data-elm-drawing-bar], [data-elm-theme]')
     if (!parent) return
     const update = () => setNarrow(parent.clientWidth > 0 && parent.clientWidth < COMPACT_BELOW)
     update()
