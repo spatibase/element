@@ -10,7 +10,8 @@
 //    via pnpm.overrides, `pnpm install` with no lockfile (fresh, like a new user), `pnpm build`.
 // 3. --smoke: serve the build and load each page in headless Chromium (Playwright from
 //    packages/react): the map and the editor's controls must mount with no page errors.
-//    Tiles may fail to load offline; network errors are ignored.
+//    Tiles may fail to load offline; network errors are ignored. Examples with `hostProbe` also
+//    compare the host's own elements against the same markup on a page without Element.
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -29,8 +30,11 @@ const EXAMPLES = {
   // CSS hosts: the published stylesheets must build and apply in any CSS setup. vite-tailwind3 runs every
   // stylesheet through Tailwind v3's PostCSS (fails on `@layer` without `@tailwind`); vite-plain-css has
   // no Tailwind and pulls the entries in with CSS `@import` as well as JS imports.
-  'vite-tailwind3': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
-  'vite-plain-css': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']] },
+  // Both also render host markup with colliding utility class names (`hidden md:flex`, `absolute`…,
+  // src/HostProbe.tsx), the host's CSS loaded first; --smoke checks those host elements compute
+  // exactly as on host.html (same markup, host CSS only): Element's CSS must not restyle the host.
+  'vite-tailwind3': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']], hostProbe: '/host.html' },
+  'vite-plain-css': { serve: (port) => ['exec', 'vite', 'preview', '--port', port, '--strictPort'], pages: [['/', '.maplibregl-canvas']], hostProbe: '/host.html' },
   // Next 16 builds with Turbopack; the extra webpack build (Next 15's default, still common) is the
   // one served for --smoke. webpack resolves next/dynamic's require.resolveWeak with the "require"
   // condition, which is where ESM-only maplibre-gl 6 broke (see the "module" export condition).
@@ -47,6 +51,25 @@ const run = (cmd, argv, cwd, env = {}) => new Promise((ok, fail) => {
   p.stdout.on('data', (d) => { out += d }); p.stderr.on('data', (d) => { out += d })
   p.on('close', (code) => code === 0 ? ok(out) : fail(new Error(`${cmd} ${argv.join(' ')} failed (${code}) in ${cwd}\n${out}`)))
 })
+// Computed style of every element of the host markup (#host-probe), in document order. Runs in the page.
+const probeStyles = () => [...document.querySelectorAll('#host-probe, #host-probe *')].map((el) => {
+  const out = { el: el.tagName.toLowerCase() + (el.getAttribute('class') ? `.${el.getAttribute('class').split(' ').join('.')}` : ''), s: {} }
+  for (const pseudo of ['', '::before', '::after']) {
+    const cs = getComputedStyle(el, pseudo || null)
+    for (const prop of cs) { const v = cs.getPropertyValue(prop); if (v !== '') out.s[`${pseudo}${prop}`] = v }
+  }
+  return out
+})
+// A custom property the host never sets may appear with Element loaded: registered properties
+// (`@property --tw-*`, Element's own `CSS.registerProperty`) always compute to their initial value.
+// That styles nothing; any other change (a host variable overridden, any real property) fails.
+// A registered `syntax: "*"` property also serializes without the leading space Tailwind v3 leaves
+// in e.g. `--tw-ring-shadow: var(--tw-ring-inset) 0 0 …` (empty first var): same value, compare trimmed.
+const isVar = (k) => /^(::\w+)?--/.test(k)
+const registered = (k, without) => isVar(k) && without === undefined
+const same = (k, x, y) => x === y || (isVar(k) && x?.trim() === y?.trim())
+const diffProbe = (a, b) => a.flatMap((x, i) => Object.keys({ ...x.s, ...b[i]?.s })
+  .filter((k) => !same(k, x.s[k], b[i]?.s[k]) && !registered(k, b[i]?.s[k])).map((k) => `${x.el} ${k}: ${b[i]?.s[k] ?? '(unset)'} -> ${x.s[k] ?? '(unset)'}`))
 const timed = async (fn) => { const t = Date.now(); await fn(); return ((Date.now() - t) / 1000).toFixed(1) }
 
 const tmp = mkdtempSync(join(process.env.RUNNER_TEMP || tmpdir(), 'elm-examples-'))
@@ -115,6 +138,17 @@ try {
             await page.waitForTimeout(1000) // let late errors surface
             if (errors.length) throw new Error(errors.join('\n'))
             console.log(`ok   ${name}${path}: map and controls mounted, no page errors`)
+            if (EXAMPLES[name].hostProbe && path === '/') {
+              const ref = await browser.newPage({ viewport: page.viewportSize() })
+              await ref.goto(`http://localhost:${p}${EXAMPLES[name].hostProbe}`)
+              await ref.waitForSelector('#host-probe')
+              const [withElement, without] = await Promise.all([page, ref].map((pg) => pg.evaluate(probeStyles)))
+              await ref.close()
+              const diffs = diffProbe(withElement, without)
+              if (!withElement.length) throw new Error('host probe not found on the editor page')
+              if (diffs.length) throw new Error(`Element's CSS restyles ${diffs.length} host value(s):\n  ${diffs.slice(0, 15).join('\n  ')}`)
+              console.log(`ok   ${name}${path}: ${withElement.length} host elements compute as without Element's CSS`)
+            }
           } catch (e) {
             console.log(`FAIL ${name}${path}`)
             failures.push(`${name}${path} smoke: ${e.message}`)

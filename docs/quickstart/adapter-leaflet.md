@@ -39,7 +39,7 @@ The stylesheet includes Leaflet's CSS (`leaflet/dist/leaflet.css`), so you don't
 
 The stylesheet doesn't reset your page. Tailwind's base styles apply only inside an element with a `data-elm-theme` attribute, so all editor UI must be rendered inside one (Step 3 shows how).
 
-The stylesheet is plain CSS, so the import works in any CSS setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It has no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and its rules are scoped to the `data-elm-theme` element and Element's portals.
+The stylesheet is plain CSS, so the import works in any CSS setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It has no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and every Element rule (utilities included) only matches inside the `data-elm-theme` element and Element's portals, so it can't override your own classes elsewhere on the page, even ones with the same names (`hidden`, `absolute`, `md:flex`, …). Leaflet's own CSS stays global, as when you import `leaflet.css` yourself. Editor UI you render in a container of your own outside that element (a sidebar, your own portal) gets no Element styles: give that container a `data-elm-theme` attribute too (or `data-elm-portal` for a portal).
 
 ---
 

@@ -1,0 +1,44 @@
+/* The host's own hand-written utilities: plain, unlayered, with the same class names as Tailwind's
+ * (and so as Element's UI). Loaded BEFORE Element's stylesheet, they must still win on the host's
+ * elements (src/HostProbe.tsx). Some mean something else here on purpose. */
+.hidden { display: none; }
+.block { display: block; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+.inset-0 { inset: 0; }
+.top-0 { top: 0; }
+.right-0 { right: 0; }
+.left-0 { left: 0; }
+.z-10 { z-index: 10; }
+.z-50 { z-index: 50; }
+.p-2 { padding: 10px; }
+.px-4 { padding-left: 20px; padding-right: 20px; }
+.py-1 { padding-top: 3px; padding-bottom: 3px; }
+.m-2 { margin: 10px; }
+.gap-2 { gap: 10px; }
+.text-sm { font-size: 15px; }
+.font-medium { font-weight: 450; }
+.rounded-md { border-radius: 3px; }
+.border { border: 2px dashed teal; }
+.w-full { width: 100%; }
+.h-4 { height: 20px; }
+.w-4 { width: 20px; }
+.invisible { visibility: hidden; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.opacity-50 { opacity: 0.4; }
+.shadow { box-shadow: 0 0 0 1px teal; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.flex-col { flex-direction: column; }
+@media (min-width: 768px) {
+  .md\:flex { display: flex; }
+  .md\:hidden { display: none; }
+}
+
+html, body, #root { height: 100%; margin: 0; }
+h1 { margin: 0 0 8px; }

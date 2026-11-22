@@ -42,6 +42,13 @@
   --color-primary-800: var(--elm-primary-800, #1e40af);
   --color-primary-900: var(--elm-primary-900, #1e3a8a);
   --color-primary-950: var(--elm-primary-950, #172554);
+  /* `animate-spin` with an Element-named keyframe (same motion as Tailwind's
+   * `spin`): the published CSS must not define a global keyframe a host could
+   * also define. */
+  --animate-spin: elm-spin 1s linear infinite;
+  @keyframes elm-spin {
+    to { transform: rotate(360deg); }
+  }
 }
 
 /* Dark mode via data-elm-theme attribute */
@@ -379,17 +386,17 @@
 }
 
 /* Dialog open animation */
-@keyframes dialog-in {
+@keyframes elm-dialog-in {
   from { opacity: 0; transform: translateY(10px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 dialog[open]:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu], [role="dialog"][aria-label="Edit feature"], body > .z-\[9999\], body > [data-rfd-draggable-id], .elm-feature-tooltip, [data-elm-theme] *, [data-elm-portal] *, [data-elm-context-menu] *, [role="dialog"][aria-label="Edit feature"] *, body > .z-\[9999\] *, body > [data-rfd-draggable-id] *, .elm-feature-tooltip *) {
-  animation: dialog-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: elm-dialog-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Tooltip open animation — matches Mantine's "pop" transition: 100ms ease,
  * scale(0.9) → scale(1), opacity 0 → 1, center origin. No slide. */
-@keyframes tooltip-in {
+@keyframes elm-tooltip-in {
   from { opacity: 0; transform: scale(0.9); }
   to   { opacity: 1; transform: scale(1); }
 }
@@ -397,7 +404,7 @@ dialog[open]:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu],
 /* One-shot press-feedback pulse — used on the search input so re-pressing
  * Cmd+F re-fires the animation even while already focused. Driven by a
  * React `key` bump that remounts the animated element. */
-@keyframes press-pulse {
+@keyframes elm-press-pulse {
   0%   { scale: 1; }
   40%  { scale: 0.95; }
   100% { scale: 1; }

@@ -16,10 +16,11 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import postcss from 'postcss'
+import { scopeRoot } from './css-scope.mjs'
 
 const LAST = Number.POSITIVE_INFINITY
 
-export function flattenCss(css, from = 'input.css') {
+export function flattenCss(css, from = 'input.css', { scope = true, stats } = {}) {
   const root = postcss.parse(css, { from })
   const order = { children: new Map() } // layer name tree, in order of first appearance
   const register = (names) => {
@@ -46,7 +47,7 @@ export function flattenCss(css, from = 'input.css') {
           visit(child, register(full), full)
         }
       } else if (prefix) {
-        out.push({ key: [...prefix, LAST], node: child })
+        out.push({ key: [...prefix, LAST], node: child, layer: names[0] })
       } else {
         out.push({ key: [LAST], node: child })
       }
@@ -63,7 +64,17 @@ export function flattenCss(css, from = 'input.css') {
   }
   out.sort((a, b) => cmp(a.key, b.key)) // stable: original order within a layer
   const result = postcss.root()
-  for (const { node } of out) result.append(node.clone())
+  const vendor = new Set() // react-data-grid's own rules (`@layer rdg.*`): third-party, left global
+  for (const { node, layer } of out) {
+    const copy = node.clone()
+    if (layer === 'rdg') vendor.add(copy)
+    result.append(copy)
+  }
+  if (scope) {
+    const top = (n) => { while (n.parent && n.parent.type !== 'root') n = n.parent; return n }
+    const s = scopeRoot(result, { skip: (rule) => vendor.has(top(rule)) })
+    if (stats) Object.assign(stats, s)
+  }
   return result.toString()
 }
 
@@ -83,10 +94,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!files.length) { console.error('usage: flatten-css.mjs <file.css> ...'); process.exit(2) }
   for (const f of files) {
     const before = readFileSync(f, 'utf8')
-    const after = flattenCss(before, f)
+    const stats = {}
+    const after = flattenCss(before, f, { stats })
     const left = findDirectives(after)
     if (left.length) { console.error(`${f}: still contains ${left.join(', ')}`); process.exit(1) }
     writeFileSync(f, after)
-    console.log(`flattened ${f}: ${before.length} -> ${after.length} bytes`)
+    console.log(`flattened + scoped ${f}: ${before.length} -> ${after.length} bytes (selectors: ${stats.scoped} scoped, ${stats.already} already scoped, ${stats.namespaced} namespaced, ${stats.vendor} vendor rules)`)
   }
 }

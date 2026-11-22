@@ -6,7 +6,10 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+import postcss from 'postcss'
 import { findDirectives } from './flatten-css.mjs'
+import { ROOTS, norm, splitList, unscopedSelectors } from './css-scope.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkgDir = (name) => join(root, 'packages', name.replace('@element-editor/', ''))
@@ -34,6 +37,41 @@ for (const name of PACKAGES) {
     const left = findDirectives(readFileSync(f, 'utf8'))
     check(!left.length, `${name}${sub.slice(1)} is plain CSS${left.length ? ` — contains ${left.join(', ')}` : ''}`)
   }
+}
+
+// 1c. Published stylesheets only style Element's own DOM (scripts/css-scope.mjs): every selector is
+//     scoped to Element's roots, or namespaced (`.leaflet-*`, `.maplibregl-*`, `.elm-*`, `[data-elm-*]`,
+//     react-data-grid's hashed classes). Unlayered and loaded after the host's CSS, a global `.hidden`
+//     or `.absolute` overrides the host's own utilities on the host's elements. Keyframes carry an
+//     Element (or vendor) prefix. `@property --tw-*` stays global: registrations cannot be scoped; a
+//     Tailwind v4 host registers identical ones, and the only typed ones are v4-only names
+//     (`--tw-*-alpha`) plus `--tw-ring-offset-width: <length>`, which Tailwind v3 also only ever sets
+//     to lengths (and v3 resets every `--tw-*` on every element, so `inherits: false` changes nothing).
+{
+  const req = createRequire(join(pkgDir('@element-editor/react'), 'package.json'))
+  const rdgClasses = new Set([...readFileSync(req.resolve('react-data-grid/lib/styles.css'), 'utf8').matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((m) => m[1]))
+  for (const name of PACKAGES) {
+    for (const [sub, , f] of targets(name).filter(([, , f]) => f.endsWith('.css') && existsSync(f))) {
+      const css = postcss.parse(readFileSync(f, 'utf8'))
+      const bad = unscopedSelectors(css, rdgClasses)
+      check(!bad.length, `${name}${sub.slice(1)}: every selector is scoped to Element's roots or namespaced${bad.length ? ` — ${bad.length} global, e.g. ${bad.slice(0, 5).join(' , ')}` : ''}`)
+      const frames = [], props = []
+      css.walkAtRules((a) => { if (/keyframes$/.test(a.name)) frames.push(a.params); if (a.name === 'property') props.push(a.params) })
+      const badFrames = frames.filter((n) => !/^(elm|maplibregl|mapboxgl|leaflet)-/.test(n))
+      check(!badFrames.length, `${name}${sub.slice(1)}: keyframe names are prefixed${badFrames.length ? ` — ${badFrames.join(', ')}` : ''}`)
+      const badProps = props.filter((n) => !n.startsWith('--tw-'))
+      check(!badProps.length, `${name}${sub.slice(1)}: @property only registers --tw-*${badProps.length ? ` — ${badProps.join(', ')}` : ''}`)
+    }
+  }
+  // The scoped preflight in shared.css spells the roots out by hand (the dev server serves the source
+  // CSS); its lists must be exactly css-scope.mjs's ROOTS.
+  const shared = readFileSync(join(pkgDir('@element-editor/ui'), 'src/styles/shared.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const want = ROOTS.map(norm).join(',')
+  const lists = [...shared.matchAll(/:where\(([^{}]*?\[data-elm-theme\][^{}]*?)\)\s*\{/g)].map((m) => splitList(m[1]).map(norm))
+  const rootLists = lists.map((l) => l.filter((s) => !s.endsWith(' *'))).filter((l) => l.length > 2)
+  const descLists = lists.map((l) => l.filter((s) => s.endsWith(' *')).map((s) => s.slice(0, -2))).filter((l) => l.length)
+  const wrong = [...rootLists, ...descLists].filter((l) => l.join(',') !== want)
+  check(rootLists.length >= 3 && !wrong.length, `ui shared.css scoped-preflight root lists match scripts/css-scope.mjs ROOTS (${rootLists.length} lists)${wrong.length ? ` — differs: ${wrong[0].join(',')}` : ''}`)
 }
 
 // 2. React-component entries start with 'use client' (Next.js App Router). core and the

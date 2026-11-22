@@ -126,7 +126,7 @@ export function Tooltip({ content, shortcut, side = 'top', multiline = false, ch
             visibility: pos ? undefined : 'hidden',
             // Match the Mantine "pop" tooltip transition exactly: 100ms ease,
             // scale(0.9) → scale(1), opacity 0 → 1, center origin, no slide.
-            animation: pos ? 'tooltip-in 100ms ease' : undefined,
+            animation: pos ? 'elm-tooltip-in 100ms ease' : undefined,
           }}
         >
           <div className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-elm-card shadow-elm backdrop-blur-sm ${multiline ? 'max-w-64 whitespace-normal leading-snug' : 'whitespace-nowrap'} bg-elm-tooltip/95 text-elm-tooltip-text elm-kbd-on-tooltip ${light ? 'elm-tooltip-light' : ''}`}>
