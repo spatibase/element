@@ -140,6 +140,7 @@ On a phone or tablet every action has a tap. The editor decides per press: a fin
 | Point menu (**Edit coordinates…**, **Delete point**) | Long-press the point (half a second) |
 | Insert a point | Every edge shows its midpoint handle (no hover needed): tap it, or drag it to place the new point |
 | Move a point | Drag it; the map doesn't pan |
+| Move the whole shape (or a point feature) | Outside point editing: drag the selected feature with one finger. Inside point editing a drag on the shape pans; two fingers always zoom |
 | Leave | Tap empty map, or **Edit points** again |
 
 Handles keep their small look but take a 44 px touch area, so a finger doesn't have to hit them exactly.
@@ -162,3 +163,5 @@ ref.current?.setVertexEdit(null)      // leave point editing (the selection stay
 ```
 
 `setVertexEdit(id)` behaves like a double-click: it selects the feature, turns off a drawing tool that is on and shows the circle / rectangle / route notice. It returns `false`, changing nothing, for an unknown or hidden feature, a geometry other than a `LineString` or `Polygon`, or a `readonly` editor (with a warning in development). `onVertexEditChange` fires once for every start and end, whether the user or your app caused it.
+
+You can call it from `onReady` / `onMapReady` or right after `ref.setFeatureCollection(...)`, with no `setTimeout`: the entry holds as long as the feature exists and stays selected. Loading new data afterwards (a later `setFeatureCollection`, a replace import) clears the selection and so ends point editing; call `setVertexEdit` after the load.

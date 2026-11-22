@@ -6,6 +6,21 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **Headless hosts get the drawing bar: new `drawingBar` prop.** Both adapters' `<ElementEditorControls />` now show the drawing bar (hint plus Done / Undo point / Cancel on touch) at the bottom centre of the map while a drawing tool is on, so a host with its own toolbar and tools driven by `ref.setTool` can finish a shape by touch. Its presses never reach the map, so tapping Done adds no point. Pass `drawingBar={false}` if your own UI replaces it (for example you render `<ActiveDrawingToolbar />` yourself, as in the custom-UI guide; do that to avoid two bars). `<ElementEditor />` is unchanged. The bar loads on demand, so a headless host's initial bundle barely grows. See [Custom UI with adapters](docs/guides/custom-ui-with-adapters.md#the-drawing-bar).
+- **`autoExitAfterDraw` prop: one shape at a time.** Pass `autoExitAfterDraw` to `<ElementEditor />` (both engines) or either adapter's `<ElementEditorControls />` and every drawing tool turns off after a finished shape; the new shape is selected and `onToolChange(null)` fires once. `false` keeps tools on. The prop wins over the user's saved setting without overwriting it, and the "Return to select after each shape" Settings toggle (and `Cmd+J`) becomes read-only with a "Set by the app" note. Unset keeps today's behaviour. Core: `uiStore.autoExitLocked`, `setAutoExitProp`. See [Drawing tools](docs/tools/drawing-tools.md).
+
+### Changed
+
+- **Drag a selected feature to move it, no modifier needed.** A plain drag (mouse or one finger) that starts on an already-selected point, line, area or multi-geometry moves it, and a drag on any feature of a multi-selection moves them all, exactly as `Cmd`/`Ctrl`-drag does (one undo step). Selected features show a move cursor, and a grabbing hand while moving; a press that moves less than 8 px stays a click. A drag on an unselected feature or on empty map pans, `Cmd`/`Ctrl`-drag still moves any feature, and drawing tools, point editing and `readonly` are unchanged. Two fingers always zoom. On MapLibre a plain drag on an unselected feature used to select and move it; it now pans, as on Leaflet. On Leaflet a `Cmd`/`Ctrl`-drag of a multi-selection no longer collapses the selection to the feature under the cursor.
+
+### Fixed
+
+- **MapLibre: `Ctrl`-drag on a feature moves it on Windows and Linux.** MapLibre rotates the map on `Ctrl`+left-drag, so the feature never moved. The rotate gesture is now off while a drag that starts on a feature is running (`Ctrl`-drag on empty map still rotates). `Cmd`-drag on macOS was not affected.
+- **`ref.setVertexEdit` called from `onReady` (or any mount effect) no longer gets reset right away.** In StrictMode the editor applied `initialData` a second time after the call, and that load cleared the selection and with it point editing, so hosts needed a `setTimeout(0)`. `initialData` is now applied once per mount (`useAdapterControls`).
+- **The published stylesheets are plain CSS.** `@element-editor/react/style.css`, `@element-editor/react/leaflet/style.css`, `@element-editor/adapter-leaflet/style.css` and `@element-editor/adapter-maplibre/style.css` no longer contain `@layer` blocks or other Tailwind directives, so they import cleanly in a host built with Tailwind v3 (which failed with "`@layer base` is used but no matching `@tailwind base` directive"), with another PostCSS setup, or with none, and under `?url` / `?raw`. Because they are no longer layered, host CSS no longer beats Element's rules by default inside the editor; the rules stay scoped to `data-elm-theme` and Element's portals, and look the same as before.
+
 ---
 
 ## [0.3.0] — 2026-11-20

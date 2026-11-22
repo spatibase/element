@@ -39,6 +39,8 @@ The stylesheet includes Leaflet's CSS (`leaflet/dist/leaflet.css`), so you don't
 
 The stylesheet doesn't reset your page. Tailwind's base styles apply only inside an element with a `data-elm-theme` attribute, so all editor UI must be rendered inside one (Step 3 shows how).
 
+The stylesheet is plain CSS, so the import works in any CSS setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It has no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and its rules are scoped to the `data-elm-theme` element and Element's portals.
+
 ---
 
 ## Step 3 — Build the component
@@ -210,7 +212,7 @@ export default function MyMap() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {mapReady && <ElementEditorControls onChange={(data) => console.log(data)} />}
+              {mapReady && <ElementEditorControls drawingBar={false} onChange={(data) => console.log(data)} />}
             </MapContainer>
 
             {/* UI panels — outside MapContainer, positioned absolutely over the map */}

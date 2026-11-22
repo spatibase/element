@@ -242,6 +242,10 @@ export function useKeyboardShortcuts(container?: HTMLElement | null) {
       // shape, not just which switch flipped.
       if (!inInput && (e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'j' || e.key === 'J')) {
         e.preventDefault()
+        if (us.autoExitLocked) {
+          emit({ type: 'warning', message: 'Set by the app', description: 'This app decides whether drawing tools exit after each shape.' })
+          return
+        }
         const next = !us.autoExitAfterDraw
         us.setAutoExitAfterDraw(next)
         emit({

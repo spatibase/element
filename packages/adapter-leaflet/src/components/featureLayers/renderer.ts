@@ -1,5 +1,6 @@
 import { Canvas } from 'leaflet'
 import { createContext, useContext, useEffect, useMemo } from 'react'
+import { SELECTED_FEATURE_CLASS } from '../../utils/selectedDrag'
 
 // ─── Renderers ────────────────────────────────────────────────────────────────
 //
@@ -161,6 +162,8 @@ export function useFeatureRenderer(
       }
       // Selected features paint (and hit-test) above their neighbours.
       if (selected) l.bringToFront()
+      // Move cursor + one-finger move on selected paths (utils/selectedDrag). Canvas paths have no element.
+      l.getElement()?.classList.toggle(SELECTED_FEATURE_CLASS, selected)
     }
     if (swapped) onSwap?.after?.()
     // getLayers / onSwap read refs; only a selection or renderer flip re-runs this.

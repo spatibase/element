@@ -207,11 +207,20 @@ const onVertexEditChange = (id: string | null) => {
   const w = window as unknown as { __vertexEditChanges?: (string | null)[] }
   ;(w.__vertexEditChanges ??= []).push(id)
 }
+// Every `onToolChange` call pushes its tool (or null) to `window.__toolChanges`. (e2e)
+const onToolChange = (tool: string | null) => {
+  const w = window as unknown as { __toolChanges?: (string | null)[] }
+  ;(w.__toolChanges ??= []).push(tool)
+}
 const mapOptionsParam = params.get('mapOptions')
 const mapOptions = mapOptionsParam ? JSON.parse(mapOptionsParam) : undefined
 type ReadyWin = { __readyMaps?: unknown[]; __readyHadElm?: boolean[] }
+// ?readyVertexEdit=<feature id> calls `ref.setVertexEdit(id)` from inside `onMapReady` (e2e vertex-edit-ready.spec).
+const readyVertexEdit = params.get('readyVertexEdit')
+const editorRefHolder: { current: { setVertexEdit: (id: string | null) => boolean } | null } = { current: null }
 const onMapReady = (map: { getLayer?: (id: string) => unknown; getPane?: (id: string) => unknown }) => {
-  const w = window as unknown as ReadyWin
+  const w = window as unknown as ReadyWin & { __readyVertexEdit?: boolean | null }
+  if (readyVertexEdit) w.__readyVertexEdit = editorRefHolder.current?.setVertexEdit(readyVertexEdit) ?? null
   ;(w.__readyMaps ??= []).push(map)
   ;(w.__readyHadElm ??= []).push(!!(map.getLayer ? map.getLayer('elm-features-fill') : map.getPane?.('elmIdleFeatures')))
 }
@@ -236,6 +245,9 @@ const geometryTypesParam = params.get('geometryTypes')
 const geometryTypes = geometryTypesParam ? (geometryTypesParam.split(',') as GeometryType[]) : undefined
 // ?replaceAtLimit passes `replaceAtLimit` (draw tools replace the only feature at `maxFeatures=1`). (e2e)
 const replaceAtLimit = params.has('replaceAtLimit')
+// ?autoExitAfterDraw=1 / =0 passes `autoExitAfterDraw` true / false (the prop wins over the stored setting). (e2e)
+const autoExitParam = params.get('autoExitAfterDraw')
+const autoExitAfterDraw = autoExitParam === null ? undefined : autoExitParam === '1'
 // ?coordinates=wrap,6 passes `coordinates` ({ wrap: true, precision: 6 }). (e2e)
 const coordinatesParam = params.get('coordinates')
 const coordinates = coordinatesParam
@@ -274,7 +286,7 @@ export default function App() {
     __setBasemapProp: (id: string) => setControlledBasemap(basemapOf(id)),
     __setInitialData: setLateInitialData,
   })
-  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, replaceAtLimit, coordinates, routingApiKey, onChange, onVertexEditChange, accentColor, style: rootStyle, theme }
+  const setupProps = { className: demoClass, initialView, initialData: lateData ? lateInitialData : initialData, mapOptions, onMapReady, onError, maxFeatures, geometryTypes, replaceAtLimit, autoExitAfterDraw, coordinates, routingApiKey, onChange, onVertexEditChange, onToolChange, accentColor, style: rootStyle, theme }
   const hostConfig = inlineHost ? { ...config, ui: { ...config.ui, hints: true } } : rerenders ? { ...config } : config
   const tools = inlineHost ? ['polygon' as const, 'rectangle' as const, 'circle' as const, 'line' as const, 'point' as const] : undefined
   const showAgentation = process.env.NODE_ENV === 'development' && !isAutomated
@@ -284,10 +296,10 @@ export default function App() {
       <div className="w-screen h-screen">
         <Profiler id="editor" onRender={onRender}>
         {maplibre
-          ? <MapLibreEditor key={mounts} {...setupProps} layout={editorLayout} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
+          ? <MapLibreEditor key={mounts} ref={editorRefHolder as never} {...setupProps} layout={editorLayout} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
               {...basemapProps as { basemap?: BasemapInput; defaultBasemap?: BasemapInput }} basemaps={basemaps}
               featureColor={featureColor} getFeatureStyle={getFeatureStyle} bounds={bounds} />
-          : <LeafletEditor key={mounts} {...setupProps} layout={editorLayout} renderer={renderer} tileLayer={tileLayer} basemaps={leafletBasemaps?.length ? leafletBasemaps : undefined}
+          : <LeafletEditor key={mounts} ref={editorRefHolder as never} {...setupProps} layout={editorLayout} renderer={renderer} tileLayer={tileLayer} basemaps={leafletBasemaps?.length ? leafletBasemaps : undefined}
               {...basemapProps as { basemap?: LeafletBasemap; defaultBasemap?: LeafletBasemap }} config={hostConfig} tools={tools} readonly={readonly} onSubmit={onSubmit}
               featureColor={featureColor} getFeatureStyle={getFeatureStyle} bounds={bounds} />}
         </Profiler>

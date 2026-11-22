@@ -276,6 +276,8 @@ export interface UseAdapterControlsOptions {
   maxFeatures?: number
   /** With `maxFeatures: 1`: a draw tool replaces the only feature's geometry instead of being refused. */
   replaceAtLimit?: boolean
+  /** With a value set, it wins over the saved user setting (never written to storage) and the Settings toggle is read-only. */
+  autoExitAfterDraw?: boolean
   /**
    * The geometry types the editor accepts (`undefined` = all). Enforced for every way a geometry gets
    * in; a refusal reports `'geometry-type-not-allowed'` and changes nothing. Tools that can't draw an
@@ -497,6 +499,7 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
   useSyncProp(opts.tools, (v) => setEnabledTools(v ?? null), () => uiStore.getState().enabledTools)
   useSyncProp(opts.maxFeatures, setMaxFeatures, () => dataStore.getState().maxFeatures)
   useSyncProp(opts.geometryTypes, setGeometryTypes, () => dataStore.getState().geometryTypes)
+  useSyncProp(opts.autoExitAfterDraw, (v) => uiStore.getState().setAutoExitProp(v), () => (uiStore.getState().autoExitLocked ? uiStore.getState().autoExitAfterDraw : undefined))
   useSyncProp(opts.replaceAtLimit, (v) => dataStore.getState().setReplaceAtLimit(v ?? false), () => dataStore.getState().replaceAtLimit)
   if (opts.replaceAtLimit && opts.maxFeatures !== 1) warnOnce('replaceAtLimit-max', '`replaceAtLimit` only works with `maxFeatures={1}`; it is ignored.')
   // Before initialData loads (effects), so the first commit is already clean; an inline object is fine (the setter compares values).
@@ -550,7 +553,12 @@ export function useAdapterControls<TMap = unknown>(opts: UseAdapterControlsOptio
       silentRef.current = false
     }
   }
+  // Once per mount: StrictMode re-runs this effect, and a second replace load would clear the
+  // selection (and with it a vertex edit a host's `onReady` / mount effect entered in between).
+  const mountAppliedRef = useRef(false)
   useEffect(() => {
+    if (mountAppliedRef.current) return
+    mountAppliedRef.current = true
     if (initialData) applyInitialData(initialData, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

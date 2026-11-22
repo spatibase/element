@@ -12,10 +12,21 @@ import { SAMPLE_DATA, SAMPLE_SCHEMA } from './sampleData'
 // Lazy-loaded demo tabs so only the active map engine ships in the initial chunk.
 const MapLibreDemo = lazy(() => import('./MapLibreDemo'))
 const LeafletDemo = lazy(() => import('./LeafletDemo'))
+const HeadlessDemo = lazy(() => import('./HeadlessDemo'))
 
 type Tab = 'react' | 'maplibre' | 'leaflet'
 
 export default function App() {
+  // ?headless=leaflet|maplibre: a host that mounts only the adapter controls (e2e, see HeadlessDemo)
+  const params = new URLSearchParams(location.search)
+  const headless = params.get('headless')
+  if (headless === 'leaflet' || headless === 'maplibre') {
+    return <Suspense fallback={null}><HeadlessDemo engine={headless} drawingBar={params.get('drawingBar') !== '0'} /></Suspense>
+  }
+  return <TabbedApp />
+}
+
+function TabbedApp() {
   const [tab, setTab] = useState<Tab>('react')
 
   return (

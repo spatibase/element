@@ -13,7 +13,7 @@
  *     </GeoStoreProvider>
  *   )}
  */
-import React, { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { Suspense, createContext, forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CoordinateOptions, FeatureCollection, FeatureCollectionInput, GeoJSONFeature, GeoJSONFeatureInput, GeometryType, Schema } from '@element-editor/core'
 import { normalizeFitBoundsTarget, fitPadding, visibleCenterOffset } from '@element-editor/core/internal'
@@ -24,6 +24,7 @@ import {
   preloadEditorPanelsWhenIdle,
   EventProvider,
   useAdapterControls,
+  MapDrawingBar,
   type ElementEditorImperativeAPI,
   type ImportResult,
   type ElementEditorEvent,
@@ -136,6 +137,13 @@ export interface ElementEditorControlsProps {
   geometryTypes?: GeometryType[]
   /** With `maxFeatures={1}`: a draw tool replaces the only feature's geometry instead of being refused (a "pick the location" field). Paste, duplicate, import merge and `addFeature` still refuse. */
   replaceAtLimit?: boolean
+  /** `true`: drawing tools turn off after each shape (the new shape is selected); `false`: they stay on. Wins over the user's saved setting, which the Settings toggle then shows read-only. Unset: the user's setting (default off). */
+  autoExitAfterDraw?: boolean
+  /**
+   * The drawing hint bar (hint + Done / Undo point / Cancel on touch) shown at the bottom centre of the map while a draw tool is on.
+   * Default `true`; pass `false` when your own UI replaces it (render `<ActiveDrawingToolbar />` yourself, or build your own). Its presses never reach the map.
+   */
+  drawingBar?: boolean
   /**
    * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
    * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
@@ -250,6 +258,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
       maxFeatures: props.maxFeatures,
       geometryTypes: props.geometryTypes,
       replaceAtLimit: props.replaceAtLimit,
+      autoExitAfterDraw: props.autoExitAfterDraw,
       coordinates: props.coordinates,
       engine: 'maplibre',
       onChange: props.onChange,
@@ -313,6 +322,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
         <DrawingLayer map={map} routingApiKey={props.routingApiKey} />
         <DrawingPreviewLayer map={map} />
         <GeometryProcessingPreview map={map} />
+        {props.drawingBar !== false && <Suspense fallback={null}><MapDrawingBar container={map.getContainer()} /></Suspense>}
         <MeasurePreviewLayer map={map} />
         <MeasurementTooltip map={map} />
         <OsmTraceHandler map={map} />

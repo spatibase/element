@@ -6,6 +6,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { findDirectives } from './flatten-css.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkgDir = (name) => join(root, 'packages', name.replace('@element-editor/', ''))
@@ -24,6 +25,15 @@ const targets = (name) => Object.entries(pkgJson(name).exports).flatMap(([sub, t
 for (const name of PACKAGES) {
   const missing = targets(name).filter(([, , f]) => !existsSync(f)).map(([s, c]) => `${s} (${c})`)
   check(!missing.length, `${name}: all exports targets exist${missing.length ? ` — missing ${missing.join(', ')}` : ''}`)
+}
+
+// 1b. Published stylesheets are plain CSS: no cascade layers or Tailwind directives, which a host's
+//     PostCSS (Tailwind v3 fails on `@layer` without `@tailwind`) would reinterpret (scripts/flatten-css.mjs).
+for (const name of PACKAGES) {
+  for (const [sub, , f] of targets(name).filter(([, , f]) => f.endsWith('.css') && existsSync(f))) {
+    const left = findDirectives(readFileSync(f, 'utf8'))
+    check(!left.length, `${name}${sub.slice(1)} is plain CSS${left.length ? ` — contains ${left.join(', ')}` : ''}`)
+  }
 }
 
 // 2. React-component entries start with 'use client' (Next.js App Router). core and the

@@ -3,7 +3,8 @@
  * drawing an area and a line by taps and finishing with Done, Undo point; a second tap on the
  * selected shape (or "Edit points") enters point editing; tap a point → Delete in the action bar;
  * long-press a point → the right-click menu; midpoints always shown; dragging a point or a midpoint
- * moves / inserts without panning the map. Drags go through CDP `Input.dispatchTouchEvent`.
+ * moves / inserts without panning the map; one finger on a selected point moves it (elsewhere it
+ * pans, a pinch never moves it). Drags go through CDP `Input.dispatchTouchEvent`.
  */
 import { devices } from '@playwright/test'
 import { test, expect, MAP, type Page } from './fixtures'
@@ -121,6 +122,13 @@ test.describe('Touch', () => {
     expect((await ring(page)).length).toBe(4) // 3 points, closed
   })
 
+  test('the drop-in shows exactly one drawing bar (the shell\'s, not the controls\')', async ({ page }) => {
+    await page.getByRole('button', { name: 'Area' }).tap()
+    await expect(page.getByRole('button', { name: 'Exit' })).toHaveCount(1)
+    await expect(page.locator('[data-elm-hint]')).toHaveCount(1)
+    await expect(page.locator('[data-elm-drawing-bar]')).toHaveCount(0)
+  })
+
   test('tapping the first point closes an area', async ({ page }) => {
     const b = await mapBox(page)
     const cx = b.x + b.width / 2, cy = b.y + b.height / 2
@@ -205,6 +213,61 @@ test.describe('Touch', () => {
     await expect.poll(async () => (await ring(page))[0]).not.toEqual(r0[0])
     expect(await center(page)).toEqual(before)
     expect((await ring(page)).length).toBe(5)
+  })
+
+  test('one finger on a selected point moves it; elsewhere it pans; a pinch on it moves nothing', async ({ page }) => {
+    const b = await mapBox(page)
+    await page.touchscreen.tap(b.x + 20, b.y + b.height / 2)
+    const at = await page.evaluate(([x, y]) => {
+      const m = window.__elementEditorTest!.map
+      const r = m.getContainer().getBoundingClientRect()
+      const p = { x: x - r.left, y: y - r.top }
+      const ll = 'containerPointToLatLng' in m ? m.containerPointToLatLng([p.x, p.y]) : m.unproject([p.x, p.y])
+      return [ll.lng, ll.lat]
+    }, [b.x + b.width / 2, b.y + b.height / 2] as const)
+    await page.evaluate((at) => {
+      const ref = window.__elementEditorRef!
+      ref.setFeatureCollection({ type: 'FeatureCollection', features: [{ type: 'Feature', id: 'pin', properties: { name: 'Pin' }, geometry: { type: 'Point', coordinates: at } }] })
+      window.__elementEditorTest!.dataStore.getState().selectFeature('pin')
+    }, at)
+    await page.waitForTimeout(300)
+    const pin = () => page.evaluate(() => window.__elementEditorTest!.dataStore.getState().features[0].geometry.coordinates as number[])
+    const p0 = await pin()
+    const s = await screenPoint(page, p0[0], p0[1])
+    const grab = { x: s.x, y: s.y - 10 } // the pin's body (Leaflet draws it above the point)
+
+    // Drag the selected point: it moves, the map doesn't pan, one undo step.
+    const before = await center(page)
+    const undo0 = await page.evaluate(() => window.__elementEditorTest!.dataStore.getState().undoStack.length)
+    await touchDrag(page, grab, { x: grab.x + 60, y: grab.y + 40 })
+    await expect.poll(pin).not.toEqual(p0)
+    expect(await center(page)).toEqual(before)
+    expect(await page.evaluate(() => window.__elementEditorTest!.dataStore.getState().undoStack.length)).toBe(undo0 + 1)
+    expect(await selectedIds(page)).toEqual(['pin'])
+
+    // Drag away from it: the map pans, the point stays.
+    const p1 = await pin()
+    const from = { x: b.x + b.width / 2 - 100, y: b.y + b.height / 2 + 120 }
+    await touchDrag(page, from, { x: from.x + 80, y: from.y + 60 })
+    await expect.poll(async () => (await center(page)).lng).not.toBe(before.lng)
+    expect(await pin()).toEqual(p1)
+
+    // Two fingers, the first on the point: a pinch, never a move.
+    const s1 = await screenPoint(page, p1[0], p1[1])
+    const g1 = { x: s1.x, y: s1.y - 10 }
+    const cdp = await page.context().newCDPSession(page)
+    const tp = (a: Pt, c?: Pt) => [{ x: a.x, y: a.y, id: 1 }, ...(c ? [{ x: c.x, y: c.y, id: 2 }] : [])]
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(g1) })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp({ x: g1.x + 12, y: g1.y }) })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp({ x: g1.x + 12, y: g1.y }, { x: g1.x + 80, y: g1.y + 80 }) })
+    for (let i = 1; i <= 6; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp({ x: g1.x + 12 - i * 8, y: g1.y - i * 8 }, { x: g1.x + 80 + i * 8, y: g1.y + 80 + i * 8 }) })
+      await page.waitForTimeout(16)
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await cdp.detach()
+    await page.waitForTimeout(300)
+    expect(await pin()).toEqual(p1)
   })
 
   test('dragging a midpoint inserts a point without panning the map', async ({ page }) => {

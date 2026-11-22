@@ -7,10 +7,12 @@ import { useDataStore, useGeoStore } from '../store/StoreContext'
 import { useDuplicateDrag } from './useDuplicateDrag'
 import { computeDragDisplay } from '../utils/dragUtils'
 import type { MapInteractionMachine } from './useMapInteractionMachine'
+import { canPlainDragSelected, markSelectedPress, pastSlop, setActiveFeatureDrag, MOVING_FEATURE_CLASS } from '../utils/selectedDrag'
 
 /**
  * Cmd/Ctrl+drag (move) and Alt+drag (duplicate) for a single Point, LineString or
- * Polygon. The Multi* / GeometryCollection counterpart is `usePartDrag`.
+ * Polygon; a plain drag on an already-selected feature moves it too (past the click
+ * slop, see utils/selectedDrag). The Multi* / GeometryCollection counterpart is `usePartDrag`.
  *
  * `dragDelta` state flips only at drag start/end — it toggles the ghost/visibility
  * renders. During mousemove `onLiveMove` gets the translated coordinates and moves
@@ -30,7 +32,7 @@ export function useFeatureDrag<C extends unknown[]>(
   interaction: MapInteractionMachine,
   onLiveMove: (translated: C, isDuplicate: boolean) => void,
 ) {
-  const { dataStore } = useGeoStore()
+  const { dataStore, uiStore } = useGeoStore()
   const updateFeature = useDataStore((s) => s.updateFeature)
   const map = useMap()
 
@@ -49,22 +51,40 @@ export function useFeatureDrag<C extends unknown[]>(
   function handleMouseDown(e: LeafletMouseEvent) {
     if (readonly) return
     dragged.current = false
-    const isAlt = e.originalEvent.altKey
-    const isCtrl = e.originalEvent.ctrlKey || e.originalEvent.metaKey
-    if (!isAlt && !isCtrl) return
+    const ev = e.originalEvent
+    const isAlt = ev.altKey
+    const isCtrl = ev.ctrlKey || ev.metaKey
+    // No modifier: only a press on an already-selected feature moves it (past the click
+    // slop); anywhere else a plain drag pans. Shift is toggle / box select.
+    const plain = !isAlt && !isCtrl
+    if (plain) {
+      if (ev.shiftKey || ev.button !== 0 || !(selected || isMultiSelected)) return
+      if (!canPlainDragSelected(uiStore.getState())) return
+      markSelectedPress(ev)
+    }
     if (isMultiSelected && dataStore.getState().selectedIds.length >= 2) return // let MultiDragHandler handle it
-    e.originalEvent.preventDefault()
-    e.originalEvent.stopPropagation()
+    ev.preventDefault()
+    ev.stopPropagation()
     map.dragging.disable()
     const isDuplicate = isAlt
-    setDuplicateDrag(isDuplicate)
+    const startPx = { x: ev.clientX, y: ev.clientY }
     const mode = dataStore.getState().geometryMode; if (mode === 'visual') { const startProj = project([e.latlng.lng, e.latlng.lat]); dragStart.current = { lng: startProj[0], lat: startProj[1] } } else { dragStart.current = { lng: e.latlng.lng, lat: e.latlng.lat } }
     if (!selected && !isMultiSelected) dataStore.getState().selectFeature(feature.id)
-    // Single render to toggle ghost/visibility on.
-    setDragDelta([0, 0])
+    // Single render to toggle ghost/visibility on. A plain press waits for the slop:
+    // a click on the selected feature renders nothing extra.
+    const begin = () => {
+      setDuplicateDrag(isDuplicate)
+      setDragDelta([0, 0])
+      map.getContainer().classList.add(MOVING_FEATURE_CLASS)
+    }
+    if (!plain) begin()
 
     function onMove(ev: LeafletMouseEvent) {
       if (!dragStart.current) return
+      if (plain && !dragged.current) {
+        if (!pastSlop(startPx, ev.originalEvent)) return
+        begin()
+      }
       interaction.markDragStart()
       dragged.current = true
       const mode = dataStore.getState().geometryMode
@@ -75,10 +95,30 @@ export function useFeatureDrag<C extends unknown[]>(
       onLiveMove(computeDragDisplay(coords, delta, false, mode).display, isDuplicate)
     }
 
-    function onUp(ev: LeafletMouseEvent) {
+    function end() {
       map.off('mousemove', onMove)
       map.off('mouseup', onUp)
       map.dragging.enable()
+      map.getContainer().classList.remove(MOVING_FEATURE_CLASS)
+      setActiveFeatureDrag(null)
+    }
+
+    // A second finger: the gesture is a pinch. Put the shape back, commit nothing.
+    function cancel() {
+      const wasDragged = dragged.current
+      end()
+      dragStart.current = null
+      resetDuplicateDrag()
+      liveDeltaRef.current = null
+      setDragDelta(null)
+      if (wasDragged) {
+        onLiveMove(coords, false)
+        interaction.markDragEnd()
+      }
+    }
+
+    function onUp(ev: LeafletMouseEvent) {
+      end()
       if (!dragStart.current || !dragged.current) {
         dragStart.current = null
         resetDuplicateDrag()
@@ -115,6 +155,7 @@ export function useFeatureDrag<C extends unknown[]>(
       interaction.markDragEnd()
     }
 
+    setActiveFeatureDrag(cancel)
     map.on('mousemove', onMove)
     map.on('mouseup', onUp)
   }

@@ -74,6 +74,7 @@ export default function MyMap({ data }: { data: FeatureCollection | null }) {
             <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
             {map && (
               <ElementEditorControls
+                drawingBar={false}
                 ref={editorRef}
                 map={map}
                 initialData={data}

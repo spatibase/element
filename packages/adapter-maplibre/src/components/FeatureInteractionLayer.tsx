@@ -2,11 +2,11 @@
  * FeatureInteractionLayer — handles selection, hover highlight, drag-to-translate,
  * double-click to enter vertex edit, and manages VertexEditor / TransformControls.
  */
-import { useEffect, useRef, useState } from 'react'
-import type { Point, Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent } from 'maplibre-gl'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Point, Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent, MapTouchEvent } from 'maplibre-gl'
 import { useDataStore, useUIStore, useGeoStore } from '../store/StoreContext'
 import type { GeoJSONFeature, Geometry } from '@element-editor/core'
-import { offsetGeometry, project, isMultiGeometry, withXY, vertexEditNotice, isTouchEvent, canVertexEdit } from '@element-editor/core/internal'
+import { offsetGeometry, project, isMultiGeometry, withXY, vertexEditNotice, isTouchEvent, canVertexEdit, CLICK_SLOP_PX } from '@element-editor/core/internal'
 import { findPartAtPoint } from '../utils/findPartAtPoint'
 import { INTERACTIVE_FEATURE_LAYERS, setHoverState } from './FeatureLayer'
 import VertexEditor from './VertexEditor'
@@ -221,6 +221,21 @@ export default function FeatureInteractionLayer({ map }: Props) {
     return () => { canvas.removeEventListener('contextmenu', onNativeContextMenu) }
   }, [readonly, dataStore, map, featureCtxMenu])
 
+  // Over a feature with no tool: `move` on a selected one (a plain drag moves it, see the
+  // drag effect below), `pointer` on the rest. The transform box keeps its own cursors.
+  const hoverCursor = useCallback((id: string) => {
+    const ui = uiStore.getState()
+    const movable = !ui.transformActive && !ui.vertexEditActive && dataStore.getState().selectedIds.includes(id)
+    return movable ? 'move' : 'pointer'
+  }, [uiStore, dataStore])
+  // Selecting (a click) or deselecting under a still cursor changes that cursor at once
+  // (hoverCursor reads the stores: selectedIds / transformActive / vertexEditActive re-run this).
+  useEffect(() => {
+    const id = hoveredIdRef.current
+    if (!id || editingMode !== 'none' || dragRef.current?.dragging) return
+    modifierCursor.enter(map.getCanvas(), getLastPointer(), hoverCursor(id))
+  }, [selectedIds, transformActive, vertexEditActive, editingMode, map, modifierCursor, hoverCursor])
+
   // ── Hover ──────────────────────────────────────────────────────────────────
   // The hover hit test below is the only thing that decides "over a feature" (so the
   // cursor, hover paint and name tooltip always agree), and modifierCursor is the only
@@ -257,7 +272,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
       const feature = dataStore.getState().features.find((f) => f.id === id)
       if (feature) bindFeatureTooltip(feature, uiStore, e.originalEvent)
       else unbindFeatureTooltip()
-      modifierCursor.enter(map.getCanvas(), e.originalEvent, drawing ? undefined : 'pointer')
+      modifierCursor.enter(map.getCanvas(), e.originalEvent, drawing ? undefined : hoverCursor(id))
     }
 
     map.on('mousemove', onMousemove)
@@ -270,7 +285,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
       // On unmount the map may already be removed (getSource throws then).
       try { clearHover(false) } catch { /* map torn down */ }
     }
-  }, [editingMode, map, dataStore, uiStore, modifierCursor])
+  }, [editingMode, map, dataStore, uiStore, modifierCursor, hoverCursor])
 
   // When a new feature is placed under a stationary cursor (e.g. the user
   // clicked with the point tool and hasn't moved yet), MapLibre's hover
@@ -450,34 +465,32 @@ export default function FeatureInteractionLayer({ map }: Props) {
     if (vertexEditActive) return
 
     const drawingActive = editingMode !== 'none'
-    const requireModifier = drawingActive
 
-    const onMousedown = (e: MapMouseEvent) => {
-      // Shift is toggle-select (click) / box-select (drag), never a translate: selecting the
-      // feature here would replace the selection before the click handler can extend it.
-      if (e.originalEvent.shiftKey) return
-      const isAlt = e.originalEvent.altKey
-      const isCtrl = e.originalEvent.ctrlKey || e.originalEvent.metaKey
+    /**
+     * A press on a feature. Cmd/Ctrl (move) or Alt (duplicate) on any feature drags at once;
+     * with no modifier only a press on an already-selected feature moves it (the whole
+     * selection), and only past the click slop, so a click or a jittery tap stays a click.
+     * Anything else (an unselected feature, a tool, the transform box) leaves the drag to
+     * the map (pan) or the tool. Returns whether a drag was armed.
+     */
+    const startDrag = (e: { point: Point; lngLat: { lng: number; lat: number } }, isAlt: boolean, isCtrl: boolean, touch: boolean): boolean => {
+      const plain = !isAlt && !isCtrl
       // In drawing mode require a modifier — without it the click belongs to
       // the drawing tool.
-      if (requireModifier && !isAlt && !isCtrl) return
+      if (drawingActive && plain) return false
+      // The transform box moves the selection on a plain press itself (TransformControls).
+      if (plain && uiStore.getState().transformActive) return false
 
       const hits = safeQueryRendered(map, e.point, INTERACTIVE_FEATURE_LAYERS)
-      if (hits.length === 0) return
+      if (hits.length === 0) return false
 
       const clickedId = String(hits[0].id ?? hits[0].properties?.id ?? '')
-      if (!clickedId) return
+      if (!clickedId) return false
 
       const ds = dataStore.getState()
-      const alreadyInMulti = ds.selectedIds.includes(clickedId) && ds.selectedIds.length >= 2
+      if (plain && !ds.selectedIds.includes(clickedId)) return false
 
-      // Leaflet-parity: when user mousedowns a feature that's part of a 2+ multi-
-      // selection, require a modifier (Cmd/Ctrl for move, Alt for duplicate) to
-      // initiate a multi-feature drag. Without a modifier, bail so the click
-      // handler can select-only-this (no accidental "all five shapes moved").
-      if (alreadyInMulti && !isAlt && !isCtrl) return
-
-      // If clicking a non-selected feature, select it first
+      // Cmd/Alt on a feature that isn't selected: select it first (and move only it).
       if (!ds.selectedIds.includes(clickedId)) {
         ds.selectFeature(clickedId)
       }
@@ -498,6 +511,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
       const startProjected: [number, number] = mode === 'visual'
         ? (project(startLngLat) as [number, number])
         : startLngLat
+      const startPoint = { x: e.point.x, y: e.point.y }
 
       // Disable map pan immediately (not after the first move) — otherwise
       // maplibre's built-in dragPan starts panning the map at mousedown and
@@ -505,7 +519,14 @@ export default function FeatureInteractionLayer({ map }: Props) {
       // cursor delta. This is what was making Cmd-drag in draw mode look
       // broken: lng/lat barely changed, dragging never started, and the
       // trailing click was the only thing that registered.
+      // (Touch: this runs from MapLibre's own touchstart event, before its touch-pan
+      // handler sees the touch, so one finger on a selected feature doesn't pan either.)
       map.dragPan.disable()
+      // MapLibre also rotates the map on Ctrl+left-drag (Windows/Linux). A Ctrl-drag that
+      // starts on a feature belongs to Element, so rotate is off for the gesture too.
+      const rotateWasOn = map.dragRotate.isEnabled()
+      if (rotateWasOn) map.dragRotate.disable()
+      const restoreRotate = () => { if (rotateWasOn) map.dragRotate.enable() }
 
       dragRef.current = {
         featureIds: idsToMove,
@@ -575,16 +596,17 @@ export default function FeatureInteractionLayer({ map }: Props) {
         }
       })
 
-      const onMousemove = (me: MapMouseEvent) => {
+      const onMove = (me: { point: Point; lngLat: { lng: number; lat: number } }) => {
         const dr = dragRef.current
         if (!dr) return
 
-        const dLng = me.lngLat.lng - dr.startLngLat[0]
-        const dLat = me.lngLat.lat - dr.startLngLat[1]
-        const d = Math.hypot(dLng, dLat)
-        if (!dr.dragging && d < 0.00001) return
-
         if (!dr.dragging) {
+          if (plain) {
+            if (Math.hypot(me.point.x - startPoint.x, me.point.y - startPoint.y) < CLICK_SLOP_PX) return
+          } else {
+            const d = Math.hypot(me.lngLat.lng - dr.startLngLat[0], me.lngLat.lat - dr.startLngLat[1])
+            if (d < 0.00001) return
+          }
           dr.dragging = true
           map.getCanvas().style.cursor = 'grabbing'
           setFeatureDragActive(true)
@@ -593,23 +615,39 @@ export default function FeatureInteractionLayer({ map }: Props) {
         paintFrame.schedule(me.lngLat.lng, me.lngLat.lat)
       }
 
-      const onMouseup = () => {
+      const detach = () => {
+        map.off('mousemove', onMove)
+        map.off('mouseup', onUp)
+        map.off('touchmove', onTouchMove)
+        map.off('touchend', onUp)
+        map.off('touchcancel', onCancel)
+        map.off('touchstart', onSecondTouch)
+      }
+
+      // After a drag: drop the frozen hover and give the canvas its cursor back.
+      const restoreCursor = () => {
+        // A Cmd/Alt drag can run while a drawing tool is active: keep its crosshair.
+        const tc = toolCursor(uiStore.getState().editingMode)
+        // Hover was frozen during the drag: drop it and re-hit-test on the next move.
+        modifierCursor.leave(tc)
+        map.getCanvas().style.cursor = tc
+        setHoverState(map, null, hoveredIdRef.current)
+        hoveredIdRef.current = null
+        setFeatureDragActive(false)
+      }
+
+      const onUp = () => {
         paintFrame.flush()
         const dr = dragRef.current
         dragRef.current = null
+        detach()
         // Always re-enable dragPan, even if the drag threshold was never
         // crossed (i.e. plain Cmd-click on a feature with no movement).
         map.dragPan.enable()
+        restoreRotate()
 
         if (dr?.dragging) {
-          // A Cmd/Alt drag can run while a drawing tool is active: keep its crosshair.
-          const tc = toolCursor(uiStore.getState().editingMode)
-          // Hover was frozen during the drag: drop it and re-hit-test on the next move.
-          modifierCursor.leave(tc)
-          map.getCanvas().style.cursor = tc
-          setHoverState(map, null, hoveredIdRef.current)
-          hoveredIdRef.current = null
-          setFeatureDragActive(false)
+          restoreCursor()
           // Issue the modifier-drag flag so any trailing `click` that maplibre
           // synthesises (with metaKey/altKey already false because the user
           // released the modifier first) is suppressed by DrawingLayer.
@@ -634,17 +672,64 @@ export default function FeatureInteractionLayer({ map }: Props) {
             }))
           }
         }
-
-        map.off('mousemove', onMousemove)
-        map.off('mouseup', onMouseup)
       }
 
-      map.on('mousemove', onMousemove)
-      map.on('mouseup', onMouseup)
+      // A second finger (pinch) or a cancelled touch: put the shapes back, commit nothing,
+      // and hand the gesture to the map (touch zoom / rotate is never disabled).
+      const onCancel = () => {
+        paintFrame.cancel()
+        const dr = dragRef.current
+        dragRef.current = null
+        detach()
+        map.dragPan.enable()
+        restoreRotate()
+        if (dr?.dragging) {
+          paintLiveGeometries(map, dr.startCoords)
+          restoreCursor()
+        }
+      }
+      const onTouchMove = (te: MapTouchEvent) => {
+        if (te.originalEvent.touches.length > 1) { onCancel(); return }
+        // The finger owns this gesture: no page scroll / browser pan.
+        if (te.originalEvent.cancelable) te.originalEvent.preventDefault()
+        onMove(te)
+      }
+      const onSecondTouch = (te: MapTouchEvent) => { if (te.originalEvent.touches.length > 1) onCancel() }
+
+      if (touch) {
+        map.on('touchmove', onTouchMove)
+        map.on('touchend', onUp)
+        map.on('touchcancel', onCancel)
+        // MapLibre copies the listener list before firing: this sees only the next finger.
+        map.on('touchstart', onSecondTouch)
+      } else {
+        map.on('mousemove', onMove)
+        map.on('mouseup', onUp)
+      }
+      return true
+    }
+
+    const onMousedown = (e: MapMouseEvent) => {
+      // Shift is toggle-select (click) / box-select (drag), never a translate: selecting the
+      // feature here would replace the selection before the click handler can extend it.
+      if (e.originalEvent.shiftKey || e.originalEvent.button !== 0) return
+      if (dragRef.current) return
+      startDrag(e, e.originalEvent.altKey, e.originalEvent.ctrlKey || e.originalEvent.metaKey, false)
+    }
+
+    // One finger on a selected feature moves it (no modifiers on touch). Two fingers stay
+    // a pinch: MapLibre's touch zoom / rotate is never disabled here.
+    const onTouchstart = (e: MapTouchEvent) => {
+      if (dragRef.current || e.originalEvent.touches.length !== 1) return
+      startDrag(e, false, false, true)
     }
 
     map.on('mousedown', onMousedown)
-    return () => { map.off('mousedown', onMousedown) }
+    map.on('touchstart', onTouchstart)
+    return () => {
+      map.off('mousedown', onMousedown)
+      map.off('touchstart', onTouchstart)
+    }
   }, [readonly, editingMode, vertexEditActive, dataStore, uiStore, map, modifierCursor])
 
   // ── Vertex editor & Transform controls ────────────────────────────────────

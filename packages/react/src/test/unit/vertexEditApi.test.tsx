@@ -1,6 +1,7 @@
 // ref.setVertexEdit / getVertexEdit and onVertexEditChange (useAdapterControls), against the stores.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act } from '@testing-library/react'
+import { useEffect, useRef } from 'react'
+import { act, configure } from '@testing-library/react'
 import type { FeatureCollectionInput, GeoJSONFeature } from '@element-editor/core'
 import { useAdapterControls, type ElementEditorImperativeAPI, type UseAdapterControlsOptions } from '@element-editor/ui'
 import { renderWithProviders, resetStores, testDataStore, testUIStore } from '../helpers'
@@ -101,5 +102,33 @@ describe('ref.setVertexEdit', () => {
     expect(testDataStore.getState().selectedIds).toEqual(['b'])
     expect(api().getVertexEdit()).toBeNull()
     expect(onVertexEditChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('ref.setVertexEdit while the editor mounts (StrictMode re-runs effects)', () => {
+  // A host's `onReady` runs from an effect declared after the hook's (once per map, ref-guarded
+  // like the adapters' onReady). StrictMode runs the mount effects twice; the second pass must not
+  // re-apply `initialData` over the entry (a replace load clears the selection, which ends vertex edit).
+  beforeEach(() => { configure({ reactStrictMode: true }) })
+  afterEach(() => { configure({ reactStrictMode: false }) })
+  it('an entry made from a mount effect survives StrictMode and fires onVertexEditChange once', () => {
+    const onVertexEditChange = vi.fn()
+    let result: boolean | null = null
+    function Host() {
+      const api = useAdapterControls({ initialData: data, onVertexEditChange })
+      const done = useRef(false)
+      useEffect(() => {
+        if (done.current) return
+        done.current = true
+        result = api.setVertexEdit('a')
+      }, [api])
+      return null
+    }
+    renderWithProviders(<Host />)
+    expect(result).toBe(true)
+    expect(testUIStore.getState().vertexEditFeatureId).toBe('a')
+    expect(testDataStore.getState().selectedIds).toEqual(['a'])
+    expect(onVertexEditChange).toHaveBeenCalledTimes(1)
+    expect(onVertexEditChange).toHaveBeenCalledWith('a')
   })
 })

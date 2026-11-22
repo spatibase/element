@@ -374,7 +374,8 @@
     [data-elm-theme] *, [data-elm-portal] *, [data-elm-context-menu] *, [role="dialog"][aria-label="Edit feature"] *, body > .z-\[9999\] *, body > [data-rfd-draggable-id] *, .elm-feature-tooltip *) {
   :is(button)&, :is(select)&, :is([role="button"])& { cursor: pointer; }
   :is(button)&, :is([role="button"])&, :is([role="toolbar"])&, :is(nav)&, .select-none& { user-select: none; }
-  :is(button:disabled)& { cursor: not-allowed; }
+  /* Doubled :disabled lifts it over `disabled:cursor-default` (0,2,0) so it keeps beating utilities, as it did when they were layered. */
+  :is(button:disabled:disabled)& { cursor: not-allowed; }
 }
 
 /* Dialog open animation */
@@ -548,7 +549,8 @@ dialog[open]:where([data-elm-theme], [data-elm-portal], [data-elm-context-menu],
  * button (`data-elm-shortcut`, useKeyboardShortcuts), so it looks clicked: the
  * `active:scale-[0.95]` press plus a hover-like tint layered over whatever
  * background the button has (filled active tools included). */
-[data-elm-shortcut][data-pressed] {
+/* Doubled attribute: stays above `disabled:active:scale-100` (0,3,0), as when utilities were layered. */
+[data-elm-shortcut][data-pressed][data-pressed] {
   scale: 0.95;
   background-image: linear-gradient(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.08));
 }

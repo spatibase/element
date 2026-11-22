@@ -219,6 +219,7 @@ export default function MapLibreDemo() {
               {/* All panels rendered once the map + store are ready */}
               {mapReady && mapRef.current && (
                 <ElementEditorControls
+                  drawingBar={false}
                   ref={controlsRef}
                   map={mapRef.current}
                   onChange={handleChange}
