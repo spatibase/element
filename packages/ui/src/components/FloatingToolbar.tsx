@@ -179,7 +179,7 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
   // Leaving compact mode closes its popup (the inline box takes over).
   useEffect(() => { if (!searchAsIcon) setSearchPopupOpen(false) }, [searchAsIcon])
 
-  // Press feedback on the search input. We drive the CSS `press-pulse`
+  // Press feedback on the search input. We drive the CSS `elm-press-pulse`
   // animation imperatively via ref so we can RESTART it on every trigger
   // without remounting (remount would kill the input's focus/caret and
   // make the user unable to type).
@@ -193,7 +193,7 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
     // it as a fresh animation and re-runs from frame 0. Reading offsetWidth
     // is the canonical way to force a synchronous layout flush.
     void el.offsetWidth
-    el.style.animation = 'press-pulse 200ms ease-out'
+    el.style.animation = 'elm-press-pulse 200ms ease-out'
   }
 
   // Cmd+F fires even when the input is already focused — onFocus won't run
@@ -408,7 +408,7 @@ export default function FloatingToolbar({ embedded }: { embedded?: boolean } = {
                 )}
               </div>
               {!loading && !query && (
-                // Sibling of the animated row — excluded from the press-pulse scale.
+                // Sibling of the animated row — excluded from the elm-press-pulse scale.
                 // Still fades opacity+scale on focus so the hint animates out when
                 // the user starts searching.
                 <span

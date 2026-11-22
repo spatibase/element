@@ -11,9 +11,12 @@
 
 /* ── Leaflet-adapter-only rules (shared rules: ui/src/styles/shared.css) ── */
 
-/* Suppress browser focus outline on Leaflet marker/path containers */
-.leaflet-marker-icon:focus,
-.leaflet-interactive:focus { outline: none; }
+/* Suppress browser focus outline on Leaflet marker/path containers. Rules on
+ * Leaflet's own class names are scoped to the editor (`:where()`, no added
+ * specificity): the published CSS leaves `.leaflet-*` rules global, so a host's
+ * other maps would get them too. */
+.leaflet-marker-icon:focus:where([data-elm-theme] *),
+.leaflet-interactive:focus:where([data-elm-theme] *) { outline: none; }
 
 /* A pin just added under the still cursor (freshFeature.ts): one accent step darker
    instead of a snap ring, until the cursor leaves it. Beats the pin's inline fill. */
@@ -73,7 +76,7 @@ body.leaflet-dragging .leaflet-container.drawing-mode * {
 }
 
 /* Override Leaflet tooltip defaults — solid white, no transparency */
-.leaflet-tooltip {
+.leaflet-tooltip:where([data-elm-theme] *) {
   background-color: var(--elm-surface, #fff) !important;
   opacity: 1 !important;
 }
@@ -86,7 +89,7 @@ body.leaflet-dragging .leaflet-container.drawing-mode * {
 /* React unmounts Tooltip's portal children before Leaflet removes the layer,
    so the pill briefly renders empty during teardown. Hide it the moment
    it becomes empty so the user doesn't see a blank tooltip flash on ESC. */
-.leaflet-tooltip:empty {
+.leaflet-tooltip:empty:where([data-elm-theme] *) {
   display: none !important;
 }
 
