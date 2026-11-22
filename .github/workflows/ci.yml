@@ -186,5 +186,7 @@ jobs:
             packages/react/test-results/
           retention-days: 7
 
+      # Also the CSS hosts (Tailwind v3, plain CSS): their smoke run checks that Element's stylesheets
+      # leave the host's own elements exactly as they compute without them.
       - name: Example apps with maplibre-gl 5, built and loaded headless
-        run: pnpm check:examples --smoke --maplibre=5 vite-maplibre nextjs-app-router
+        run: pnpm check:examples --smoke --maplibre=5 vite-maplibre nextjs-app-router vite-tailwind3 vite-plain-css

@@ -29,7 +29,7 @@ React 18 is not supported. `@element-editor/core` and `@element-editor/ui` are i
 import '@element-editor/adapter-leaflet/style.css'
 ```
 
-It includes Leaflet's CSS (`leaflet/dist/leaflet.css`) and the data table's CSS. It doesn't reset your page: Tailwind's base styles apply only inside `[data-elm-theme]` elements and the editor's own portals.
+It includes Leaflet's CSS (`leaflet/dist/leaflet.css`) and the data table's CSS. It doesn't touch the rest of your page: its rules (Tailwind's base styles and utilities included) apply only inside `[data-elm-theme]` elements and the editor's own portals, so editor UI in a container of your own needs `data-elm-theme` on it.
 
 ---
 

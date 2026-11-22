@@ -42,7 +42,7 @@ import '@element-editor/react/style.css'
 
 The stylesheet only styles the editor. It doesn't reset your page's headings, buttons or other elements.
 
-It is plain CSS, so the import works in any setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It contains no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and its rules are scoped to the editor (the element with `data-elm-theme` and Element's portals), so your own unlayered CSS stays in charge of the rest of the page.
+It is plain CSS, so the import works in any setup: Vite, webpack, Next.js, with or without Tailwind (including Tailwind v3), or a CSS `@import`. It contains no `@layer`, `@tailwind` or `@apply` directives for your build to reinterpret, and every Element rule (utilities included) only matches inside the editor (the element with `data-elm-theme` and Element's portals), so it can't override your own classes elsewhere on the page, even ones with the same names (`hidden`, `absolute`, `md:flex`, …). The bundled map library CSS (`.maplibregl-*`, or `.leaflet-*` in the Leaflet stylesheet) stays global, as when you import it yourself.
 
 ---
 
