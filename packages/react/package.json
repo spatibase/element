@@ -1,6 +1,6 @@
 {
   "name": "@element-editor/react",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Drop-in React map editor: one component with drawing tools, vertex editing, snapping, a data table and a GeoJSON inspector, on MapLibre GL or Leaflet.",
   "keywords": [
     "element-editor",

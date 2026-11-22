@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+---
+
+## [0.3.1] — 2026-11-22
+
 ### Added
 
 - **Headless hosts get the drawing bar: new `drawingBar` prop.** Both adapters' `<ElementEditorControls />` now show the drawing bar (hint plus Done / Undo point / Cancel on touch) at the bottom centre of the map while a drawing tool is on, so a host with its own toolbar and tools driven by `ref.setTool` can finish a shape by touch. Its presses never reach the map, so tapping Done adds no point. Pass `drawingBar={false}` if your own UI replaces it (for example you render `<ActiveDrawingToolbar />` yourself, as in the custom-UI guide; do that to avoid two bars). `<ElementEditor />` is unchanged. The bar loads on demand, so a headless host's initial bundle barely grows. See [Custom UI with adapters](docs/guides/custom-ui-with-adapters.md#the-drawing-bar).
