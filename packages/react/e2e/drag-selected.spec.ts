@@ -103,6 +103,33 @@ test.describe('Plain drag on a selected feature', () => {
     expect(after.undo).toBe(before.undo + 1)
   })
 
+  // MapLibre's own dragRotate takes Ctrl+left-drag (Windows/Linux); Element must own the gesture
+  // when it starts on a feature. ControlOrMeta hides this on macOS (and Chrome there remaps a real
+  // Ctrl+click to a right click), so send DOM mouse events with ctrlKey set explicitly.
+  test('Ctrl-drag moves an unselected feature and does not rotate the map', async ({ page }) => {
+    const before = await state(page, 'ar')
+    const from = await pressPoint(page, 'ar')
+    const bearing = () => page.evaluate(() => (window.__elementEditorTest!.map as { getBearing?: () => number }).getBearing?.() ?? 0)
+    const b0 = await bearing()
+    await page.keyboard.down('Control')
+    await page.mouse.move(from.x, from.y) // hover first: canvas hit testing happens on mousemove
+    await page.evaluate(async ({ x, y }) => {
+      const target = document.elementFromPoint(x, y)!
+      const ev = (type: string, px: number, py: number, buttons: number) =>
+        new MouseEvent(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, button: 0, buttons, ctrlKey: true, view: window })
+      target.dispatchEvent(ev('mousedown', x, y, 1))
+      for (let i = 1; i <= 8; i++) {
+        target.dispatchEvent(ev('mousemove', x + (60 * i) / 8, y + (40 * i) / 8, 1))
+        await new Promise((r) => requestAnimationFrame(r))
+      }
+      target.dispatchEvent(ev('mouseup', x + 60, y + 40, 0))
+    }, from)
+    await page.keyboard.up('Control')
+    await expect.poll(async () => (await state(page, 'ar')).coords).not.toBe(before.coords)
+    expect(await bearing()).toBe(b0)
+    expect((await state(page, 'ar')).undo).toBe(before.undo + 1)
+  })
+
   test('a drag on one feature of a multi-selection moves them all (one undo step)', async ({ page }) => {
     await storeCaller(page)('setSelection', ['ar', 'ar2'])
     await page.waitForTimeout(250)

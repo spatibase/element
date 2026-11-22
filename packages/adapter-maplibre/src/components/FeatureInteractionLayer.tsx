@@ -522,6 +522,11 @@ export default function FeatureInteractionLayer({ map }: Props) {
       // (Touch: this runs from MapLibre's own touchstart event, before its touch-pan
       // handler sees the touch, so one finger on a selected feature doesn't pan either.)
       map.dragPan.disable()
+      // MapLibre also rotates the map on Ctrl+left-drag (Windows/Linux). A Ctrl-drag that
+      // starts on a feature belongs to Element, so rotate is off for the gesture too.
+      const rotateWasOn = map.dragRotate.isEnabled()
+      if (rotateWasOn) map.dragRotate.disable()
+      const restoreRotate = () => { if (rotateWasOn) map.dragRotate.enable() }
 
       dragRef.current = {
         featureIds: idsToMove,
@@ -639,6 +644,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
         // Always re-enable dragPan, even if the drag threshold was never
         // crossed (i.e. plain Cmd-click on a feature with no movement).
         map.dragPan.enable()
+        restoreRotate()
 
         if (dr?.dragging) {
           restoreCursor()
@@ -676,6 +682,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
         dragRef.current = null
         detach()
         map.dragPan.enable()
+        restoreRotate()
         if (dr?.dragging) {
           paintLiveGeometries(map, dr.startCoords)
           restoreCursor()
