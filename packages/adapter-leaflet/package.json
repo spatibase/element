@@ -1,6 +1,6 @@
 {
   "name": "@element-editor/adapter-leaflet",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Add drawing, vertex editing, snapping and GeoJSON data editing to an existing Leaflet / react-leaflet map.",
   "keywords": [
     "element-editor",

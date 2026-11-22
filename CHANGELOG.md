@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+---
+
+## [0.3.2] — 2026-11-22
+
 ### Added
 
 - **Drawing bar placement.** `drawingBar` on both adapters' `<ElementEditorControls />` also takes `{ container }`: the bar then renders in your own element (a slot under a small map), full width and static, instead of over the map (`container: null` shows nothing until the element is set). New public CSS variables `--elm-drawing-bar-bottom` and `--elm-drawing-bar-inset-x` position the in-map bar, for example above your own control cluster.
