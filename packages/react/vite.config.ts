@@ -4,10 +4,28 @@ import tailwindcss from '@tailwindcss/vite'
 import dts from 'vite-plugin-dts'
 import { resolve, isAbsolute } from 'path'
 import { existsSync } from 'fs'
+import { createRequire } from 'module'
 
 // maplibre-gl 6 ships its worker as a separate file; 5 inlines it. The dev page's ?worker=local
 // (WebKit e2e) imports it through this id, which resolves to an empty stub on maplibre-gl 5.
-const MAPLIBRE_WORKER_FILE = resolve(__dirname, 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs')
+// Resolved like any import from this package (pnpm may not link it under packages/react/node_modules).
+const MAPLIBRE_WORKER_FILE = (() => {
+  try { return resolve(createRequire(__filename).resolve('maplibre-gl/package.json'), '../dist/maplibre-gl-worker.mjs') } catch { return '' }
+})()
+
+/** Dev page only: `dev:maplibre-worker-url` = maplibre-gl 6's worker file URL, or '' on maplibre-gl 5 (worker inlined). */
+function maplibreWorkerUrl() {
+  const id = 'dev:maplibre-worker-url'
+  return {
+    name: 'element-dev-maplibre-worker-url',
+    resolveId: (source: string) => (source === id ? '\0' + id : null),
+    load: (resolved: string) => resolved === '\0' + id
+      ? (MAPLIBRE_WORKER_FILE && existsSync(MAPLIBRE_WORKER_FILE)
+        ? "export { default } from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'"
+        : "export default ''")
+      : null,
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
@@ -30,10 +48,6 @@ export default defineConfig(({ command }) => ({
           // Must be aliased together with core: a dist copy of the internal entry would carry its own
           // module state (shortcut cache, geometry runner) next to the src one.
           { find: /^@element-editor\/core\/internal$/, replacement: resolve(__dirname, '../core/src/internal.ts') },
-          {
-            find: /^dev:maplibre-worker-url$/,
-            replacement: existsSync(MAPLIBRE_WORKER_FILE) ? 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url' : resolve(__dirname, 'src/devNoWorkerUrl.ts'),
-          },
         ]
       : [],
   },
@@ -44,12 +58,13 @@ export default defineConfig(({ command }) => ({
   optimizeDeps: { entries: ['index.html', '../ui/src/workers/*.ts'] },
   plugins: [
     react(),
+    ...(command === 'serve' ? [maplibreWorkerUrl()] : []),
     tailwindcss(),
     dts({
       tsconfigPath: './tsconfig.app.json',
       insertTypesEntry: true,
       include: ['src/**/*.ts', 'src/**/*.tsx'],
-      exclude: ['src/test/**', 'src/App.tsx', 'src/main.tsx', 'src/devNoWorkerUrl.ts'],
+      exclude: ['src/test/**', 'src/App.tsx', 'src/main.tsx'],
     }),
   ],
   build: {
