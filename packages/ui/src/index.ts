@@ -55,6 +55,8 @@ export { FeatureMapContextMenu } from './components/FeatureMapContextMenu'
 export type { FeatureContextMenuData } from './components/FeatureMapContextMenu'
 export { default as UndoRedoToolbar } from './components/UndoRedoToolbar'
 export { UndoButton, RedoButton, ControlGroup } from './components/UndoRedoToolbar'
+// The adapters' own drawing bar (portaled into the map container); lazy, so a headless host pays for it only while drawing.
+export const MapDrawingBar = /*#__PURE__*/ lazyWithPreload(() => import('./components/MapDrawingBar'))
 export { default as ActiveDrawingToolbar } from './components/ActiveDrawingToolbar'
 export { default as FitBoundsButton } from './components/FitBoundsButton'
 export { default as ZoomIndicator } from './components/ZoomIndicator'

@@ -83,7 +83,7 @@ export default memo(function MapView({ tileLayer, renderer, getFeatureStyle, att
   // Same element while its props hold, so a new `tileLayer` element (host JSX)
   // doesn't re-render the controls, which draw every feature.
   const controls = useMemo(
-    () => <ElementEditorControls readonly={readonly} bounds={bounds} renderer={renderer} getFeatureStyle={getFeatureStyle} onReady={onReady} />,
+    () => <ElementEditorControls drawingBar={false} readonly={readonly} bounds={bounds} renderer={renderer} getFeatureStyle={getFeatureStyle} onReady={onReady} />,
     [readonly, bounds, renderer, getFeatureStyle, onReady],
   )
 

@@ -61,6 +61,14 @@ Shortcuts are scoped to the editor they belong to: a key press acts on an editor
 
 ---
 
+## The drawing bar
+
+While a drawing tool is on, `ElementEditorControls` shows the drawing bar itself, bottom centre of the map: the hint, and on a touch screen **Done**, **Undo point** and **Cancel**. A host that only mounts the controls (own toolbar, tools driven by `ref.setTool`) therefore needs nothing extra to finish a shape by touch. The bar sits inside the map container, above the phone's home indicator, and its presses never reach the map, so tapping **Done** adds no point.
+
+To replace it, pass `drawingBar={false}` and render `<ActiveDrawingToolbar />` in your layout (as the examples below do) or build your own. A bar of your own over the map needs to stop `mousedown`, `touchstart`, `click` and `dblclick` from reaching it, or taps on it become map clicks.
+
+---
+
 ## Leaflet pattern
 
 With react-leaflet, `ElementEditorControls` must be a **child of `MapContainer`** (it uses `useMap()` internally). The `@element-editor/ui` panels are ordinary HTML overlays, so render them **outside `MapContainer`**, as siblings of the map inside one positioning wrapper. Inside `MapContainer` they would sit in Leaflet's map container, where Leaflet handles their clicks, drags and scrolls as map gestures.
@@ -160,6 +168,7 @@ export default function MyLeafletMap() {
               {/* ElementEditorControls MUST be inside MapContainer. */}
               {mapReady && (
                 <ElementEditorControls
+                  drawingBar={false} // the layout below mounts its own <ActiveDrawingToolbar />
                   ref={controlsRef}
                   onChange={handleChange}
                 />
@@ -330,6 +339,7 @@ export default function MyMapLibreMap() {
             */}
             {mapReady && mapRef.current && (
               <ElementEditorControls
+                drawingBar={false}
                 ref={controlsRef}
                 map={mapRef.current}
                 onChange={handleChange}

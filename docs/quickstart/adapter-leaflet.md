@@ -212,7 +212,7 @@ export default function MyMap() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {mapReady && <ElementEditorControls onChange={(data) => console.log(data)} />}
+              {mapReady && <ElementEditorControls drawingBar={false} onChange={(data) => console.log(data)} />}
             </MapContainer>
 
             {/* UI panels — outside MapContainer, positioned absolutely over the map */}

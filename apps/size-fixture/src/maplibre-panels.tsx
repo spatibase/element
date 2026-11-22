@@ -40,7 +40,7 @@ function App() {
           <div data-elm-theme="light" style={{ position: 'relative', height: 600, overflow: 'hidden' }}>
             <div ref={el} style={{ height: '100%' }} />
             {ready && mapRef.current && (
-              <ElementEditorControls ref={ref} map={mapRef.current}>
+              <ElementEditorControls ref={ref} map={mapRef.current} drawingBar={false}>
                 <FloatingToolbar />
                 <EditingToolbar />
                 <ActiveDrawingToolbar />

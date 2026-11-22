@@ -268,6 +268,7 @@ export default function MyMap() {
             {/* ElementEditor + UI — children of ElementEditorControls get the map controller */}
             {mapReady && mapRef.current && (
               <ElementEditorControls
+                drawingBar={false}
                 map={mapRef.current}
                 onChange={(data) => console.log(data)}
               >
