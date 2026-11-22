@@ -122,6 +122,13 @@ test.describe('Touch', () => {
     expect((await ring(page)).length).toBe(4) // 3 points, closed
   })
 
+  test('the drop-in shows exactly one drawing bar (the shell\'s, not the controls\')', async ({ page }) => {
+    await page.getByRole('button', { name: 'Area' }).tap()
+    await expect(page.getByRole('button', { name: 'Exit' })).toHaveCount(1)
+    await expect(page.locator('[data-elm-hint]')).toHaveCount(1)
+    await expect(page.locator('[data-elm-drawing-bar]')).toHaveCount(0)
+  })
+
   test('tapping the first point closes an area', async ({ page }) => {
     const b = await mapBox(page)
     const cx = b.x + b.width / 2, cy = b.y + b.height / 2

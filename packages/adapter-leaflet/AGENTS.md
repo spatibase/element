@@ -41,7 +41,7 @@ export default function MyMap({ data }: { data: FeatureCollection | null }) {
           {/* react-leaflet: center is [lat, lng] */}
           <MapContainer center={[48.86, 2.35]} zoom={5} style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-            <ElementEditorControls ref={editorRef} initialData={data} onChange={(fc) => console.log(fc)} />
+            <ElementEditorControls drawingBar={false} ref={editorRef} initialData={data} onChange={(fc) => console.log(fc)} />
           </MapContainer>
           <FloatingToolbar />
           {/* Not self-positioned: place them yourself (bottom centre here) */}

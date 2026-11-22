@@ -8,6 +8,7 @@ What changed in Element, release by release, and what it means for you and the p
 
 ### Added
 
+- **Headless hosts get the drawing bar: new `drawingBar` prop.** Both adapters' `<ElementEditorControls />` now show the drawing bar (hint plus Done / Undo point / Cancel on touch) at the bottom centre of the map while a drawing tool is on, so a host with its own toolbar and tools driven by `ref.setTool` can finish a shape by touch. Its presses never reach the map, so tapping Done adds no point. Pass `drawingBar={false}` if your own UI replaces it (for example you render `<ActiveDrawingToolbar />` yourself, as in the custom-UI guide; do that to avoid two bars). `<ElementEditor />` is unchanged. The bar loads on demand, so a headless host's initial bundle barely grows. See [Custom UI with adapters](docs/guides/custom-ui-with-adapters.md#the-drawing-bar).
 - **`autoExitAfterDraw` prop: one shape at a time.** Pass `autoExitAfterDraw` to `<ElementEditor />` (both engines) or either adapter's `<ElementEditorControls />` and every drawing tool turns off after a finished shape; the new shape is selected and `onToolChange(null)` fires once. `false` keeps tools on. The prop wins over the user's saved setting without overwriting it, and the "Return to select after each shape" Settings toggle (and `Cmd+J`) becomes read-only with a "Set by the app" note. Unset keeps today's behaviour. Core: `uiStore.autoExitLocked`, `setAutoExitProp`. See [Drawing tools](docs/tools/drawing-tools.md).
 
 ### Changed

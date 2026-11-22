@@ -172,6 +172,7 @@ export default function LeafletDemo() {
                 />
                 {mapReady && (
                   <ElementEditorControls
+                    drawingBar={false}
                     ref={controlsRef}
                     onChange={handleChange}
                   />

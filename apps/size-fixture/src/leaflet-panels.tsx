@@ -32,7 +32,7 @@ function App() {
           <div data-elm-theme="light" style={{ position: 'relative', height: 600, overflow: 'hidden' }}>
             <MapContainer center={[48.86, 2.35]} zoom={5} whenReady={() => setReady(true)}>
               <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {ready && <ElementEditorControls ref={ref} />}
+              {ready && <ElementEditorControls ref={ref} drawingBar={false} />}
             </MapContainer>
             {ready && (
               <>

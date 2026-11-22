@@ -27,14 +27,14 @@ export default defineConfig<{ engine: Engine }>({
       // packages/react's own dev app (src/App.tsx) on the Leaflet drop-in. Specs import `test` from
       // e2e/fixtures.ts, whose `engine` option appends `engine=` to every dev-page URL.
       name: 'chromium',
-      testIgnore: /maplibre\.spec\.ts/,
+      testIgnore: /(maplibre|headless-drawing-bar)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], engine: 'leaflet' },
     },
     {
       // Same server and specs on the MapLibre drop-in (`?engine=maplibre`). Engine-specific specs
       // skip themselves with `test.skip(({ engine }) => ...)`.
       name: 'chromium-maplibre',
-      testIgnore: /maplibre\.spec\.ts/,
+      testIgnore: /(maplibre|headless-drawing-bar)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], engine: 'maplibre' },
     },
     {
@@ -43,6 +43,11 @@ export default defineConfig<{ engine: Engine }>({
       name: 'demo-maplibre',
       testMatch: /maplibre\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${DEMO_PORT}` },
+    },
+    {
+      // Headless hosts (apps/demo `?headless=<engine>`): the adapter controls alone; Pixel 7 is set in the spec.
+      name: 'demo-headless',
+      testMatch: /headless-drawing-bar\.spec\.ts/,
     },
   ],
   webServer: [

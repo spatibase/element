@@ -155,6 +155,7 @@ export default memo(function MapLibreMapView({ basemap, themeMode, attributionTa
         <ElementEditorControls
           map={map}
           readonly={readonly}
+          drawingBar={false}
           getFeatureStyle={getFeatureStyle}
           maxBounds={bounds ?? null} // uiStore holds a bbox, which MapLibre takes as-is
           onReady={onReady}
