@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import dts from 'vite-plugin-dts'
 import { resolve, isAbsolute } from 'path'
+import { existsSync } from 'fs'
+
+// maplibre-gl 6 ships its worker as a separate file; 5 inlines it. The dev page's ?worker=local
+// (WebKit e2e) imports it through this id, which resolves to an empty stub on maplibre-gl 5.
+const MAPLIBRE_WORKER_FILE = resolve(__dirname, 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs')
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
@@ -25,6 +30,10 @@ export default defineConfig(({ command }) => ({
           // Must be aliased together with core: a dist copy of the internal entry would carry its own
           // module state (shortcut cache, geometry runner) next to the src one.
           { find: /^@element-editor\/core\/internal$/, replacement: resolve(__dirname, '../core/src/internal.ts') },
+          {
+            find: /^dev:maplibre-worker-url$/,
+            replacement: existsSync(MAPLIBRE_WORKER_FILE) ? 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url' : resolve(__dirname, 'src/devNoWorkerUrl.ts'),
+          },
         ]
       : [],
   },
@@ -40,7 +49,7 @@ export default defineConfig(({ command }) => ({
       tsconfigPath: './tsconfig.app.json',
       insertTypesEntry: true,
       include: ['src/**/*.ts', 'src/**/*.tsx'],
-      exclude: ['src/test/**', 'src/App.tsx', 'src/main.tsx'],
+      exclude: ['src/test/**', 'src/App.tsx', 'src/main.tsx', 'src/devNoWorkerUrl.ts'],
     }),
   ],
   build: {
