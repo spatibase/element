@@ -65,6 +65,20 @@ Shortcuts are scoped to the editor they belong to: a key press acts on an editor
 
 While a drawing tool is on, `ElementEditorControls` shows the drawing bar itself, bottom centre of the map: the hint, and on a touch screen **Done**, **Undo point** and **Cancel**. A host that only mounts the controls (own toolbar, tools driven by `ref.setTool`) therefore needs nothing extra to finish a shape by touch. The bar sits inside the map container, above the phone's home indicator, and its presses never reach the map, so tapping **Done** adds no point.
 
+### Placement
+
+- **Lift it.** The bar sits 16 px above the bottom of the map (plus the phone's safe area). Set `--elm-drawing-bar-bottom` on the editor root, on your wrapper or on any ancestor of the map to move it, for example above your own control cluster in the bottom-left corner. `--elm-drawing-bar-inset-x` sets the space it keeps from the left and right edges (default `1rem`).
+- **A slot of your own.** Pass `drawingBar={{ container }}` with an element you own (a strip under a small form-field map, say) and the bar renders there instead of over the map: static, the full width of that element, with the same theme and dark mode. While `container` is `null` (your ref isn't set yet) nothing shows, so the bar never flashes in the map first. Presses on it never reach the map or your own handlers up the tree.
+- **Narrow maps.** When the map container (or your slot) is narrower than 420 px, the bar switches to a compact layout on its own: the hint on one line, cut with an ellipsis (the full text is in its `title`), the buttons on one row and, for a finger, 44 px tall. Wider maps are unchanged.
+
+```tsx check=false
+const [slot, setSlot] = useState<HTMLDivElement | null>(null)
+
+// ...in the render:
+<ElementEditorControls map={map} drawingBar={{ container: slot }} />
+<div ref={setSlot} /> {/* the bar renders here */}
+```
+
 To replace it, pass `drawingBar={false}` and render `<ActiveDrawingToolbar />` in your layout (as the examples below do) or build your own. A bar of your own over the map needs to stop `mousedown`, `touchstart`, `click` and `dblclick` from reaching it, or taps on it become map clicks.
 
 ---

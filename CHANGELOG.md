@@ -6,6 +6,14 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **Drawing bar placement.** `drawingBar` on both adapters' `<ElementEditorControls />` also takes `{ container }`: the bar then renders in your own element (a slot under a small map), full width and static, instead of over the map (`container: null` shows nothing until the element is set). New public CSS variables `--elm-drawing-bar-bottom` and `--elm-drawing-bar-inset-x` position the in-map bar, for example above your own control cluster.
+
+### Changed
+
+- **The drawing bar is compact on narrow maps.** When the map (or slot) is narrower than 420 px the bar shows the hint on one line with an ellipsis, the buttons on one row and, for a finger, 44 px tall, instead of wrapping to three lines and covering the host's controls. The drop-in editor's bar benefits too; wider maps are unchanged.
+
 ### Fixed
 
 - **Element's stylesheets no longer restyle the rest of your page.** Since 0.3.1 the published CSS is unlayered, and its Tailwind utilities (`.hidden`, `.absolute`, `.relative`, `.fixed`, `.sr-only`, `.inset-0`, `.z-10`, responsive and state variants…) and theme variables were global. Loaded after your own CSS, they overrode your classes of the same name on your own elements: a host's `hidden md:flex` stayed hidden, panes grew to the wrong width. Every Element rule now matches only inside the `data-elm-theme` element and Element's portals, with the same specificity as before, so the editor looks exactly as in 0.3.1 and your page looks as it does without Element. The theme variables (`--color-*`, `--spacing`, `--font-*`…) are set on the editor root instead of `:root`, so a Tailwind v4 host's own theme is no longer overridden either. The bundled `leaflet.css`, `maplibre-gl.css` and data-grid styles stay global, as when you import them yourself; Element's keyframes are renamed `elm-*`. Editor UI you render in a container of your own outside the editor root needs a `data-elm-theme` (or `data-elm-portal`) attribute on it.

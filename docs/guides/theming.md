@@ -305,6 +305,15 @@ For a change no token covers, write CSS against Element's markup under your own 
 
 > **Warning:** Element's class names are Tailwind utilities and can change in any release. Prefer the tokens, and pin your Element version if you depend on markup.
 
+### Drawing bar placement
+
+Two more public variables place the drawing bar that adapter hosts get from `ElementEditorControls` (see [Custom UI with adapters](./custom-ui-with-adapters.md#the-drawing-bar)). Set them on the editor root or any ancestor of the map; unlike the colour tokens they are layout inputs, so changing them does not restyle anything else.
+
+| Variable | Used for | Default |
+|---|---|---|
+| `--elm-drawing-bar-bottom` | Distance from the bottom of the map to the bar (the phone's safe area is added). Raise it to clear your own controls | `16px` |
+| `--elm-drawing-bar-inset-x` | Space between the bar and the left and right edges of the map | `1rem` |
+
 ### Row highlight colours
 
 The layers list and the data table share one set of row colours, defined per mode on `[data-elm-theme="light"]` and `[data-elm-theme="dark"]`. Override them there (they must be opaque, because the table's pinned delete column paints over scrolling content):
