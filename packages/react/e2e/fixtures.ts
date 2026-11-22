@@ -59,7 +59,7 @@ export function withEngine(url: string, engine: Engine): string {
 
 export const test = base.extend<{ engine: Engine }>({
   engine: ['leaflet', { option: true }],
-  page: async ({ page, engine }, use) => {
+  page: async ({ page, engine, browserName }, use) => {
     await page.route(OFFLINE, (r) =>
       /\.png(\?|$)/.test(r.request().url())
         ? r.fulfill({ contentType: 'image/png', body: PIXEL })
@@ -84,7 +84,9 @@ export const test = base.extend<{ engine: Engine }>({
     // long before any spec presses a key; specs still use `waitForEvent('filechooser')`.
     page.on('filechooser', () => {})
     const goto = page.goto.bind(page)
-    page.goto = (url, opts) => goto(withEngine(url, engine), opts)
+    // WebKit: Playwright cannot route a worker script, so the dev page serves MapLibre's worker itself.
+    const local = (u: string) => browserName !== 'webkit' || /^https?:|[?&]worker=/.test(u) ? u : u + (u.includes('?') ? '&' : '?') + 'worker=local'
+    page.goto = (url, opts) => goto(local(withEngine(url, engine)), opts)
     await use(page)
   },
 })

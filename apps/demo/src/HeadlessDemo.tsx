@@ -34,6 +34,12 @@ export default function HeadlessDemo({ engine, drawingBar }: { engine: 'leaflet'
   const [leafletReady, setLeafletReady] = useState(false)
   // A host's own handler up the tree: a press on the bar must not reach it either.
   const [hostClicks, setHostClicks] = useState(0)
+  // e2e drives the controls' ref directly (setVertexEdit, …), as a host's own toolbar would.
+  useEffect(() => {
+    const w = window as unknown as { __elementEditorRef?: unknown }
+    w.__elementEditorRef = ref.current
+    return () => { delete w.__elementEditorRef }
+  })
 
   useEffect(() => {
     if (engine !== 'maplibre' || !el.current) return

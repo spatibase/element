@@ -56,7 +56,8 @@ jobs:
   # Playwright e2e, sharded. ~1070 tests (every spec on both drop-in engines + the demo) are split
   # across parallel jobs; public-repo runners have 4 vCPUs, so Playwright runs 2 workers per shard.
   # Each shard builds on its own (~1.2 min overhead): the dev servers load packages/*/dist.
-  # Projects: chromium (Leaflet drop-in), chromium-maplibre (MapLibre drop-in), demo-maplibre (apps/demo).
+  # Projects: chromium (Leaflet drop-in), chromium-maplibre (MapLibre drop-in), demo-maplibre (apps/demo),
+  # demo-headless (apps/demo ?headless=). The WebKit projects run in their own job (e2e-webkit).
   e2e:
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
@@ -90,7 +91,7 @@ jobs:
         run: pnpm --filter @element-editor/react exec playwright install --with-deps chromium
 
       - name: E2E tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-        run: pnpm --filter @element-editor/react test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: pnpm --filter @element-editor/react test:e2e --project=chromium --project=chromium-maplibre --project=demo-maplibre --project=demo-headless --shard=${{ matrix.shard }}/${{ strategy.job-total }}
         env:
           CI: true
 
@@ -99,6 +100,48 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report-${{ matrix.shard }}
+          path: |
+            packages/react/playwright-report/
+            packages/react/test-results/
+          retention-days: 7
+
+  # WebKit (Desktop Safari) on the pointer-interaction specs only (playwright.config.ts WEBKIT_SPECS:
+  # point editing, drag of a selection, click-select, drawing) on both drop-in engines and the headless
+  # host page. ~130 tests, one job; catches engine differences in mouse/click event order.
+  e2e-webkit:
+    name: e2e (WebKit interaction set)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5 # pnpm version from package.json "packageManager"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Install Playwright WebKit
+        run: pnpm --filter @element-editor/react exec playwright install --with-deps webkit
+
+      - name: E2E tests (WebKit)
+        run: pnpm --filter @element-editor/react test:e2e --project=webkit --project=webkit-maplibre --project=webkit-headless
+        env:
+          CI: true
+
+      - name: Upload E2E report and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-webkit
           path: |
             packages/react/playwright-report/
             packages/react/test-results/

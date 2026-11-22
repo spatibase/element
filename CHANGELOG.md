@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Fixed
+
+- **Leaflet: dragging a point in point editing could be dropped.** When anything re-rendered the point editor mid-drag (most often the cursor leaving an edge's hover band), the dragged handle jumped back to its old spot; the release then committed nothing and the click after it ended point editing. It depended on timing, so it showed up more in WebKit and after a pause. Handles now keep their position through re-renders, the hovered edge is frozen during a point drag, and the click that ends a point or midpoint drag never ends point editing.
+
 ---
 
 ## [0.3.2] — 2026-11-22
