@@ -176,6 +176,8 @@ export function VertexEditor({
   // the dragging marker as soon as the cursor pulled away from the original
   // edge, leaving the user with a "stuck" half-finished drag.
   const midpointDragLockRef = useRef<number | null>(null)
+  // True while a point handle is dragged: the hovered edge stays put (no re-render mid-drag).
+  const pointDragRef = useRef(false)
   const originalLayerRef = useRef<L.Polygon | L.Polyline | null>(null)
   const suppressExitUntilRef = useRef(0)
   // Vertex / midpoint marker drags run snap + preview at most once per
@@ -238,7 +240,7 @@ export function VertexEditor({
       // Don't update while the user is dragging a midpoint — the cursor moves
       // away from the source edge during the drag, and re-evaluating would
       // unmount the dragging marker mid-gesture.
-      if (midpointDragLockRef.current !== null) return
+      if (midpointDragLockRef.current !== null || pointDragRef.current) return
       const { idx: bestIdx, px: bestDist } = nearestEdge(e.latlng)
       const isHovered = lastReportedEdgeRef.current !== null
       const threshold = isHovered ? EDGE_HOVER_EXIT_PX : EDGE_HOVER_ENTER_PX
@@ -246,7 +248,7 @@ export function VertexEditor({
       else setEdge(null)
     },
     mouseout: () => {
-      if (midpointDragLockRef.current !== null) return
+      if (midpointDragLockRef.current !== null || pointDragRef.current) return
       setEdge(null)
     },
   })
@@ -786,7 +788,7 @@ export function VertexEditor({
     if (added) visibleVertexIndices = [...visibleVertexIndices].sort((a, b) => a - b)
   }
 
-  const midpoints: { index: number; coord: [number, number] }[] = []
+  const midpoints: { index: number; coord: [number, number]; position: [number, number] }[] = []
   if (!readonly) {
     const n = isPolygon ? coords.length : coords.length - 1
     // A Mercator midpoint is the plain average of the endpoints' Mercator x,y, so cull
@@ -799,12 +801,19 @@ export function VertexEditor({
       if (x >= west && x <= east && y >= south && y <= north) { inView.push(i); xyAll.push(x, y) }
     }
     const picked = strideByDistance(inView, xyAll, MAX_VISIBLE_MARKERS)
-    for (const i of picked) midpoints.push({ index: i, coord: mercatorMidpoint(coords[i], coords[(i + 1) % coords.length]) })
+    for (const i of picked) {
+      const coord = mercatorMidpoint(coords[i], coords[(i + 1) % coords.length])
+      midpoints.push({ index: i, coord, position: toLeaflet(coord) })
+    }
   }
   return { visibleVertexIndices, midpoints }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- coords/isPolygon derive from feature.geometry
   }, [feature.geometry, merc, viewTick, readonly, selectedSet, map])
 
+  // Marker positions must keep their identity between renders: react-leaflet calls setLatLng whenever
+  // the `position` prop is a new array, and a re-render during a drag (hovered edge, drag flag, host
+  // state) would put the dragged handle back on its old spot, so dragend read the old position and the
+  // drag committed nothing (the trailing click then landed on the map and ended point editing).
   const leafletCoords = useMemo(() => coords.map(toLeaflet), [feature.geometry]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Render ---
@@ -830,7 +839,7 @@ export function VertexEditor({
       {!readonly && midpoints.filter((mp) => touch || mp.index === hoveredEdgeIndex).map((mp) => (
         <Marker
           key={`mid-${mp.coord[0].toFixed(8)},${mp.coord[1].toFixed(8)}`}
-          position={toLeaflet(mp.coord)}
+          position={mp.position}
           icon={MIDPOINT_ICON}
           draggable
           eventHandlers={{
@@ -845,6 +854,7 @@ export function VertexEditor({
             },
             drag: (e) => dragFrame.schedule(() => handleMidpointDrag(mp.index, e)),
             dragend: (e) => {
+              suppressExitUntilRef.current = Date.now() + 200
               dragFrame.flush()
               handleMidpointDragEnd(mp.index, e)
               midpointDragLockRef.current = null
@@ -859,11 +869,12 @@ export function VertexEditor({
         return (
         <Marker
           key={`v-${coord[0].toFixed(8)},${coord[1].toFixed(8)}-${i}`}
-          position={toLeaflet(coord)}
+          position={leafletCoords[i]}
           icon={selectedSet.has(i) ? VERTEX_ICON_SELECTED : VERTEX_ICON_DEFAULT}
           draggable={!readonly}
           eventHandlers={{
             dragstart: () => {
+              pointDragRef.current = true
               dataStore.getState().takeSnapshot()
               hideMidpointMarkers()
               initTopoNeighbors(coords[i])
@@ -872,7 +883,15 @@ export function VertexEditor({
               setFeatureDragActive(true)
             },
             drag: (e) => dragFrame.schedule(() => handleDrag(i, e)),
-            dragend: (e) => { dragFrame.flush(); handleDragEnd(i, e); setFeatureDragActive(false) },
+            dragend: (e) => {
+              pointDragRef.current = false
+              // The click after the drag may land beside the handle (snapping, a slow frame): it is
+              // part of the drag, not a "click on the map" that ends point editing.
+              suppressExitUntilRef.current = Date.now() + 200
+              dragFrame.flush()
+              handleDragEnd(i, e)
+              setFeatureDragActive(false)
+            },
             click: (e) => {
               if (longPressRef.current.get(e.target as LMarker)?.fired()) return // the long-press opened the menu
               handleVertexClick(i, e as unknown as LeafletMouseEvent)
