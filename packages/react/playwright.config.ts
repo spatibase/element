@@ -10,6 +10,8 @@ const DEMO_PORT = Number(process.env.E2E_DEMO_PORT ?? 5199)
 // silently reused via reuseExistingServer and the suite would test the wrong app.
 const PORT = Number(process.env.E2E_PORT ?? 5196)
 
+const WEBKIT_SPECS = /(vertex-editing|vertex-edit-api|edge-drag-insert|drag-selected|click-select|drawing)\.spec\.ts/
+
 export default defineConfig<{ engine: Engine }>({
   testDir: './e2e',
   fullyParallel: true,
@@ -27,14 +29,14 @@ export default defineConfig<{ engine: Engine }>({
       // packages/react's own dev app (src/App.tsx) on the Leaflet drop-in. Specs import `test` from
       // e2e/fixtures.ts, whose `engine` option appends `engine=` to every dev-page URL.
       name: 'chromium',
-      testIgnore: /(maplibre|headless-drawing-bar)\.spec\.ts/,
+      testIgnore: /(maplibre|headless-[\w-]+)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], engine: 'leaflet' },
     },
     {
       // Same server and specs on the MapLibre drop-in (`?engine=maplibre`). Engine-specific specs
       // skip themselves with `test.skip(({ engine }) => ...)`.
       name: 'chromium-maplibre',
-      testIgnore: /(maplibre|headless-drawing-bar)\.spec\.ts/,
+      testIgnore: /(maplibre|headless-[\w-]+)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], engine: 'maplibre' },
     },
     {
@@ -47,7 +49,25 @@ export default defineConfig<{ engine: Engine }>({
     {
       // Headless hosts (apps/demo `?headless=<engine>`): the adapter controls alone; Pixel 7 is set in the spec.
       name: 'demo-headless',
-      testMatch: /headless-drawing-bar\.spec\.ts/,
+      testMatch: /headless-[\w-]+\.spec\.ts/,
+    },
+    // WebKit (Desktop Safari) on the pointer-interaction specs only: point editing (drag, insert, delete,
+    // ref entry), plain drag on a selection, click-select and drawing, for both engines and the headless host.
+    // The full suite stays Chromium; this set catches engine differences in mouse/click event order.
+    {
+      name: 'webkit',
+      testMatch: WEBKIT_SPECS,
+      use: { ...devices['Desktop Safari'], engine: 'leaflet' },
+    },
+    {
+      name: 'webkit-maplibre',
+      testMatch: WEBKIT_SPECS,
+      use: { ...devices['Desktop Safari'], engine: 'maplibre' },
+    },
+    {
+      name: 'webkit-headless',
+      testMatch: /headless-vertex-drag\.spec\.ts/,
+      use: { ...devices['Desktop Safari'] },
     },
   ],
   webServer: [

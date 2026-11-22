@@ -8,6 +8,7 @@ import { Profiler, useState, type CSSProperties } from 'react'
 import { TileLayer } from 'react-leaflet'
 import type { BasemapInput } from '@element-editor/adapter-maplibre/basemaps'
 import type { LeafletBasemap } from './leaflet/index'
+import localWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 // Agentation overlays intercept pointer events in the map area, which breaks
 // Playwright drawing tests. Skip it when running under automation
@@ -36,6 +37,8 @@ const networkParam = params.get('network')
 const routingApiKey = params.get('routingApiKey') ?? undefined
 const network: NonNullable<ElementEditorConfig['network']> = {
   sprite: location.origin + '/sprite',
+  // ?worker=local: MapLibre's worker from this dev server (e2e on WebKit, where Playwright cannot route a worker script).
+  ...(params.get('worker') === 'local' && { maplibreWorker: new URL(localWorkerUrl, location.href).href }),
   ...(networkParam === 'custom' && {
     vectorTiles: { url: 'https://vector.example.test/planet', attribution: 'Custom vector tiles' },
     dem: { tiles: ['https://dem.example.test/{z}/{x}/{y}.png'], encoding: 'mapbox', attribution: 'Custom elevation' },

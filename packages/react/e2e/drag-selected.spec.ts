@@ -62,6 +62,14 @@ test.describe('Plain drag on a selected feature', () => {
     await importGeoJSON(page, FC)
     await flyTo(page, [48.856, 2.345], 14)
     await page.waitForTimeout(300)
+    // MapLibre: the areas are rendered at their press points (WebKit's worker can lag the fly).
+    for (const id of ['ar', 'ar2']) {
+      const p = await pressPoint(page, id)
+      await expect.poll(() => page.evaluate(([x, y]) => {
+        const map = window.__elementEditorTest!.map as unknown as { queryRenderedFeatures?: (p: [number, number]) => unknown[] }
+        return !map.queryRenderedFeatures || map.queryRenderedFeatures([x, y]).length > 0
+      }, [p.x, p.y] as [number, number])).toBe(true)
+    }
   })
 
   for (const id of ['pt', 'ln', 'ar']) {
