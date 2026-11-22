@@ -141,9 +141,9 @@ export interface ElementEditorControlsProps {
   autoExitAfterDraw?: boolean
   /**
    * The drawing hint bar (hint + Done / Undo point / Cancel on touch) shown at the bottom centre of the map while a draw tool is on.
-   * Default `true`; pass `false` when your own UI replaces it (render `<ActiveDrawingToolbar />` yourself, or build your own). Its presses never reach the map.
+   * Default `true`. `{ container }` puts it in your own element (a slot under the map) instead; `container: null` (ref not set yet) shows nothing until it is. Lift it with `--elm-drawing-bar-bottom`. Pass `false` when your own UI replaces it (render `<ActiveDrawingToolbar />` yourself, or build your own). Its presses never reach the map.
    */
-  drawingBar?: boolean
+  drawingBar?: boolean | { container?: HTMLElement | null }
   /**
    * Opt-in clean-up of every committed coordinate (add, edit, import, paste, undo/redo): `wrap`
    * shifts a feature by 360 degrees so its longitude centre is within +-180, `precision` rounds x/y
@@ -322,7 +322,7 @@ const ElementEditorControlsInner = forwardRef<ElementEditorControlsRef, ElementE
         <DrawingLayer map={map} routingApiKey={props.routingApiKey} />
         <DrawingPreviewLayer map={map} />
         <GeometryProcessingPreview map={map} />
-        {props.drawingBar !== false && <Suspense fallback={null}><MapDrawingBar container={map.getContainer()} /></Suspense>}
+        {props.drawingBar !== false && <Suspense fallback={null}><MapDrawingBar container={map.getContainer()} option={props.drawingBar} /></Suspense>}
         <MeasurePreviewLayer map={map} />
         <MeasurementTooltip map={map} />
         <OsmTraceHandler map={map} />

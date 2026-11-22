@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { CircleHalfTilt, ArrowsHorizontal, Hexagon } from '@phosphor-icons/react'
 import { useUIStore } from '../store/StoreContext'
 import { useElementEditorConfig } from '../contexts/ElementEditorConfigContext'
@@ -19,10 +20,41 @@ type HintPart = string | { before: string; key: string; keyName: string; after?:
 const UNDO_LAST: HintPart = { before: 'Undo last', key: '⌫', keyName: 'Backspace' }
 const SHIFT_SQUARE: HintPart = { before: 'Hold', key: 'Shift', keyName: 'Shift', after: 'for a square' }
 
+/** Plain text of a hint, for the title / aria-label of a truncated one-line hint. */
+const hintText = (parts: HintPart[]) =>
+  parts.map((p) => (typeof p === 'string' ? p : `${p.before} ${p.keyName}${p.after ? ` ${p.after}` : ''}`)).join('. ')
+
+/** Narrower than this (the bar's own space, not the viewport) the bar uses its compact one-row layout. */
+const COMPACT_BELOW = 420
+
+/** True while the element this bar sits in is narrower than `COMPACT_BELOW`. */
+function useNarrowParent(el: HTMLElement | null): boolean {
+  const [narrow, setNarrow] = useState(false)
+  useEffect(() => {
+    const parent = el?.parentElement
+    if (!parent) return
+    const update = () => setNarrow(parent.clientWidth > 0 && parent.clientWidth < COMPACT_BELOW)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(parent)
+    return () => ro.disconnect()
+  }, [el])
+  return narrow
+}
+
 const partKey = (p: HintPart) => (typeof p === 'string' ? p : `${p.before} ${p.keyName} ${p.after ?? ''}`)
 
 /** The hint as separate list items, one per instruction; at narrow widths whole items wrap. */
-function DrawingHint({ parts }: { parts: HintPart[] }) {
+function DrawingHint({ parts, compact }: { parts: HintPart[]; compact?: boolean }) {
+  if (compact) {
+    // One line, first instruction only, cut with an ellipsis; the full text stays in title + aria-label.
+    const full = hintText(parts)
+    return (
+      <p data-elm-hint title={full} aria-label={full} className="flex-1 min-w-16 truncate px-2 m-0 text-sm text-elm-text-muted">
+        {hintText(parts.slice(0, 1))}
+      </p>
+    )
+  }
   return (
     <ul
       data-elm-hint
@@ -79,6 +111,10 @@ export default function ActiveDrawingToolbar() {
   // A finger: tap wording, a Done button (no key chip) and Undo point, since there is no
   // Enter / Backspace and a double-tap is easy to miss. A mouse keeps the UI as it was.
   const touch = useTouchInput()
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null)
+  const compact = useNarrowParent(rootEl)
+  // Phone-sized targets (44 px) for a finger in a narrow bar; a mouse keeps h-8.
+  const actionBtn = compact && touch ? ACTION_BTN.replace('h-8', 'h-11 min-w-11') : ACTION_BTN
 
   const isDrawingLine = editingMode === 'draw-line' || editingMode === 'slice-shape'
   const isDrawingPolygon = editingMode === 'draw-polygon' || editingMode === 'cut-hole'
@@ -171,7 +207,7 @@ export default function ActiveDrawingToolbar() {
     : null)
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 max-w-full bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto">
+    <div ref={setRootEl} className={`flex flex-wrap items-center justify-center gap-2 max-w-full${compact ? ' w-full' : ''} bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto`}>
         {isMeasuring && (
           <>
             <EditToolbarBtn
@@ -199,17 +235,17 @@ export default function ActiveDrawingToolbar() {
             <CircleHalfTilt size={24} weight={freehandClosed ? 'fill' : 'regular'} />
           </EditToolbarBtn>
         )}
-      {(isMeasuring || editingMode === 'draw-freehand') && <RowDivider />}
+      {!compact && (isMeasuring || editingMode === 'draw-freehand') && <RowDivider />}
 
-      {ui.hints && hint && <DrawingHint parts={hint} />}
+      {ui.hints && hint && <DrawingHint parts={hint} compact={compact} />}
 
-      {ui.hints && hint && <RowDivider />}
+      {!compact && ui.hints && hint && <RowDivider />}
 
       {touch && undoablePoints > 0 && (
         <button
           type="button"
           onClick={handleUndoPoint}
-          className={`${ACTION_BTN} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
+          className={`${actionBtn} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
         >
           Undo point
         </button>
@@ -219,7 +255,7 @@ export default function ActiveDrawingToolbar() {
         <button
           type="button"
           onClick={isMeasuring ? completeMeasure : handleFinish}
-          className={`${ACTION_BTN} shadow-sm bg-primary-500 text-white hover:bg-primary-600`}
+          className={`${actionBtn} shadow-sm bg-primary-500 text-white hover:bg-primary-600`}
         >
           {isDrawingRoute ? 'Save route' : editingMode === 'slice-shape' ? 'Slice' : editingMode === 'cut-hole' ? 'Cut' : touch ? 'Done' : 'Finish'}
           {!touch && <KbdInvert>↵</KbdInvert>}
@@ -229,7 +265,7 @@ export default function ActiveDrawingToolbar() {
       <button
         type="button"
         onClick={cancelDrawing}
-        className={`${ACTION_BTN} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
+        className={`${actionBtn} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
       >
         {hasProgress ? 'Cancel' : 'Exit'}
         {!touch && <Kbd>Esc</Kbd>}

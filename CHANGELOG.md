@@ -6,6 +6,14 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **Drawing bar placement.** `drawingBar` on both adapters' `<ElementEditorControls />` also takes `{ container }`: the bar then renders in your own element (a slot under a small map), full width and static, instead of over the map (`container: null` shows nothing until the element is set). New public CSS variables `--elm-drawing-bar-bottom` and `--elm-drawing-bar-inset-x` position the in-map bar, for example above your own control cluster.
+
+### Changed
+
+- **The drawing bar is compact on narrow maps.** When the map (or slot) is narrower than 420 px the bar shows the hint on one line with an ellipsis, the buttons on one row and, for a finger, 44 px tall, instead of wrapping to three lines and covering the host's controls. The drop-in editor's bar benefits too; wider maps are unchanged.
+
 ---
 
 ## [0.3.1] — 2026-11-22
