@@ -163,3 +163,5 @@ ref.current?.setVertexEdit(null)      // leave point editing (the selection stay
 ```
 
 `setVertexEdit(id)` behaves like a double-click: it selects the feature, turns off a drawing tool that is on and shows the circle / rectangle / route notice. It returns `false`, changing nothing, for an unknown or hidden feature, a geometry other than a `LineString` or `Polygon`, or a `readonly` editor (with a warning in development). `onVertexEditChange` fires once for every start and end, whether the user or your app caused it.
+
+You can call it from `onReady` / `onMapReady` or right after `ref.setFeatureCollection(...)`, with no `setTimeout`: the entry holds as long as the feature exists and stays selected. Loading new data afterwards (a later `setFeatureCollection`, a replace import) clears the selection and so ends point editing; call `setVertexEdit` after the load.

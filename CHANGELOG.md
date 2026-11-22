@@ -16,6 +16,7 @@ What changed in Element, release by release, and what it means for you and the p
 
 ### Fixed
 
+- **`ref.setVertexEdit` called from `onReady` (or any mount effect) no longer gets reset right away.** In StrictMode the editor applied `initialData` a second time after the call, and that load cleared the selection and with it point editing, so hosts needed a `setTimeout(0)`. `initialData` is now applied once per mount (`useAdapterControls`).
 - **The published stylesheets are plain CSS.** `@element-editor/react/style.css`, `@element-editor/react/leaflet/style.css`, `@element-editor/adapter-leaflet/style.css` and `@element-editor/adapter-maplibre/style.css` no longer contain `@layer` blocks or other Tailwind directives, so they import cleanly in a host built with Tailwind v3 (which failed with "`@layer base` is used but no matching `@tailwind base` directive"), with another PostCSS setup, or with none, and under `?url` / `?raw`. Because they are no longer layered, host CSS no longer beats Element's rules by default inside the editor; the rules stay scoped to `data-elm-theme` and Element's portals, and look the same as before.
 
 ---
