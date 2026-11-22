@@ -1,6 +1,6 @@
 {
   "name": "@element-editor/core",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Framework-neutral core of the Element map editor: GeoJSON data and UI stores, types, snapping, geometry and routing helpers.",
   "keywords": [
     "element-editor",
