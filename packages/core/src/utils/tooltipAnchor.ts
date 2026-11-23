@@ -127,8 +127,12 @@ function pointInside(rings: Position[][]): [number, number] {
   const c = centroid(rings[0])
   const poly = polygon(rings)
   if (booleanPointInPolygon(point(c), poly, { ignoreBoundary: true })) return c
-  const ys = rings[0].map((p) => p[1])
-  const lo = Math.min(...ys), hi = Math.max(...ys)
+  // A plain loop: spreading a very large ring into Math.min/max throws a RangeError.
+  let lo = Infinity, hi = -Infinity
+  for (const p of rings[0]) {
+    if (p[1] < lo) lo = p[1]
+    if (p[1] > hi) hi = p[1]
+  }
   for (const f of [c[1], (lo + hi) / 2, lo + (hi - lo) * 0.25, lo + (hi - lo) * 0.75]) {
     const span = widestSpan(rings, f)
     if (span) return span
