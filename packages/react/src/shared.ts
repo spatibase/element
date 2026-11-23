@@ -1,5 +1,5 @@
 // Engine-neutral public API, re-exported by both entries (`@element-editor/react` and `/leaflet`).
-export type { ElementEditorConfig, DrawTool, LayoutSlot, LayoutControl, LayoutGroup, LayoutEntry, LayoutSlotConfig, LayoutConfig, MapSlot, StatusSlot, MapGroup, StatusGroup, MapEntry, StatusEntry, MapSlotConfig, StatusSlotConfig, LayoutPatch, SlotFor, RasterBasemap } from '@element-editor/ui'
+export type { ElementEditorConfig, FeatureTooltipOptions, DrawTool, LayoutSlot, LayoutControl, LayoutGroup, LayoutEntry, LayoutSlotConfig, LayoutConfig, MapSlot, StatusSlot, MapGroup, StatusGroup, MapEntry, StatusEntry, MapSlotConfig, StatusSlotConfig, LayoutPatch, SlotFor, RasterBasemap } from '@element-editor/ui'
 export { DEFAULT_LAYOUT, withLayout } from '@element-editor/ui'
 export type { FeatureCollection, GeoJSONFeature, FeatureCollectionInput, GeoJSONFeatureInput, GeometryInput, Schema, SchemaField, Group, Geometry, EditingMode } from './types/geojson'
 export type { ElementEditorEvent, ElementEditorErrorHandler, ErrorCode, ErrorSource } from '@element-editor/ui'

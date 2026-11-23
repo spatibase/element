@@ -7,7 +7,7 @@ import { useMap, useMapEvents } from 'react-leaflet'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useEmit, useIsEventForEditor, useAccentPalette, useElementEditorConfig, VertexSelectionBar } from '@element-editor/ui'
 import { FeatureStyleProvider, useFeatureStyle } from '../contexts/FeatureStyleContext'
-import { unbindFeatureTooltip } from '../utils/featureTooltip'
+import { unbindFeatureTooltip, registerFeatureTooltipHost } from '../utils/featureTooltip'
 import { markAddedUnderCursor, prunePending } from '../utils/freshFeature'
 import { getLastPointer } from '../hooks/lastPointer'
 
@@ -42,7 +42,13 @@ export type { FeatureRenderer }
  */
 function ComposedFeatureStyle({ children }: { children: ReactNode }) {
   const getFeatureStyle = useFeatureStyle()
-  const featureColor = useElementEditorConfig().featureColor
+  const { featureColor, featureTooltip } = useElementEditorConfig()
+  const map = useMap()
+  const { uiStore } = useGeoStore()
+  // The hover tooltip reads this editor's options when it binds (two editors can differ).
+  const tipRef = useRef(featureTooltip)
+  tipRef.current = featureTooltip
+  useEffect(() => registerFeatureTooltipHost(uiStore, { map, getOptions: () => tipRef.current }), [uiStore, map])
   const composed = useMemo(() => composeFeatureStyle(getFeatureStyle, featureColor), [getFeatureStyle, featureColor])
   return <FeatureStyleProvider getFeatureStyle={composed}>{children}</FeatureStyleProvider>
 }

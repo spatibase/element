@@ -10,6 +10,7 @@ What changed in Element, release by release, and what it means for you and the p
 
 - **Size the drawing bar to match your own buttons.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height; its buttons follow, keeping a fixed gap to the edge, so a 40 px bar lines up with 40 px map controls. Touch targets stay at least 44 px.
 - **Undo stays reachable with hints off.** With `config.ui.hints: false` the desktop bar now shows an Undo point button (with its Backspace chip) while there is something to take back; before, the "Undo last" hint was the only way.
+- Hover tooltips can now be pinned to the feature and say what you want: `config.featureTooltip` takes `placement: 'anchor'` (above a point, halfway along a line, a spot inside an area), a `content` callback for the text (return `null` to show nothing), or `false` to turn the tooltip off, which also hides the "Show name on hover" switch in Settings.
 
 ### Changed
 

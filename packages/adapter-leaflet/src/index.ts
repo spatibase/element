@@ -26,7 +26,7 @@ export { ElementEditorUIProvider } from '@element-editor/ui'
 export { ElementEditorError } from '@element-editor/core'
 export type { ElementEditorEvent, ElementEditorErrorHandler, ErrorCode, ErrorSource } from '@element-editor/ui'
 export type { ElementEditorUIProviderProps } from '@element-editor/ui'
-export type { ElementEditorConfig, ResolvedConfig, ToolbarPosition } from '@element-editor/ui'
+export type { ElementEditorConfig, FeatureTooltipOptions, ResolvedConfig, ToolbarPosition } from '@element-editor/ui'
 
 // UI toolbars (require ElementEditorUIProvider + GeoStoreProvider in tree)
 export { FloatingToolbar, EditingToolbar, ActiveDrawingToolbar, useKeyboardShortcuts } from '@element-editor/ui'

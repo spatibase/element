@@ -15,7 +15,7 @@ export { ShortcutConfigProvider, useShortcutConfig } from './contexts/ShortcutCo
 export { ElementEditorConfigProvider, useElementEditorConfig, useUnitsOverride, resolveConfig, DEFAULT_LAYOUT, withLayout } from './contexts/ElementEditorConfigContext'
 // The drop-in shell's layout plumbing (resolveLayout, LAYOUT_SLOTS, isControlVisible,
 // visibleLayoutEntries) lives in `@element-editor/ui/internal`, which is not semver-covered.
-export type { ElementEditorConfig, ResolvedConfig, DrawTool, ToolbarPosition, LayoutSlot, LayoutControl, RasterBasemap, LayoutGroup, LayoutEntry, LayoutSlotConfig, LayoutConfig, ResolvedLayout, MapSlot, StatusSlot, MapGroup, StatusGroup, MapEntry, StatusEntry, MapSlotConfig, StatusSlotConfig, LayoutPatch, SlotFor, UnitsOverride } from './contexts/ElementEditorConfigContext'
+export type { ElementEditorConfig, FeatureTooltipOptions, ResolvedConfig, DrawTool, ToolbarPosition, LayoutSlot, LayoutControl, RasterBasemap, LayoutGroup, LayoutEntry, LayoutSlotConfig, LayoutConfig, ResolvedLayout, MapSlot, StatusSlot, MapGroup, StatusGroup, MapEntry, StatusEntry, MapSlotConfig, StatusSlotConfig, LayoutPatch, SlotFor, UnitsOverride } from './contexts/ElementEditorConfigContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type { ElementEditorEvent, ElementEditorErrorHandler } from './types/events'

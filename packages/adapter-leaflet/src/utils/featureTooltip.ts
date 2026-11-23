@@ -14,10 +14,11 @@
  */
 import type L from 'leaflet'
 import type { GeoJSONFeature } from '@element-editor/core'
-import { placeBox } from '@element-editor/core/internal'
-import { featureLabel } from '@element-editor/ui'
+import { placeBox, tooltipAnchor, type TooltipAnchor } from '@element-editor/core/internal'
+import { featureLabel, type ResolvedConfig } from '@element-editor/ui'
 import { applyRootTokens } from '@element-editor/ui/internal'
 import { claimFresh, setFreshFeature } from './freshFeature'
+import { PIN_HEIGHT } from './pinPath'
 
 // Lifecycle: the element and its window/document listeners exist only while a
 // feature is bound (hovered). Unbinding — mouseout, the bound layer being
@@ -29,6 +30,25 @@ let _boundFeatureId: string | null = null
 let _boundLayer: L.Layer | null = null
 let _lastX = 0
 let _lastY = 0
+// `placement: 'anchor'`: where the bound feature's tooltip sits (computed once per hover) and the
+// map whose pan / zoom it follows. Null in cursor mode.
+let _anchor: { spot: TooltipAnchor; map: L.Map } | null = null
+
+/** What the tooltip needs from the editor under the cursor: its map and its `config.featureTooltip`. */
+export interface FeatureTooltipHost {
+  map: L.Map
+  getOptions: () => ResolvedConfig['featureTooltip']
+}
+// Keyed by the editor's uiStore (one per editor), so two editors on one page can differ while
+// they share the single <body> element.
+const _hosts = new WeakMap<object, FeatureTooltipHost>()
+const DEFAULT_OPTIONS: ResolvedConfig['featureTooltip'] = { enabled: true, placement: 'cursor' }
+
+/** Register an editor's tooltip options; returns the cleanup. */
+export function registerFeatureTooltipHost(uiStore: object, host: FeatureTooltipHost): () => void {
+  _hosts.set(uiStore, host)
+  return () => { if (_hosts.get(uiStore) === host) _hosts.delete(uiStore) }
+}
 
 type UIStoreLike = { getState: () => { showFeatureNameOnHover: boolean; vertexEditActive: boolean } }
 
@@ -50,7 +70,7 @@ function onKeyUp(e: KeyboardEvent) {
   if (_featureDragActive) return
   if (_boundFeatureId && _tooltipEl && _tooltipEl.textContent) {
     _tooltipEl.style.display = ''
-    moveTooltip(_lastX, _lastY)
+    layoutTooltip()
   }
 }
 
@@ -88,10 +108,32 @@ function onBoundLayerRemove(e: { target: L.Layer }) {
 function moveTooltip(x: number, y: number) {
   _lastX = x
   _lastY = y
+  if (!_anchor) layoutTooltip() // anchored: only the map moving it
+}
+
+/** Anchor mode: the anchor on screen (client px) and the extra gap above it. */
+function anchorPoint(a: NonNullable<typeof _anchor>): { x: number; y: number; gap: number } {
+  const r = a.map.getContainer().getBoundingClientRect()
+  const p = a.map.latLngToContainerPoint([a.spot.lngLat[1], a.spot.lngLat[0]])
+  // A pin's anchor is its tip: sit above its head.
+  const lift = a.spot.kind === 'point' ? PIN_HEIGHT : 0
+  return { x: r.left + p.x, y: r.top + p.y - lift, gap: a.spot.kind === 'point' ? 6 : 8 }
+}
+
+/** Place the tooltip: on the cursor, or (anchor mode) on its anchor. Flips / clamps at the viewport edges. */
+function layoutTooltip() {
   if (!_tooltipEl || _tooltipEl.style.display === 'none') return
-  const { left, top } = placeBox(x, y, _tooltipEl.offsetWidth, _tooltipEl.offsetHeight, { x: 'center', y: 'before', gapY: 12 })
+  const at = _anchor ? anchorPoint(_anchor) : { x: _lastX, y: _lastY, gap: 12 }
+  const { left, top } = placeBox(at.x, at.y, _tooltipEl.offsetWidth, _tooltipEl.offsetHeight, { x: 'center', y: 'before', gapY: at.gap })
   _tooltipEl.style.left = left + 'px'
   _tooltipEl.style.top = top + 'px'
+}
+
+const MAP_EVENTS = 'move zoom zoomend moveend resize viewreset'
+function setAnchor(a: typeof _anchor) {
+  _anchor?.map.off(MAP_EVENTS, layoutTooltip)
+  _anchor = a
+  _anchor?.map.on(MAP_EVENTS, layoutTooltip)
 }
 
 function getTooltipEl(): HTMLDivElement {
@@ -117,6 +159,7 @@ function setBoundLayer(layer: L.Layer | null) {
 /** Remove the element and every listener; the next bind recreates them. */
 function teardown() {
   setBoundLayer(null)
+  setAnchor(null)
   _boundFeatureId = null
   if (!_tooltipEl) return
   _tooltipEl.remove()
@@ -130,22 +173,28 @@ export function bindFeatureTooltip(
   layer: L.Layer,
   feature: GeoJSONFeature,
   uiStore: UIStoreLike,
-  _latlng?: L.LatLng,
+  latlng?: L.LatLng,
   originalEvent?: MouseEvent,
 ) {
   if (_featureDragActive) return
   const ui = uiStore.getState()
   // No name over the shape being reshaped; none over a feature just added under the
   // cursor either, until the cursor leaves it and comes back.
-  if (claimFresh(feature.id) || !ui.showFeatureNameOnHover || ui.vertexEditActive) { teardown(); return }
-  const label = featureLabel(feature)
-  if (!label) return
+  const host = _hosts.get(uiStore)
+  const opts = host?.getOptions() ?? DEFAULT_OPTIONS
+  if (claimFresh(feature.id) || !opts.enabled || !ui.showFeatureNameOnHover || ui.vertexEditActive) { teardown(); return }
+  // `content` returning undefined = the default label; null / '' = no tooltip for this feature.
+  const custom = opts.content?.(feature)
+  const label = custom === undefined ? featureLabel(feature) : custom
+  if (!label) { teardown(); return }
   const el = getTooltipEl()
   el.textContent = label
   // A <body> element shared by every editor: it takes the hovered editor's design tokens.
   applyRootTokens(el, (originalEvent?.target as Element | null | undefined)?.closest?.('[data-elm-theme]'))
   _boundFeatureId = feature.id
   setBoundLayer(layer)
+  const spot = host && opts.placement === 'anchor' ? tooltipAnchor(feature, latlng ? [latlng.lng, latlng.lat] : null) : null
+  setAnchor(spot && host ? { spot, map: host.map } : null)
   if (originalEvent) {
     moveTooltip(originalEvent.clientX, originalEvent.clientY)
   }
@@ -155,7 +204,7 @@ export function bindFeatureTooltip(
     el.style.display = 'none'
   } else {
     el.style.display = ''
-    moveTooltip(_lastX, _lastY)
+    layoutTooltip()
   }
 }
 
