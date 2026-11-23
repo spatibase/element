@@ -19,7 +19,7 @@ export type { FeatureRenderer } from './components/FeatureInteractionLayer'
 
 // Per-feature style override (parity with adapter-maplibre)
 export { FeatureStyleProvider, useFeatureStyle } from './contexts/FeatureStyleContext'
-export type { FeatureStyle, FeatureStyleFn } from './contexts/FeatureStyleContext'
+export type { FeatureStyle, FeatureStyleFn, FeatureStyleState } from './contexts/FeatureStyleContext'
 
 // UI provider + config types
 export { ElementEditorUIProvider } from '@element-editor/ui'

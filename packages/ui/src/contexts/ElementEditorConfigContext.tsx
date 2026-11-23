@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, useCallback, useRef, type ReactNode } from 'react'
 import { readPersisted, writePersisted } from '@element-editor/core'
 import { warnOnce } from '@element-editor/core/internal'
-import type { EditingMode, NetworkConfig } from '@element-editor/core'
+import type { EditingMode, NetworkConfig, SelectionStyle } from '@element-editor/core'
 
 export type DrawTool =
   | 'polygon' | 'rectangle' | 'circle' | 'line' | 'point' | 'freehand' | 'route' | 'picker'
@@ -187,6 +187,15 @@ export interface ElementEditorConfig {
    */
   featureColor?: string
 
+  /**
+   * Colour of a selected / hovered feature. `'auto'` (default): a feature with its own
+   * colour (`featureColor` or `getFeatureStyle`) is drawn in a darker shade of it plus a
+   * heavier stroke, and the default slate keeps the accent. `'accent'`: always the accent
+   * colour. `'feature'`: always a shade of the feature's colour, even the default slate.
+   * Buttons, the drawing bar and the snap marker keep the accent in every mode.
+   */
+  selectionStyle?: SelectionStyle
+
   /** Which drawing tools are available. Default: 'all'. */
   tools?: DrawTool[] | 'all'
 
@@ -316,6 +325,7 @@ export interface ResolvedConfig {
   network: NetworkConfig
   accentColor: string | undefined
   featureColor: string | undefined
+  selectionStyle: SelectionStyle
   tools: DrawTool[] | 'all'
   ui: {
     hints: boolean
@@ -528,6 +538,7 @@ export function resolveConfig(config?: ElementEditorConfig): ResolvedConfig {
     network: config?.network ?? {},
     accentColor: config?.accentColor || undefined,
     featureColor: config?.featureColor || undefined,
+    selectionStyle: config?.selectionStyle ?? 'auto',
     tools: config?.tools ?? 'all',
     ui: {
       hints: config?.ui?.hints ?? true,

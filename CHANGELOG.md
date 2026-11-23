@@ -6,6 +6,15 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Changed
+
+- **A selected or hovered feature now keeps its own colour.** Select a pink feature and it turns a darker pink with a slightly heavier outline, instead of jumping to the accent blue; its vertex handles and transform box follow the same shade. Features in the default slate still select in the accent, so nothing changes unless you set `featureColor` or `getFeatureStyle`. Set `config.selectionStyle: 'accent'` to keep the old look everywhere. Buttons, the drawing bar and the snap marker keep the accent.
+
+### Added
+
+- **`config.selectionStyle`** (`'auto'` | `'accent'` | `'feature'`, default `'auto'`) picks the selected and hovered look: the accent, a shade of the feature's own colour, or `'auto'` (own colour when the feature has one).
+- **`getFeatureStyle(feature, { selected, hovered })`.** The callback now gets the feature's state as a second argument, so you can fully customise the selected or hovered look (a different colour or weight). Existing callbacks keep working unchanged. New exported type `FeatureStyleState`.
+
 ---
 
 ## [0.3.3] — 2026-11-22

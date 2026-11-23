@@ -16,3 +16,14 @@ export interface FeatureStyle {
   /** Stroke width in px. */
   weight?: number
 }
+
+/**
+ * Second argument of `getFeatureStyle(feature, state)`: which look is being asked for.
+ * The plain call (`selected` and `hovered` false) is the base look; the selected and
+ * hovered looks are derived from its colour (`selectionStyle`). Return a different style
+ * for `selected` / `hovered` to take control; keys you leave out keep the derived look.
+ */
+export interface FeatureStyleState {
+  selected: boolean
+  hovered: boolean
+}

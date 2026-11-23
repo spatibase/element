@@ -25,7 +25,7 @@ export type { ElementEditorConfig, ResolvedConfig, ToolbarPosition } from '@elem
 
 // Per-feature style override
 export { FeatureStyleProvider, useFeatureStyle } from './contexts/FeatureStyleContext'
-export type { FeatureStyle, FeatureStyleFn } from './contexts/FeatureStyleContext'
+export type { FeatureStyle, FeatureStyleFn, FeatureStyleState } from './contexts/FeatureStyleContext'
 
 // UI toolbars (require ElementEditorUIProvider + GeoStoreProvider in tree)
 export { FloatingToolbar, EditingToolbar, ActiveDrawingToolbar, useKeyboardShortcuts } from '@element-editor/ui'

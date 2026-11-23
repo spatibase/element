@@ -9,7 +9,7 @@ import { usePartDrag } from '../../hooks/usePartDrag'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
 import { LINE_HIT_WEIGHT, useFeatureRenderer } from './renderer'
 import { SELECTED_FEATURE_CLASS } from '../../utils/selectedDrag'
-import { AccentContext, IDLE_LINE, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
+import { AccentContext, IDLE_LINE, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, useStateLook, type OpenFeatureCtxMenu } from './shared'
 
 export const MultiLineLayer = memo(function MultiLineLayer({ feature, selected, isMultiSelected, multiDragDelta, readonly, interaction, onContextMenu }: {
   feature: GeoJSONFeature
@@ -30,6 +30,7 @@ export const MultiLineLayer = memo(function MultiLineLayer({ feature, selected, 
   const lineRefs = useRef<Map<number, L.Polyline>>(new Map())
   const hitRefs = useRef<Map<number, L.Polyline>>(new Map())
   const custom = useCustomStyle(feature)
+  const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
   // Same split as LineLayer: visible line is the canvas hit target; SVG uses the hit path.
   const renderer = useFeatureRenderer(selected || isMultiSelected, () => [...lineRefs.current.values(), ...hitRefs.current.values()], {
     before: (l, onCanvas) => { if ([...lineRefs.current.values()].includes(l as L.Polyline)) l.options.interactive = onCanvas },
@@ -66,11 +67,12 @@ export const MultiLineLayer = memo(function MultiLineLayer({ feature, selected, 
 
   const basePathOptions = (isMultiSelected || selected || !!effectiveDelta)
     ? litStyle(custom, false, {
-        color: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-        weight: selected ? 4.5 : 3.5,
+        color: (isMultiSelected || selected) ? look.color : DEFAULT_FEATURE_COLOR,
+        weight: (selected ? 4.5 : 3.5) + look.boost,
         opacity: hovered ? 1 : 0.9,
+        ...look.host,
       })
-    : idleStyle(IDLE_LINE, custom, hovered ? { opacity: 1 } : null)
+    : idleStyle(IDLE_LINE, custom, hovered ? { opacity: 1, ...look.hover } : null)
   const dimmedPathOptions = { ...basePathOptions, opacity: 0.25 }
 
   return (

@@ -89,7 +89,7 @@ export default function App() {
 | `theme` | `'light' \| 'dark' \| 'auto'` | Light or dark mode only. Defaults to following the OS. Colours, fonts, radius and shadows go through `accentColor` and the CSS design tokens, set in your stylesheet or in `style` (`style={{ '--elm-accent': '#7c3aed', '--elm-surface': '#fbf6ee' }}`). See [Theming](./docs/guides/theming.md). |
 | `accentColor` | `string` | Brand colour, any CSS colour. Every accent shade in the UI and on the map is generated from it. |
 | `featureColor` | `string` | Default colour of every feature (outline, fill, line, point). Default slate `#475569`. |
-| `getFeatureStyle` | `(feature) => FeatureStyle \| null` | Per-feature `{ color, fillColor, opacity, fillOpacity, weight }`, e.g. colour by a property. Wins over `featureColor`. |
+| `getFeatureStyle` | `(feature, state?) => FeatureStyle \| null` | Per-feature `{ color, fillColor, opacity, fillOpacity, weight }`, e.g. colour by a property. Wins over `featureColor`. A selected or hovered feature takes a darker shade of its colour (`config.selectionStyle`). |
 | `defaultBasemap` | `BasemapInput` | Starting basemap: `'auto'` (default; follows light/dark), `'streets'`, `'terrain'`, `'light'`, `'dark'`, `'osm'`, a style URL/JSON or a raster `{ url, attribution }`. The user's pick is remembered and wins on reload. |
 | `basemap` / `onBasemapChange` | `BasemapInput` / `(b) => void` | Control the basemap from your app (nothing is remembered) and hear about the user's picks. |
 | `basemaps` | `BasemapInput[] \| false` | Choices in the basemap picker. `false` hides it. |

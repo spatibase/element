@@ -89,7 +89,7 @@ The component fills its container element. The parent element must have an expli
 | `theme` | `'light' \| 'dark' \| 'auto'` | follows the OS (`config.mode`, default `'system'`) | No | Light or dark mode only. `'light'` / `'dark'`: that mode (never saved to `localStorage`). `'auto'`: follows the OS preference. Colours go through `accentColor` or CSS variables in `style` (see [Theming](../guides/theming.md)). |
 | `accentColor` | `string` | `config.accentColor`, else blue (`#3b82f6`) | No | Brand accent: any CSS colour. The whole primary 50–950 scale (buttons, active tools, selection, checkboxes, map highlights, portals) is generated from it. Wins over `config.accentColor`; updates live. See [Theming](../guides/theming.md#approach-1--one-brand-colour). |
 | `featureColor` | `string` | `config.featureColor`, else slate (`#475569`; `#94a3b8` on a dark MapLibre basemap) | No | Default colour of every feature: polygon outline and fill, lines, points, including features drawn later. Any CSS colour; opacity and weight keep their defaults. Wins over `config.featureColor`; `getFeatureStyle` and the selected look win over it, hover keeps it. Updates live. See [Colouring features](../guides/theming.md#colouring-features). |
-| `getFeatureStyle` | `(feature: GeoJSONFeature) => FeatureStyle \| undefined \| null` | — | No | Per-feature colours for data-driven styling. Return `{ color, fillColor, opacity, fillOpacity, weight }` (any key optional; `fillColor` falls back to `color`) or `null` for the default look. Wins over `featureColor` per key; the selected look wins over it, hover keeps it. Same signature as the adapters' `getFeatureStyle`. Keep it fast and stable (module-level or `useCallback`): a new function re-sends every feature to the map. Leaflet drop-in: may also return any Leaflet `PathOptions`. See [Colouring features](../guides/theming.md#colouring-features). |
+| `getFeatureStyle` | `(feature: GeoJSONFeature, state?: FeatureStyleState) => FeatureStyle \| undefined \| null` | — | No | Per-feature colours for data-driven styling. Return `{ color, fillColor, opacity, fillOpacity, weight }` (any key optional; `fillColor` falls back to `color`) or `null` for the default look. Wins over `featureColor` per key; the selected look wins over it. `state` is `{ selected, hovered }`: return a different style for a state to customise that look (the plain call is the base look; selected and hovered are derived from its colour, see `config.selectionStyle`). Same signature as the adapters' `getFeatureStyle`. Keep it fast and stable (module-level or `useCallback`): a new function re-sends every feature to the map. Leaflet drop-in: may also return any Leaflet `PathOptions`. See [Colouring features](../guides/theming.md#colouring-features). |
 | `layout` | `'panel' \| 'minimal' \| 'split'` | `'panel'` | No | Where feature details and the list live. `'panel'`: a layers sidebar on the right of the map (list + selected feature's properties). `'minimal'`: no sidebar; a selected feature's properties open in a floating window. `'split'`: no sidebar; the bottom third of the editor is a panel with the data table on the left and the layers panel (320 px wide) on its right; map controls sit above it. `config.ui.dataTable: false` / `layerList: false` leave either part out. |
 | `readonly` | `boolean` | `false` | No | View-only for the user: drawing and editing tools, editing shortcuts and drag handles are off; features stay visible and selectable, and `'measure'` and search still work. Reactive. Your app stays in charge: the ref's data methods (`addFeature`, `updateFeature`, `setFeatureCollection`, …) keep working; only `ref.setTool` is refused (except `'measure'`). What stays available and what is off: [Restricting tools](../guides/restricting-tools.md#disabling-all-editing). |
 | `fileDrop` | `boolean` | `true` | No | Dropping a `.geojson` / `.json` file on the editor imports it like `Cmd+O`: replaces the data (one undo step), fits the map. Off in `readonly`. |
@@ -414,7 +414,7 @@ Same component, props and ref as above (`ElementEditorRef` from `/leaflet` types
 | `renderer` | `'canvas' \| 'svg'` | `'canvas'` | How unselected polygons and lines are drawn (see the prop table above). |
 | `mapOptions` | `Omit<L.MapOptions, OwnedMapOption>` | — | Extra `L.Map` options (`minZoom`, `maxZoom`, `zoomSnap`, `scrollWheelZoom`, `worldCopyJump`, `maxBoundsViscosity`, …). Read once. Left out (dropped with a dev warning if passed): `center`, `zoom` (use `initialView`), `maxBounds` (use `bounds`), `zoomControl`, `attributionControl`, `crs` (Element assumes Web Mercator), `renderer` / `preferCanvas` (use `renderer`), `dragging`, `boxZoom`, `doubleClickZoom`. |
 | `onMapReady` | `(map: L.Map) => void` | — | Called once per map, as soon as Element's layers and panes are on it. Again after a remount, with the new map. |
-| `getFeatureStyle` | `(feature: GeoJSONFeature) => (FeatureStyle & PathOptions) \| undefined \| null` | — | Same as above; Leaflet `PathOptions` is a superset of `FeatureStyle`, so the same function works on both drop-ins, and extra keys such as `dashArray` apply here only. Point pins take `fillColor`, then `color`. |
+| `getFeatureStyle` | `(feature: GeoJSONFeature, state?: FeatureStyleState) => (FeatureStyle & PathOptions) \| undefined \| null` | — | Same as above; Leaflet `PathOptions` is a superset of `FeatureStyle`, so the same function works on both drop-ins, and extra keys such as `dashArray` apply here only. Point pins take `fillColor`, then `color`. |
 
 Vector basemaps do not exist on the Leaflet drop-in (of `config.network`'s tile keys only `osmRaster` applies, for the `'osm'` entry). The other way round, `tileLayer` and `renderer` don't exist on the default (MapLibre) `ElementEditor`: passing them there is ignored, with a dev-mode warning pointing to `@element-editor/react/leaflet`. `RasterBasemap` is `{ id?, label?, thumbnail?, url, attribution, maxZoom? }`.
 
@@ -469,10 +469,19 @@ interface ElementEditorConfig {
   /**
    * Default colour of every feature (polygon outline + fill, line, point): any
    * CSS colour. Opacity and weight keep their defaults. `getFeatureStyle` (per
-   * key) and the selected look win over it, hover keeps it. Updates live.
+   * key) and the selected look win over it. Updates live.
    * Default: undefined (slate #475569). `<ElementEditor featureColor>` wins over this.
    */
   featureColor?: string
+
+  /**
+   * Colour of a selected / hovered feature. 'auto' (default): a feature with its own
+   * colour (featureColor or getFeatureStyle) is drawn in a darker shade of it plus a
+   * heavier stroke, and the default slate keeps the accent. 'accent': always the accent.
+   * 'feature': always a shade of the feature's colour, even the default slate.
+   * Buttons, the drawing bar and the snap marker keep the accent in every mode.
+   */
+  selectionStyle?: 'auto' | 'accent' | 'feature'
 
   /** Which drawing tools are available. Default: 'all'. */
   tools?: DrawTool[] | 'all'
@@ -718,7 +727,7 @@ type ToolbarPosition =
 | `IconButton` | Component | Re-exported from `@element-editor/ui`. 48×48 card-style icon button matching the editor's visual language. Wrap your own icons with it inside `slots.<corner>` to get a consistent toolbar look. |
 | `Tooltip` | Component | Re-exported from `@element-editor/ui`. Editor-styled tooltip wrapper. |
 | `ElementEditorProps` | Type | Props interface for `<ElementEditor>`. |
-| `FeatureStyle` | Type | Return shape of `getFeatureStyle`: `{ color?, fillColor?, opacity?, fillOpacity?, weight? }`. Also exported from `@element-editor/react/leaflet`. |
+| `FeatureStyle` | Type | Return shape of `getFeatureStyle`: `{ color?, fillColor?, opacity?, fillOpacity?, weight? }`. Its second argument is `FeatureStyleState` (`{ selected, hovered }`). Also exported from `@element-editor/react/leaflet`. |
 | `RasterBasemap` | Type | Re-exported from `@element-editor/ui`. Entry of the Leaflet drop-in's `basemaps` list. |
 | `ElementEditorRef` | Type | Ref interface for `<ElementEditor>`: `ElementEditorImperativeAPI<maplibregl.Map>` (`<L.Map>` from `/leaflet`). |
 | `ImportResult` | Type | Return value of `ref.importGeoJSON()` — `{ skipped, duplicates, truncated }`. |

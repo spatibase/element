@@ -23,6 +23,7 @@ import {
   type NeighborVertex,
 } from '@element-editor/core/internal'
 import { toLeaflet } from '../../utils/geojson'
+import { useHandleVars } from '../featureLayers/shared'
 import { findSnapPoint } from '../../utils/snapping'
 import { setFeatureDragActive } from '../../utils/featureTooltip'
 import { rafThrottle } from '../../utils/rafThrottle'
@@ -48,7 +49,8 @@ function ensureStyles() {
   const s = document.createElement('style')
   s.textContent = [
     '.elm-midpoint-marker{pointer-events:auto!important}',
-    '.elm-vertex:hover{background:var(--color-primary-100)!important}',
+    '.elm-vertex:hover{background:var(--elm-handle-soft,var(--color-primary-100))!important}',
+    '.elm-midpoint-marker:hover .elm-mid{background:var(--elm-handle-soft,var(--color-primary-100))!important}',
     TOUCH_HANDLE_CSS,
   ].join('')
   document.head.appendChild(s)
@@ -57,21 +59,21 @@ function ensureStyles() {
 
 const VERTEX_ICON_DEFAULT = divIcon({
   className: '',
-  html: `<div class="elm-vertex" style="width:12px;height:12px;background:#ffffff;border:2px solid var(--color-primary-500);border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;transition:background 0.15s"></div>`,
+  html: `<div class="elm-vertex" style="width:12px;height:12px;background:#ffffff;border:2px solid var(--elm-handle,var(--color-primary-500));border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;transition:background 0.15s"></div>`,
   iconSize: [12, 12],
   iconAnchor: [6, 6],
 })
 
 const VERTEX_ICON_SELECTED = divIcon({
   className: '',
-  html: `<div class="elm-vertex" style="width:12px;height:12px;background:var(--color-primary-500);border:2px solid var(--color-primary-700);border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;transition:background 0.15s"></div>`,
+  html: `<div class="elm-vertex" style="width:12px;height:12px;background:var(--elm-handle,var(--color-primary-500));border:2px solid var(--elm-handle-strong,var(--color-primary-700));border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;transition:background 0.15s"></div>`,
   iconSize: [12, 12],
   iconAnchor: [6, 6],
 })
 
 const MIDPOINT_ICON = divIcon({
   className: 'elm-midpoint-marker',
-  html: '<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer" class="group"><div class="bg-white border-2 border-primary-500 shadow group-hover:bg-primary-100 transition-colors" style="width:12px;height:12px;transform:rotate(45deg);border-radius:3px"></div></div>',
+  html: '<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer" class="group"><div class="elm-mid" style="width:12px;height:12px;transform:rotate(45deg);border-radius:3px;background:#fff;border:2px solid var(--elm-handle,var(--color-primary-500));box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:background 0.15s"></div></div>',
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 })
@@ -212,6 +214,7 @@ export function VertexEditor({
   // Force re-render on pan/zoom so viewport-culled vertices update
   const [viewTick, setViewTick] = useState(0)
   const hoverMap = useMap()
+  useHandleVars(feature, hoverMap.getContainer())
 
   // A finger can't hover: every midpoint shows, and handles get a 44 px hit area
   // (the `elm-touch` class, see TOUCH_HANDLE_CSS). A mouse keeps the hovered-edge midpoint.

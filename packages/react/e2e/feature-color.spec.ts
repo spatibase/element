@@ -1,8 +1,10 @@
 /**
  * `featureColor` + `getFeatureStyle` on both drop-ins (dev page params `?featureColor=` and
  * `?featureStyle=1`, which paints `properties.kind === 'hot'` red). Precedence:
- * selected (the accent) > getFeatureStyle > featureColor > built-in slate. Hover keeps the
- * feature's own colour; only an uncoloured MapLibre feature turns the lighter hover slate.
+ * selected > getFeatureStyle > featureColor > built-in slate. A coloured feature selects to a
+ * darker shade of its own colour (`selectionStyle: 'auto'`), an uncoloured one to the accent;
+ * hover is a milder shade of the feature's colour, only an uncoloured MapLibre feature turns the
+ * lighter hover slate. `?selectionStyle=accent|feature` and `?featureStyle=state` cover the rest.
  *
  * MapLibre: the evaluated paint per rendered feature (feature-state included).
  * Leaflet: the path layers' style options, which both renderers draw from (the default canvas
@@ -10,6 +12,7 @@
  */
 import { test, expect, type Page } from './fixtures'
 import { importGeoJSON, waitForMap, drawPolygon, featureCenter, mapBox } from './helpers'
+import { deriveStateColors } from '@element-editor/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { Map as LeafletMap, Path, Polyline } from 'leaflet'
 
@@ -17,6 +20,8 @@ import type { Map as LeafletMap, Path, Polyline } from 'leaflet'
 test.slow()
 
 const TEAL = '#00a2f0', RED = '#ff0000', SLATE = '#475569', SLATE_ON_DARK = '#94a3b8', HOVER_SLATE = '#64748b', PIN_HOVER_SLATE = '#334155'
+/** The selected / hovered shade the editor derives from a feature colour. */
+const shade = (hex: string) => deriveStateColors(hex)!
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`
 const COLORS = `featureColor=${encodeURIComponent(TEAL)}&featureStyle=1`
 
@@ -109,19 +114,66 @@ test.describe('MapLibre', () => {
     expect(await paintColors(page, 'elm-features-point', 'circle-color')).toEqual({ pt: TEAL })
     // Fill opacity keeps its default when only colours are given.
     expect(await fillOpacityOf(page, 'plain')).toBe(0.13)
-    // Selected beats both: the drawn polygon takes the accent when clicked.
+    // Selected: the drawn polygon (featureColor) takes a darker shade of its own colour, not the accent.
     const accent = await accent500(page)
     expect(accent).not.toBe(TEAL)
     await page.mouse.click(cx, cy)
-    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color'))[drawnId]).toBe(accent)
-    // Hover keeps the feature's own colour (featureColor / getFeatureStyle); the fill gets denser.
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color'))[drawnId]).toBe(shade(TEAL).selected)
+    expect((await paintColors(page, 'elm-features-line', 'line-color'))[drawnId]).toBe(shade(TEAL).selected)
+    // ...with a heavier outline as the second cue (the plain selected outline is 2.5 px).
+    expect((await paintColors(page, 'elm-features-line', 'line-color'))[drawnId]).not.toBe(accent)
+    // Hover: a milder shade of the feature's own colour; the fill gets denser.
+    await page.keyboard.press('Escape')
     await hover(page, 'plain')
     await expect.poll(() => fillOpacityOf(page, 'plain')).toBe(0.22)
-    expect((await paintColors(page, 'elm-features-fill', 'fill-color')).plain).toBe(TEAL)
-    expect((await paintColors(page, 'elm-features-line', 'line-color')).plain).toBe(TEAL)
+    expect((await paintColors(page, 'elm-features-fill', 'fill-color')).plain).toBe(shade(TEAL).hovered)
+    expect((await paintColors(page, 'elm-features-line', 'line-color')).plain).toBe(shade(TEAL).hovered)
     await hover(page, 'hot')
     await expect.poll(() => fillOpacityOf(page, 'hot')).toBe(0.22)
-    expect((await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe(RED)
+    expect((await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe(shade(RED).hovered)
+  })
+
+  /** Evaluated line-width of one outline / line. */
+  const lineWidthOf = (page: Page, id: string) => page.evaluate((id) => {
+    const map = window.__elementEditorTest!.map as MapLibreMap
+    const f = map.queryRenderedFeatures({ layers: ['elm-features-line'] }).find((f) => f.properties.id === id)!
+    return (f.layer.paint as Record<string, number>)['line-width']
+  }, id)
+
+  /** Select by id through the store (the feature may sit under another one at its bbox centre). */
+  const select = (page: Page, id: string) => page.evaluate((id) => window.__elementEditorTest!.dataStore.getState().selectFeature(id), id)
+
+  test('selectionStyle: auto = own colour derives, default slate keeps the accent; accent / feature force a side', async ({ page }) => {
+    await open(page, COLORS.replace(/featureColor=[^&]+&/, ''))
+    const accent = await accent500(page)
+    // Default colour (slate): accent, as before. A getFeatureStyle colour (red): a darker red + heavier stroke.
+    await select(page, 'plain')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).plain).toBe(accent)
+    expect(await lineWidthOf(page, 'plain')).toBe(2.5)
+    await select(page, 'hot')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe(shade(RED).selected)
+    expect((await paintColors(page, 'elm-features-line', 'line-color')).hot).toBe(shade(RED).selected)
+    expect(await lineWidthOf(page, 'hot')).toBe(4)
+    expect(shade(RED).selected).not.toBe(RED)
+
+    // 'accent': today's look everywhere.
+    await open(page, COLORS + '&selectionStyle=accent')
+    await select(page, 'hot')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe(accent)
+    expect(await lineWidthOf(page, 'hot')).toBe(2.5)
+
+    // 'feature': even the default slate derives.
+    await open(page, 'selectionStyle=feature')
+    await select(page, 'plain')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).plain).toBe(shade(SLATE).selected)
+  })
+
+  test('getFeatureStyle(feature, state): the state style wins over the derived look', async ({ page }) => {
+    await open(page, 'featureStyle=state')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe(RED)
+    await select(page, 'hot')
+    await expect.poll(async () => (await paintColors(page, 'elm-features-fill', 'fill-color')).hot).toBe('#00ff00')
+    expect(await lineWidthOf(page, 'hot')).toBe(8)
   })
 
   test('on a dark basemap the default colour is a lighter slate; lines are drawn heavier than outlines', async ({ page }) => {
@@ -186,6 +238,20 @@ test.describe('Leaflet', () => {
     })
     return out
   })
+  const weightOf = (page: Page, id: string) => page.evaluate((id) => {
+    const t = window.__elementEditorTest!
+    const f = t.dataStore.getState().features.find((f) => f.id === id)!
+    const flat = (JSON.stringify(f.geometry.coordinates).match(/-?\d+(\.\d+)?(e-?\d+)?/g) ?? []).map(Number)
+    const cx = (Math.min(...flat.filter((_, i) => i % 2 === 0)) + Math.max(...flat.filter((_, i) => i % 2 === 0))) / 2
+    let w: number | undefined
+    ;(t.map as LeafletMap).eachLayer((l) => {
+      const p = l as Polyline
+      if (!('getLatLngs' in p) || p.options.opacity === 0.001 || w !== undefined) return
+      const b = p.getBounds()
+      if (Math.abs((b.getWest() + b.getEast()) / 2 - cx) < 1e-9) w = p.options.weight
+    })
+    return w
+  }, id)
   const colorsOf = async (page: Page) => Object.fromEntries(Object.entries(await pathStyles(page)).map(([id, s]) => [id, [s.color, s.fill]]))
 
   test('canvas: a line is stroked over a light casing, an outline is not', async ({ page }) => {
@@ -219,7 +285,7 @@ test.describe('Leaflet', () => {
     expect(Object.values(styles).every((s) => s.canvas)).toBe(true)
     expect(styles.plain.fillOpacity).toBe(0.15)
 
-    // Hover keeps the custom colour; the fill gets denser. L.Canvas hit-tests at most one
+    // Hover: a milder shade of the custom colour; the fill gets denser. L.Canvas hit-tests at most one
     // mousemove per 32 ms, so keep nudging the pointer until the hover lands.
     const plain = await featureCenter(page, 'plain')
     let nudge = 0
@@ -227,15 +293,61 @@ test.describe('Leaflet', () => {
       await page.mouse.move(plain.x + (nudge ^= 1), plain.y)
       return (await pathStyles(page)).plain.fillOpacity
     }).toBe(0.28)
-    expect((await colorsOf(page)).plain).toEqual([TEAL, TEAL])
+    expect((await colorsOf(page)).plain).toEqual([shade(TEAL).hovered, shade(TEAL).hovered])
 
-    // Selected beats getFeatureStyle: the red polygon moves to SVG in the accent.
+    // Selected: the red polygon moves to SVG in a darker red (not the accent), with a heavier outline.
     const accent = await accent500(page)
+    expect(shade(RED).selected).not.toBe(accent)
     const hot = await featureCenter(page, 'hot')
     await page.mouse.click(hot.x, hot.y)
-    await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: accent, fill: accent, canvas: false })
+    await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: shade(RED).selected, fill: shade(RED).selected, canvas: false })
+    expect(await weightOf(page, 'hot')).toBe(4.5)
     await page.keyboard.press('Escape')
     await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: RED, fill: RED, canvas: true })
+  })
+
+  test('selectionStyle: auto keeps the accent for the default slate; accent / feature force a side; state style wins', async ({ page }) => {
+    const select = (id: string) => page.evaluate((id) => window.__elementEditorTest!.dataStore.getState().selectFeature(id), id)
+    await open(page, COLORS.replace(/featureColor=[^&]+&/, ''))
+    const accent = await accent500(page)
+    await select('plain')
+    await expect.poll(async () => (await pathStyles(page)).plain).toMatchObject({ color: accent, canvas: false })
+    await select('hot')
+    await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: shade(RED).selected, fill: shade(RED).selected })
+
+    await open(page, COLORS + '&selectionStyle=accent')
+    await select('hot')
+    await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: accent, fill: accent })
+    expect(await weightOf(page, 'hot')).toBe(3)
+
+    await open(page, 'selectionStyle=feature')
+    await select('plain')
+    await expect.poll(async () => (await pathStyles(page)).plain).toMatchObject({ color: shade(SLATE).selected })
+
+    await open(page, 'featureStyle=state')
+    await select('hot')
+    await expect.poll(async () => (await pathStyles(page)).hot).toMatchObject({ color: '#00ff00' })
+    expect(await weightOf(page, 'hot')).toBe(8)
+  })
+
+  test('vertex handles follow the feature colour (--elm-handle), the accent otherwise', async ({ page }) => {
+    const handle = () => page.evaluate(() => document.querySelector<HTMLElement>('.leaflet-container')!.style.getPropertyValue('--elm-handle'))
+    await open(page, COLORS.replace(/featureColor=[^&]+&/, ''))
+    const edit = (id: string) => page.evaluate((id) => {
+      const t = window.__elementEditorTest!
+      t.dataStore.getState().selectFeature(id)
+    }, id)
+    await edit('hot')
+    const c = await featureCenter(page, 'hot')
+    await page.mouse.dblclick(c.x, c.y)
+    await expect.poll(handle).toBe(shade(RED).selected)
+    await page.keyboard.press('Escape')
+    await expect.poll(handle).toBe('')
+    await edit('plain')
+    const p = await featureCenter(page, 'plain')
+    await page.mouse.dblclick(p.x, p.y)
+    await expect(page.locator('.elm-vertex').first()).toBeVisible()
+    expect(await handle()).toBe('') // default slate: the accent
   })
 
   test('svg: the path attributes carry the colours', async ({ page }) => {
@@ -255,7 +367,7 @@ test.describe('Leaflet', () => {
     await expect(page.locator('.leaflet-marker-pane path').first()).toHaveAttribute('style', `fill:${TEAL}`)
   })
 
-  test('pins: hover keeps a custom colour, an uncoloured pin darkens, selected takes the accent', async ({ page }) => {
+  test('pins: hover and selected are shades of a custom colour, an uncoloured pin darkens', async ({ page }) => {
     const pin = page.locator('.leaflet-marker-pane path').first()
     const hoverPin = async () => {
       const b = (await pin.boundingBox())!
@@ -270,9 +382,9 @@ test.describe('Leaflet', () => {
     await expect(pin).toHaveAttribute('style', `fill:${TEAL}`)
     await hoverPin()
     await expect.poll(() => page.evaluate(() => document.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon:hover').length)).toBe(1)
-    await expect(pin).toHaveAttribute('style', `fill:${TEAL}`) // hover keeps a custom colour
+    await expect(pin).toHaveCSS('fill', rgb(shade(TEAL).hovered)) // a milder shade of its own colour
     await pin.click()
-    await expect(pin).toHaveAttribute('style', 'fill:var(--color-primary-500)')
+    await expect(pin).toHaveAttribute('style', `fill:${shade(TEAL).selected}`) // selected: a darker shade, not the accent
 
     await away() // the reloaded pin would mount under the cursor, already hovered
     await open(page, '')

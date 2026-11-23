@@ -12,7 +12,7 @@ import { useModifierDragCursor } from '../../hooks/useModifierDragCursor'
 import { useFeatureDrag } from '../../hooks/useFeatureDrag'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
 import { LINE_HIT_WEIGHT, pathElement, useFeatureRenderer } from './renderer'
-import { AccentContext, IDLE_LINE, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
+import { AccentContext, IDLE_LINE, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, useStateLook, type OpenFeatureCtxMenu } from './shared'
 
 export const LineLayer = memo(function LineLayer({ feature, selected, isMultiSelected, onVertexEdit, multiDragDelta, multiDuplicateDrag, readonly, interaction, onContextMenu }: {
   feature: GeoJSONFeature
@@ -36,6 +36,7 @@ export const LineLayer = memo(function LineLayer({ feature, selected, isMultiSel
   const [hovered, setHovered] = useState(false)
   const modifierCursor = useModifierDragCursor(readonly)
   const custom = useCustomStyle(feature)
+  const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
   // On canvas the visible line is the hit target (renderer tolerance widens it);
   // on SVG it's inert and the 12 px transparent hit path takes the events.
   const renderer = useFeatureRenderer(selected || isMultiSelected, () => [mainRef.current, hitRef.current], {
@@ -92,11 +93,12 @@ export const LineLayer = memo(function LineLayer({ feature, selected, isMultiSel
         positions={positions}
         pathOptions={(selected || isMultiSelected || !!effectiveDelta)
           ? litStyle(custom, false, {
-              color: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-              weight: selected || hovered ? 4.5 : 3.5,
+              color: (isMultiSelected || selected) ? look.color : DEFAULT_FEATURE_COLOR,
+              weight: (selected || hovered ? 4.5 : 3.5) + look.boost,
               opacity: hovered ? 1 : 0.9,
+              ...look.host,
             })
-          : idleStyle(IDLE_LINE, custom, hovered ? { weight: 4.5, opacity: 1 } : null)}
+          : idleStyle(IDLE_LINE, custom, hovered ? { weight: 4.5, opacity: 1, ...look.hover } : null)}
         renderer={renderer}
         interactive={!!renderer}
         eventHandlers={handlers}

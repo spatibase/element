@@ -25,7 +25,7 @@ import { PendingPointMarker } from './PendingPointMarker'
 import { useMapInteractionMachine } from '../hooks/useMapInteractionMachine'
 import { isFreehandCommitConsumed } from '../utils/freehandCommitFlag'
 import { IdleRendererContext, useIdleRenderer, type FeatureRenderer } from './featureLayers/renderer'
-import { AccentContext, composeFeatureStyle, type OpenFeatureCtxMenu } from './featureLayers/shared'
+import { AccentContext, SelectionStyleContext, composeFeatureStyle, type OpenFeatureCtxMenu } from './featureLayers/shared'
 import { FeatureElements } from './featureLayers/FeatureElements'
 
 // Every feature is drawn once, by this layer (FeatureElements → one memoised
@@ -42,9 +42,13 @@ export type { FeatureRenderer }
  */
 function ComposedFeatureStyle({ children }: { children: ReactNode }) {
   const getFeatureStyle = useFeatureStyle()
-  const featureColor = useElementEditorConfig().featureColor
+  const { featureColor, selectionStyle } = useElementEditorConfig()
   const composed = useMemo(() => composeFeatureStyle(getFeatureStyle, featureColor), [getFeatureStyle, featureColor])
-  return <FeatureStyleProvider getFeatureStyle={composed}>{children}</FeatureStyleProvider>
+  return (
+    <SelectionStyleContext.Provider value={selectionStyle}>
+      <FeatureStyleProvider getFeatureStyle={composed}>{children}</FeatureStyleProvider>
+    </SelectionStyleContext.Provider>
+  )
 }
 
 export function FitBounds() {

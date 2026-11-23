@@ -9,7 +9,7 @@ import { usePartDrag } from '../../hooks/usePartDrag'
 import { bindFeatureTooltip, unbindFeatureTooltip } from '../../utils/featureTooltip'
 import { useModifierDragCursor } from '../../hooks/useModifierDragCursor'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
-import { idlePin, makeContextMenuHandler, makeDimmedPinIcon, makePinIcon, pinColor, tintPin, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
+import { idlePin, makeContextMenuHandler, makeDimmedPinIcon, makePinIcon, pinColor, tintPin, useCustomStyle, useStateLook, type OpenFeatureCtxMenu } from './shared'
 
 export const MultiPointLayer = memo(function MultiPointLayer({ feature, selected, isMultiSelected, multiDragDelta, readonly, interaction, onContextMenu }: { feature: GeoJSONFeature; selected: boolean; isMultiSelected: boolean; multiDragDelta: [number, number] | null; readonly: boolean; interaction: MapInteractionMachine; onContextMenu?: OpenFeatureCtxMenu }) {
   const { dataStore, uiStore } = useGeoStore()
@@ -17,7 +17,9 @@ export const MultiPointLayer = memo(function MultiPointLayer({ feature, selected
   const setSelectedPartIndex = useUIStore((s) => s.setSelectedPartIndex)
   const selectedPartIndex = useUIStore((s) => s.selectedPartIndex)
   const points = feature.geometry.coordinates as [number, number][]
-  const pin = pinColor(useCustomStyle(feature))
+  const custom = useCustomStyle(feature)
+  const pin = pinColor(custom)
+  const look = useStateLook(feature, custom, selected || isMultiSelected, false)
   const markerRefs = useRef<Map<number, L.Marker>>(new Map())
   const modifierCursor = useModifierDragCursor(readonly)
 
@@ -59,9 +61,9 @@ export const MultiPointLayer = memo(function MultiPointLayer({ feature, selected
             else markerRefs.current.delete(i)
           }}
           position={toLeaflet(coord)}
-          icon={!active ? idlePin(pin)
+          icon={!active ? idlePin(pin, look.pinHover)
             : (hasPartSelected && selectedPartIndex !== i) ? makeDimmedPinIcon(pin)
-            : makePinIcon(selected && (!hasPartSelected || selectedPartIndex === i), isMultiSelected, pin)}
+            : makePinIcon(selected && (!hasPartSelected || selectedPartIndex === i), isMultiSelected, pin, look.pinLit)}
           draggable={false}
           eventHandlers={{
             mouseover: (e: L.LeafletMouseEvent) => {

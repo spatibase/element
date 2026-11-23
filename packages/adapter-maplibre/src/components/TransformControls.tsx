@@ -20,6 +20,7 @@
  * corrected local frame; uniform scale runs in projected (Mercator) space per
  * vertex so wide-latitude shapes don't distort.
  */
+import { useHandleVars } from '../utils/stateStyle'
 import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import * as maplibregl from 'maplibre-gl'
@@ -357,7 +358,7 @@ function makeHandleEl(kind: HandleKind): HTMLElement {
       'cursor:grab',
     ].join(';')
     const stem = document.createElement('div')
-    stem.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:2px;height:24px;background:var(--color-primary-600);'
+    stem.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:2px;height:24px;background:var(--elm-handle,var(--color-primary-600));'
     el.appendChild(stem)
     const knob = document.createElement('div')
     knob.style.cssText = [
@@ -368,7 +369,7 @@ function makeHandleEl(kind: HandleKind): HTMLElement {
       'width:16px',
       'height:16px',
       'background:#ffffff',
-      'border:2px solid var(--color-primary-600)',
+      'border:2px solid var(--elm-handle,var(--color-primary-600))',
       'border-radius:50%',
       'box-shadow:0 1px 3px rgba(0,0,0,0.35)',
       'display:flex',
@@ -376,7 +377,7 @@ function makeHandleEl(kind: HandleKind): HTMLElement {
       'justify-content:center',
     ].join(';')
     const dot = document.createElement('div')
-    dot.style.cssText = 'width:6px;height:6px;background:var(--color-primary-600);border-radius:50%;'
+    dot.style.cssText = 'width:6px;height:6px;background:var(--elm-handle,var(--color-primary-600));border-radius:50%;'
     knob.appendChild(dot)
     el.appendChild(knob)
     return el
@@ -385,7 +386,7 @@ function makeHandleEl(kind: HandleKind): HTMLElement {
     'width:12px',
     'height:12px',
     'background:#ffffff',
-    'border:2px solid var(--color-primary-600)',
+    'border:2px solid var(--elm-handle,var(--color-primary-600))',
     'border-radius:3px',
     `cursor:${cursorFor(kind)}`,
     'box-shadow:0 1px 3px rgba(0,0,0,0.35)',
@@ -405,6 +406,7 @@ export default function TransformControls({ map, features }: Props) {
   const selectedIds = useDataStore((s) => s.selectedIds)
   const transformActive = useUIStore((s) => s.transformActive)
   const setTransformDragging = useUIStore((s) => s.setTransformDragging)
+  useHandleVars(transformActive && features.length === 1 ? features[0] : undefined, map.getContainer())
 
   // Keep the features list in a ref so the drag handlers don't need to be
   // rebuilt when the features prop tick-updates during preview re-renders.
