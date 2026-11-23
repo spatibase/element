@@ -28,7 +28,7 @@ async function open(page: Page, query: string) {
       poly('cee', C_SHAPE),
       poly('hidden', box(0.7, 0.3, 0.8, 0.4)),
       poly('default', box(0.7, 0.5, 0.8, 0.6)),
-      { type: 'Feature', id: 'pin', properties: { name: 'pin' }, geometry: { type: 'Point', coordinates: ll([0.85, 0.7]) } },
+      { type: 'Feature', id: 'pin', properties: { name: 'pin' }, geometry: { type: 'Point', coordinates: ll([0.5, 0.85]) } },
     ],
   }))
   return { ll }
@@ -92,22 +92,24 @@ test('anchor placement: the tooltip stays put while the cursor moves, inside a C
 
 test('anchor placement: a pin gets the tooltip above its head, and it follows a pan', async ({ page }) => {
   const { ll } = await open(page, 'tooltip=anchor')
-  const [lng, lat] = ll([0.85, 0.7]) as [number, number]
+  const [lng, lat] = ll([0.5, 0.85]) as [number, number]
   const tipPx = await screenPoint(page, lng, lat) // a pin's anchor is its tip
-  await hover(page, lng, lat - 0) // cursor on the tip; the pin head is above it
-  const pin = await screenPoint(page, lng, lat)
-  await page.mouse.move(pin.x, pin.y - 14, { steps: 4 })
+  // Leaflet: the pin head is above its tip; MapLibre: a circle on the point.
+  const leaflet = await page.evaluate(() => 'latLngToContainerPoint' in window.__elementEditorTest!.map)
+  await page.mouse.move(tipPx.x + 40, tipPx.y + 40)
+  await page.mouse.move(tipPx.x, tipPx.y - (leaflet ? 14 : 0), { steps: 4 })
   await expect(tip(page)).toHaveText('pin')
   const b = await tipBox(page)
   expect(Math.abs(b.x + b.width / 2 - tipPx.x)).toBeLessThanOrEqual(2)
-  expect(b.y + b.height).toBeLessThanOrEqual(tipPx.y - 28 + 1)
-  expect(b.y + b.height).toBeGreaterThan(tipPx.y - 28 - 12)
+  const lift = leaflet ? 28 : 11
+  expect(b.y + b.height).toBeLessThanOrEqual(tipPx.y - lift + 1)
+  expect(b.y + b.height).toBeGreaterThan(tipPx.y - lift - 12)
 
-  // Pan the map by 60 px: the tooltip moves with its anchor.
+  // Pan the map by 4 px (the cursor stays on the pin): the tooltip moves with its anchor.
   await page.evaluate(() => {
     const m = window.__elementEditorTest!.map
-    if ('panBy' in m) m.panBy([60, 0], { animate: false })
-    else m.jumpTo({ center: m.unproject([m.getContainer().clientWidth / 2 + 60, m.getContainer().clientHeight / 2]) })
+    if ('panBy' in m) m.panBy([4, 0], { animate: false })
+    else m.jumpTo({ center: m.unproject([m.getContainer().clientWidth / 2 + 4, m.getContainer().clientHeight / 2]) })
   })
   await page.waitForTimeout(200)
   const moved = await tipBox(page)
