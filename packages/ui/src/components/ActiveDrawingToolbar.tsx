@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useLayoutEffect, useState } from 'react'
 import { CircleHalfTilt, ArrowsHorizontal, Hexagon } from '@phosphor-icons/react'
 import { useUIStore } from '../store/StoreContext'
 import { useElementEditorConfig } from '../contexts/ElementEditorConfigContext'
@@ -9,7 +9,9 @@ import { useTouchInput } from '../hooks/useTouchInput'
 
 // Same hover as the EditToolbarBtn icons beside them: one step stronger than the
 // shared ghost Button, and no colour transition.
-const ACTION_BTN = 'h-8 px-3 rounded-elm-control text-sm flex items-center justify-center gap-1.5 active:scale-[0.95]'
+// Height = the bar's height minus a fixed 9 px gap (1 px border + 8 px padding) top and bottom, so the
+// default 50 px bar keeps its 32 px buttons and a smaller `--elm-drawing-bar-height` shrinks them with it.
+const ACTION_BTN = 'h-(--elm-bar-btn) px-3 rounded-elm-control text-sm flex items-center justify-center gap-1.5 active:scale-[0.95]'
 
 /**
  * One instruction in the drawing hint: plain text, or text with a key chip in it
@@ -24,6 +26,13 @@ const SHIFT_SQUARE: HintPart = { before: 'Hold', key: 'Shift', keyName: 'Shift',
 const hintText = (parts: HintPart[]) =>
   parts.map((p) => (typeof p === 'string' ? p : `${p.before} ${p.keyName}${p.after ? ` ${p.after}` : ''}`)).join('. ')
 
+/** Default of the public `--elm-drawing-bar-height` token (the bar's outer height, border included). */
+const BAR_HEIGHT_DEFAULT = '50px'
+
+/** The editing modes in which the drawing bar shows (also what `MapDrawingBar` mounts its wrapper for). */
+const BAR_MODES = new Set(['draw-line', 'slice-shape', 'draw-polygon', 'cut-hole', 'draw-route', 'draw-circle', 'draw-rect', 'draw-freehand', 'place-point', 'measure', 'pick-shape'])
+export const isDrawingBarMode = (mode: string | null | undefined) => !!mode && BAR_MODES.has(mode)
+
 /** Narrower than this (the bar's own space, not the viewport) the bar uses its compact one-row layout. */
 const COMPACT_BELOW = 420
 
@@ -35,7 +44,8 @@ const COMPACT_BELOW = 420
  */
 function useNarrowParent(el: HTMLElement | null): boolean {
   const [narrow, setNarrow] = useState(false)
-  useEffect(() => {
+  // Layout effect: measured before the first paint, so a narrow map never shows the wide bar for a frame.
+  useLayoutEffect(() => {
     const parent = el?.closest<HTMLElement>('[data-elm-drawing-bar], [data-elm-theme]')
     if (!parent) return
     const update = () => setNarrow(parent.clientWidth > 0 && parent.clientWidth < COMPACT_BELOW)
@@ -64,10 +74,12 @@ function DrawingHint({ parts, compact }: { parts: HintPart[]; compact?: boolean 
     <ul
       data-elm-hint
       aria-label="Drawing hints"
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 min-w-0 px-2 m-0 list-none text-sm text-elm-text-muted"
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 min-w-0 m-0 p-0 list-none text-sm text-elm-text-muted"
     >
-      {parts.map((p) => (
-        <li key={partKey(p)} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      {parts.map((p, i) => (
+        <Fragment key={partKey(p)}>
+        {i > 0 && <RowDivider as="li" />}
+        <li className="inline-flex items-center gap-1.5 whitespace-nowrap">
           {typeof p === 'string' ? p : (
             <>
               {p.before}
@@ -81,6 +93,7 @@ function DrawingHint({ parts, compact }: { parts: HintPart[]; compact?: boolean 
             </>
           )}
         </li>
+        </Fragment>
       ))}
     </ul>
   )
@@ -119,7 +132,7 @@ export default function ActiveDrawingToolbar() {
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null)
   const compact = useNarrowParent(rootEl)
   // Phone-sized targets (44 px) for a finger in a narrow bar; a mouse keeps h-8.
-  const actionBtn = compact && touch ? ACTION_BTN.replace('h-8', 'h-11 min-w-11') : ACTION_BTN
+  const actionBtn = compact && touch ? ACTION_BTN.replace('h-(--elm-bar-btn)', 'h-[max(44px,var(--elm-bar-btn))] min-w-11') : ACTION_BTN
 
   const isDrawingLine = editingMode === 'draw-line' || editingMode === 'slice-shape'
   const isDrawingPolygon = editingMode === 'draw-polygon' || editingMode === 'cut-hole'
@@ -212,10 +225,20 @@ export default function ActiveDrawingToolbar() {
     : null)
 
   return (
-    <div ref={setRootEl} className={`flex flex-wrap items-center justify-center gap-2 max-w-full${compact ? ' w-full' : ''} bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto`}>
+    <div
+      ref={setRootEl}
+      data-elm-drawing-toolbar=""
+      style={{
+        '--elm-bar-btn': `calc(var(--elm-drawing-bar-height, ${BAR_HEIGHT_DEFAULT}) - 18px)`,
+        minHeight: `var(--elm-drawing-bar-height, ${BAR_HEIGHT_DEFAULT})`,
+        boxSizing: 'border-box',
+      } as React.CSSProperties}
+      className={`flex flex-wrap items-center justify-center gap-2 max-w-full${compact ? ' w-full' : ''} bg-elm-surface/95 backdrop-blur-md border border-elm-border/80 shadow-elm rounded-elm px-2 py-2 pointer-events-auto`}
+    >
         {isMeasuring && (
           <>
             <EditToolbarBtn
+              fitBar
               active={measureMode === 'distance'}
               onClick={() => setMeasureMode('distance')}
               label="Measure distance"
@@ -223,6 +246,7 @@ export default function ActiveDrawingToolbar() {
               <ArrowsHorizontal size={24} />
             </EditToolbarBtn>
             <EditToolbarBtn
+              fitBar
               active={measureMode === 'area'}
               onClick={() => setMeasureMode('area')}
               label="Measure area"
@@ -233,6 +257,7 @@ export default function ActiveDrawingToolbar() {
         )}
         {editingMode === 'draw-freehand' && (
           <EditToolbarBtn
+              fitBar
             active={freehandClosed}
             onClick={() => setFreehandClosed(!freehandClosed)}
             label="Closed shape"
@@ -246,13 +271,14 @@ export default function ActiveDrawingToolbar() {
 
       {!compact && ui.hints && hint && <RowDivider />}
 
-      {touch && undoablePoints > 0 && (
+      {(touch || !ui.hints) && undoablePoints > 0 && (
         <button
           type="button"
           onClick={handleUndoPoint}
           className={`${actionBtn} text-(--elm-text-muted,var(--color-gray-600)) dark:text-(--elm-text-muted,var(--color-gray-400)) hover:bg-elm-control-hover`}
         >
           Undo point
+          {!touch && <Kbd>⌫</Kbd>}
         </button>
       )}
 

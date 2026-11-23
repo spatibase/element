@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useAccentStyle } from '../hooks/useAccentStyle'
 import { useTheme } from '../contexts/ThemeContext'
-import ActiveDrawingToolbar from './ActiveDrawingToolbar'
+import { useUIStore } from '../store/StoreContext'
+import ActiveDrawingToolbar, { isDrawingBarMode } from './ActiveDrawingToolbar'
 
 /** Events the map would read as its own (a pan, a click that adds a point) if they reached it. */
 const STOPPED = ['mousedown', 'touchstart', 'dblclick', 'contextmenu'] as const
@@ -25,7 +26,9 @@ export default function MapDrawingBar({ container: mapContainer, option = true }
   const slot = typeof option === 'object' && option ? option.container : undefined
   const container = slot ?? mapContainer
   const inline = !!slot
-  const shown = option !== false && slot !== null
+  // No wrapper in the DOM while no tool is on: hosts can read its presence as "a tool is on".
+  const active = useUIStore((s) => isDrawingBarMode(s.editingMode))
+  const shown = option !== false && slot !== null && active
   const ref = useRef<HTMLDivElement>(null)
   const theme = useTheme()
   const style = useAccentStyle()

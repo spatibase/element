@@ -45,8 +45,8 @@ function settle(bar: HTMLElement) {
  * a lone divider. Put it directly in the bar (not in a wrapper); every row
  * divider in the bar is settled together. `children` is the divider to draw.
  */
-export function RowDivider({ children }: { children?: ReactNode }) {
-  const ref = useRef<HTMLSpanElement>(null)
+export function RowDivider({ children, as: Tag = 'span' }: { children?: ReactNode; /** `li` inside a `<ul>`. */ as?: 'span' | 'li' }) {
+  const ref = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const bar = ref.current?.parentElement
     if (!bar) return
@@ -57,5 +57,5 @@ export function RowDivider({ children }: { children?: ReactNode }) {
     for (const c of Array.from(bar.children)) if (!c.hasAttribute('data-elm-row-divider')) ro.observe(boxOf(c, 'first'))
     return () => ro.disconnect()
   })
-  return <span ref={ref} data-elm-row-divider="" aria-hidden="true" className="flex">{children ?? <ToolbarDivider />}</span>
+  return <Tag ref={ref as never} data-elm-row-divider="" aria-hidden="true" className="flex list-none">{children ?? <ToolbarDivider />}</Tag>
 }

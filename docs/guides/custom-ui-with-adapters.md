@@ -65,9 +65,27 @@ Shortcuts are scoped to the editor they belong to: a key press acts on an editor
 
 While a drawing tool is on, `ElementEditorControls` shows the drawing bar itself, bottom centre of the map: the hint, and on a touch screen **Done**, **Undo point** and **Cancel**. A host that only mounts the controls (own toolbar, tools driven by `ref.setTool`) therefore needs nothing extra to finish a shape by touch. The bar sits inside the map container, above the phone's home indicator, and its presses never reach the map, so tapping **Done** adds no point.
 
+### Look
+
+- **Colour.** The bar uses the editor's accent: it is blue by default. Set [`accentColor`](./theming.md#approach-1--one-brand-colour) (or `--elm-accent`) to match your product.
+- **Size.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height and its buttons follow, so `40px` lines up with 40 px map controls. On a touch screen buttons stay at least 44 px.
+- **Hints.** With `config.ui.hints: false` the hint text is hidden; the desktop bar then shows an Undo point button instead, so undoing the last point stays one click away.
+- **Only while a tool is on.** `[data-elm-drawing-bar]` is in the DOM only while a drawing tool is active, so you can use it as a "tool is on" signal.
+
 ### Placement
 
 - **Lift it.** The bar sits 16 px above the bottom of the map (plus the phone's safe area). Set `--elm-drawing-bar-bottom` on the editor root, on your wrapper or on any ancestor of the map to move it, for example above your own control cluster in the bottom-left corner. `--elm-drawing-bar-inset-x` sets the space it keeps from the left and right edges (default `1rem`).
+- **Lift it only when it collides.** There is no avoid-zone API; a CSS container query does it. Make the element that wraps your map's container a size container, and set `--elm-drawing-bar-bottom` on the map container itself inside the query (a container query styles the container's descendants, not the container, which is why the variable goes on the map element and the query on its parent):
+
+  ```css
+  .map-shell { container-type: inline-size; }          /* the parent of the map container */
+
+  @container (max-width: 640px) {
+    .map-shell .my-map { --elm-drawing-bar-bottom: 72px; }  /* .my-map = the map container element */
+  }
+  ```
+
+  The bar is portaled into the map container, so it inherits the variable from it. Wider maps keep the default 16 px. With a `drawingBar={{ container }}` slot the bar is not positioned, so this does not apply.
 - **A slot of your own.** Pass `drawingBar={{ container }}` with an element you own (a strip under a small form-field map, say) and the bar renders there instead of over the map: static, the full width of that element, with the same theme and dark mode. While `container` is `null` (your ref isn't set yet) nothing shows, so the bar never flashes in the map first. Presses on it never reach the map or your own handlers up the tree.
 - **Narrow maps.** When the map container (or your slot) is narrower than 420 px, the bar switches to a compact layout on its own: the hint on one line, cut with an ellipsis (the full text is in its `title`), the buttons on one row and, for a finger, 44 px tall. Wider maps are unchanged.
 

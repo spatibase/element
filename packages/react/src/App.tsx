@@ -27,10 +27,12 @@ const layoutPatch = params.get('layoutPatch')
 const shortcutsOff = params.get('shortcuts') === '0'
 const inspector = params.get('inspector')
 const geojsonOff = params.get('geojson') === '0'
+// ?hints=0 sets config.ui.hints: false (drawing bar without the hint text). (e2e)
+const hintsOff = params.get('hints') === '0'
 // ?persistKey=<key> namespaces localStorage; ?persist=0 turns it off. (e2e)
 const persistKey = params.get('persistKey') ?? undefined
 const persistOff = params.get('persist') === '0'
-const uiParams = layoutParam || layoutPatch || shortcutsOff || inspector || geojsonOff
+const uiParams = layoutParam || layoutPatch || shortcutsOff || inspector || geojsonOff || hintsOff
 // config.network (e2e network-config.spec): the sprite always comes from this dev server.
 // ?network=custom points every service at *.example.test hosts (and a `fetch` adding `X-Elm-Test: 1`);
 // ?network=off turns Overpass, routing and search off. ?routingApiKey=<key> passes the deprecated prop.
@@ -62,6 +64,7 @@ const config: ElementEditorConfig = {
       ...(shortcutsOff && { keyboardShortcuts: false }),
       ...(inspector && { geojsonEditorOpen: inspector === 'docked' ? 'docked' as const : true }),
       ...(geojsonOff && { geojsonEditor: false }),
+      ...(hintsOff && { hints: false }),
     } }),
     ...(persistKey && { persistKey }),
     ...(persistOff && { persist: false }),

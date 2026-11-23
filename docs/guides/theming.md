@@ -8,7 +8,7 @@ Element exposes two complementary approaches: one brand colour that recolours th
 
 ## Approach 1 — One brand colour
 
-Give Element one accent colour and every accent shade follows: buttons, active tools, selection, checkboxes, table selection and the map highlights. The default is blue.
+Give Element one accent colour and every accent shade follows: buttons, active tools, selection, checkboxes, table selection and the map highlights. **The default accent is blue, so if your product has its own colour, set `accentColor` first**: it is the one change that makes the editor (the drawing bar's Finish button included) look like yours.
 
 ### `<ElementEditor accentColor>`
 
@@ -307,11 +307,12 @@ For a change no token covers, write CSS against Element's markup under your own 
 
 ### Drawing bar placement
 
-Two more public variables place the drawing bar that adapter hosts get from `ElementEditorControls` (see [Custom UI with adapters](./custom-ui-with-adapters.md#the-drawing-bar)). Set them on the editor root or any ancestor of the map; unlike the colour tokens they are layout inputs, so changing them does not restyle anything else.
+Three more public variables place and size the drawing bar (see [Custom UI with adapters](./custom-ui-with-adapters.md#the-drawing-bar)). Set them on the editor root or any ancestor of the map; unlike the colour tokens they are layout inputs, so changing them does not restyle anything else.
 
 | Variable | Used for | Default |
 |---|---|---|
 | `--elm-drawing-bar-bottom` | Distance from the bottom of the map to the bar (the phone's safe area is added). Raise it to clear your own controls | `16px` |
+| `--elm-drawing-bar-height` | Height of the bar, border included. Its buttons follow (bar height minus 18 px), so `40px` matches 40 px map buttons. A finger's 44 px targets are kept | `50px` |
 | `--elm-drawing-bar-inset-x` | Space between the bar and the left and right edges of the map | `1rem` |
 
 ### Row highlight colours

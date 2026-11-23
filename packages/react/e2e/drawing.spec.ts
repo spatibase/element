@@ -186,14 +186,15 @@ test.describe('Draw line', () => {
     await page.locator(MAP).click()
   })
 
-  test('hint shows each instruction as its own item, without separator dots', async ({ page }) => {
+  test('hint shows each instruction as its own item, split by dividers, no dots', async ({ page }) => {
     const map = page.locator(MAP)
     const box = await map.boundingBox()
     if (!box) throw new Error('no map')
 
     await page.keyboard.press('l')
     await map.click({ position: { x: box.width / 2 - 100, y: box.height / 2 } })
-    const items = page.locator('[data-elm-hint] li')
+    const items = page.locator('[data-elm-hint] > li:not([data-elm-row-divider])')
+    await expect(page.locator('[data-elm-hint] > [data-elm-row-divider]')).toHaveCount(2)
     await expect(items).toHaveCount(3)
     await expect(items.nth(0)).toHaveText('Click to add points')
     await expect(items.nth(1)).toHaveText('Double-click to finish')
