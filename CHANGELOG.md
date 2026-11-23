@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- Hover tooltips can now be pinned to the feature and say what you want: `config.featureTooltip` takes `placement: 'anchor'` (above a point, halfway along a line, a spot inside an area), a `content` callback for the text (return `null` to show nothing), or `false` to turn the tooltip off, which also hides the "Show name on hover" switch in Settings.
+
 ---
 
 ## [0.3.3] — 2026-11-22

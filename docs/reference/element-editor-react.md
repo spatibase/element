@@ -474,6 +474,21 @@ interface ElementEditorConfig {
    */
   featureColor?: string
 
+  /**
+   * The tooltip shown while the pointer is over a feature.
+   * `false`: none, and Settings hides its "Show name on hover" switch.
+   * `true` / omitted: the feature's name (else its area / length) following the pointer;
+   * the user's Settings switch still applies.
+   * An object picks where the tooltip sits and what it says (see below).
+   */
+  featureTooltip?: boolean | {
+    /** 'cursor' (default): follows the pointer. 'anchor': stays on the feature while the pointer
+     *  moves over it, and follows the map when it pans or zooms. */
+    placement?: 'cursor' | 'anchor'
+    /** The text for a feature. null or '': no tooltip for it. undefined: the default label. */
+    content?: (feature: GeoJSONFeature) => string | null | undefined
+  }
+
   /** Which drawing tools are available. Default: 'all'. */
   tools?: DrawTool[] | 'all'
 
@@ -585,6 +600,26 @@ interface ElementEditorConfig {
   }
 }
 ```
+
+### Feature tooltip
+
+`config.featureTooltip` controls the label that appears when the pointer rests on a feature.
+
+```tsx
+<ElementEditor
+  config={{
+    featureTooltip: {
+      placement: 'anchor',
+      content: (f) => (f.properties?.status === 'draft' ? null : `${f.properties?.name} (${f.properties?.status})`),
+    },
+  }}
+/>
+```
+
+- `placement: 'anchor'` pins the tooltip to the feature instead of the pointer. For a point it sits above the marker; for a line, at the halfway point along its length; for an area, at a spot guaranteed to be inside it (a C-shaped area's centre can be outside it). On a multi-part feature (Multi\*, a geometry collection) it uses the part under the pointer. It flips and clamps at the window edges, hides during drags, and follows the map when it pans or zooms.
+- `content` is called once when the pointer enters a feature. Return `null` or `''` to show nothing for that feature, or `undefined` for the default label.
+- `featureTooltip: false` turns the tooltip off for that editor and hides the "Show name on hover" switch in Settings. Otherwise that switch still decides whether the tooltip shows.
+- The option is per editor: two editors on one page can differ.
 
 ### Layout types
 

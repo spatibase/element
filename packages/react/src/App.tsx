@@ -54,8 +54,19 @@ const network: NonNullable<ElementEditorConfig['network']> = {
   }),
   ...(networkParam === 'off' && { overpass: false, routing: false, nominatim: false }),
 }
+// ?tooltip=off | anchor | content | anchor-content: `config.featureTooltip` (e2e). `content` shows
+// "Custom <name>", nothing for a feature named "hidden", and the default label for "default".
+const tooltipParam = params.get('tooltip')
+const featureTooltip: ElementEditorConfig['featureTooltip'] = !tooltipParam ? undefined : tooltipParam === 'off' ? false : {
+  ...(tooltipParam.includes('anchor') && { placement: 'anchor' as const }),
+  ...(tooltipParam.includes('content') && { content: (f: GeoJSONFeature) => {
+    const name = f.properties?.name
+    return name === 'hidden' ? null : name === 'default' ? undefined : `Custom ${name}`
+  } }),
+}
 const config: ElementEditorConfig = {
     network,
+    ...(featureTooltip !== undefined && { featureTooltip }),
     ...(uiParams && { ui: {
       ...(layoutParam && { layout: JSON.parse(layoutParam) }),
       ...(layoutPatch && { layout: withLayout(JSON.parse(layoutPatch)) }),

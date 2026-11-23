@@ -2,7 +2,6 @@ import area from '@turf/area'
 import along from '@turf/along'
 import length from '@turf/length'
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
-import pointOnFeature from '@turf/point-on-feature'
 import { lineString, polygon, point } from '@turf/helpers'
 import type { Position } from 'geojson'
 import type { GeoJSONFeature, Geometry } from '../types/geojson'
@@ -88,6 +87,51 @@ export function tooltipAnchor(feature: Pick<GeoJSONFeature, 'geometry'>, hit?: [
     const c = along(line, length(line) / 2).geometry.coordinates
     return { kind: 'line', lngLat: [c[0], c[1]] }
   }
-  const c = pointOnFeature(polygon(best.rings)).geometry.coordinates
-  return { kind: 'area', lngLat: [c[0], c[1]] }
+  return { kind: 'area', lngLat: pointInside(best.rings) }
+}
+
+/** Area centroid (shoelace) of the outer ring. */
+function centroid(ring: Position[]): [number, number] {
+  let a = 0, cx = 0, cy = 0
+  for (let i = 1; i < ring.length; i++) {
+    const [x0, y0] = ring[i - 1], [x1, y1] = ring[i]
+    const f = x0 * y1 - x1 * y0
+    a += f; cx += (x0 + x1) * f; cy += (y0 + y1) * f
+  }
+  return a ? [cx / (3 * a), cy / (3 * a)] : [ring[0][0], ring[0][1]]
+}
+
+/** The middle of the widest stretch of the shape along the horizontal line `y` (even-odd over every ring), or null. */
+function widestSpan(rings: Position[][], y: number): [number, number] | null {
+  const xs: number[] = []
+  for (const ring of rings) {
+    for (let i = 1; i < ring.length; i++) {
+      const [x0, y0] = ring[i - 1], [x1, y1] = ring[i]
+      if ((y0 <= y) !== (y1 <= y)) xs.push(x0 + ((y - y0) / (y1 - y0)) * (x1 - x0))
+    }
+  }
+  xs.sort((a, b) => a - b)
+  let best: [number, number] | null = null, bestW = 0
+  for (let i = 0; i + 1 < xs.length; i += 2) {
+    const w = xs[i + 1] - xs[i]
+    if (w > bestW) { bestW = w; best = [(xs[i] + xs[i + 1]) / 2, y] }
+  }
+  return best
+}
+
+/**
+ * A point strictly inside the polygon: its centroid when that is inside, else (C and L shapes,
+ * rings with holes) the middle of the widest horizontal stretch through the centroid's height.
+ */
+function pointInside(rings: Position[][]): [number, number] {
+  const c = centroid(rings[0])
+  const poly = polygon(rings)
+  if (booleanPointInPolygon(point(c), poly, { ignoreBoundary: true })) return c
+  const ys = rings[0].map((p) => p[1])
+  const lo = Math.min(...ys), hi = Math.max(...ys)
+  for (const f of [c[1], (lo + hi) / 2, lo + (hi - lo) * 0.25, lo + (hi - lo) * 0.75]) {
+    const span = widestSpan(rings, f)
+    if (span) return span
+  }
+  return [rings[0][0][0], rings[0][0][1]]
 }
