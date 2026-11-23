@@ -24,7 +24,7 @@ test('default bar is 50 px with 32 px buttons; the token resizes both, hint divi
   expect((await bar.boundingBox())!.height).toBe(50)
   expect((await bar.getByRole('button', { name: /^Cancel/ }).boundingBox())!.height).toBe(32)
   // 3 hints, 2 dividers between them.
-  await expect(page.locator('[data-elm-hint] > li')).toHaveCount(5) // 3 hints + 2 divider items
+  await expect(page.locator('[data-elm-hint] > li:not([data-elm-row-divider])')).toHaveCount(3)
   await expect(page.locator('[data-elm-hint] [data-elm-row-divider]')).toHaveCount(2)
 
   await page.evaluate(() => document.querySelector<HTMLElement>('[data-elm-theme]')!.style.setProperty('--elm-drawing-bar-height', '40px'))
