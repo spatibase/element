@@ -34,7 +34,7 @@ export type {
 } from './types/geojson'
 export { isSimpleGeometry } from './types/geojson'
 export type { GeometryType } from './utils/geometryTypes'
-export type { FeatureStyle } from './types/featureStyle'
+export type { FeatureStyle, FeatureStyleState } from './types/featureStyle'
 
 // ─── Stores (headless use and tests; inside React use GeoStoreProvider / useGeoStore) ──
 // The state types are the shapes of `useDataStore` / `useUIStore` / `useGeoStore()` in @element-editor/ui.
@@ -62,6 +62,8 @@ export type { ErrorCode, ErrorSource } from './utils/errors'
 // ─── Accent palette (one colour → 50…950 scale; mirrors the CSS color-mix block) ──
 export { accentPalette, readAccentPalette, mixOklab, parseColor, resolveColor, DEFAULT_ACCENT, DEFAULT_FEATURE_COLOR, ACCENT_STEPS } from './utils/accent'
 export type { AccentPalette, AccentShade } from './utils/accent'
+export { deriveStateColors, usesDerivedLook, SELECTED_WEIGHT_BOOST } from './utils/selectionStyle'
+export type { SelectionStyle, DerivedColors } from './utils/selectionStyle'
 
 // ─── Third-party services (config.network) ────────────────────────────────────
 export type { NetworkConfig, NetworkSource, NominatimConfig } from './utils/network'

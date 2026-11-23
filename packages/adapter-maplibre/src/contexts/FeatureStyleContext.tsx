@@ -1,10 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react'
-import type { FeatureStyle, GeoJSONFeature } from '@element-editor/core'
+import type { FeatureStyle, FeatureStyleState, GeoJSONFeature } from '@element-editor/core'
 
 // Canonical type lives in @element-editor/core — re-exported for backwards compatibility.
-export type { FeatureStyle }
+export type { FeatureStyle, FeatureStyleState }
 
-export type FeatureStyleFn = (feature: GeoJSONFeature) => FeatureStyle | undefined | null
+export type FeatureStyleFn = (feature: GeoJSONFeature, state?: FeatureStyleState) => FeatureStyle | undefined | null
 
 const FeatureStyleContext = createContext<FeatureStyleFn | undefined>(undefined)
 

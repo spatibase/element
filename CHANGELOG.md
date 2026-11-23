@@ -11,11 +11,14 @@ What changed in Element, release by release, and what it means for you and the p
 - **Size the drawing bar to match your own buttons.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height; its buttons follow, keeping a fixed gap to the edge, so a 40 px bar lines up with 40 px map controls. Touch targets stay at least 44 px.
 - **Undo stays reachable with hints off.** With `config.ui.hints: false` the desktop bar now shows an Undo point button (with its Backspace chip) while there is something to take back; before, the "Undo last" hint was the only way.
 - Hover tooltips can now be pinned to the feature and say what you want: `config.featureTooltip` takes `placement: 'anchor'` (above a point, halfway along a line, a spot inside an area), a `content` callback for the text (return `null` to show nothing), or `false` to turn the tooltip off, which also hides the "Show name on hover" switch in Settings.
+- **`config.selectionStyle`** (`'auto'` | `'accent'` | `'feature'`, default `'auto'`) picks the selected and hovered look: the accent, a shade of the feature's own colour, or `'auto'` (own colour when the feature has one).
+- **`getFeatureStyle(feature, { selected, hovered })`.** The callback now gets the feature's state as a second argument, so you can fully customise the selected or hovered look (a different colour or weight). Existing callbacks keep working unchanged. New exported type `FeatureStyleState`.
 
 ### Changed
 
 - **No empty wrapper when no tool is on.** The adapters' `[data-elm-drawing-bar]` element is only in the DOM while a drawing tool is active, so you can read its presence as "a tool is on".
 - **Hints are separated by thin dividers** when several show at once ("Click to add points | Double-click to close | Undo last"); a divider never starts or ends a wrapped row.
+- **A selected or hovered feature now keeps its own colour.** Select a pink feature and it turns a darker pink with a slightly heavier outline, instead of jumping to the accent blue; its vertex handles and transform box follow the same shade. Features in the default slate still select in the accent, so nothing changes unless you set `featureColor` or `getFeatureStyle`. Set `config.selectionStyle: 'accent'` to keep the old look everywhere. Buttons, the drawing bar and the snap marker keep the accent.
 
 ### Fixed
 

@@ -25,7 +25,7 @@ import { PendingPointMarker } from './PendingPointMarker'
 import { useMapInteractionMachine } from '../hooks/useMapInteractionMachine'
 import { isFreehandCommitConsumed } from '../utils/freehandCommitFlag'
 import { IdleRendererContext, useIdleRenderer, type FeatureRenderer } from './featureLayers/renderer'
-import { AccentContext, composeFeatureStyle, type OpenFeatureCtxMenu } from './featureLayers/shared'
+import { AccentContext, SelectionStyleContext, composeFeatureStyle, type OpenFeatureCtxMenu } from './featureLayers/shared'
 import { FeatureElements } from './featureLayers/FeatureElements'
 
 // Every feature is drawn once, by this layer (FeatureElements → one memoised
@@ -42,7 +42,7 @@ export type { FeatureRenderer }
  */
 function ComposedFeatureStyle({ children }: { children: ReactNode }) {
   const getFeatureStyle = useFeatureStyle()
-  const { featureColor, featureTooltip } = useElementEditorConfig()
+  const { featureColor, featureTooltip, selectionStyle } = useElementEditorConfig()
   const map = useMap()
   const { uiStore } = useGeoStore()
   // The hover tooltip reads this editor's options when it binds (two editors can differ).
@@ -50,7 +50,11 @@ function ComposedFeatureStyle({ children }: { children: ReactNode }) {
   tipRef.current = featureTooltip
   useEffect(() => registerFeatureTooltipHost(uiStore, { map, getOptions: () => tipRef.current }), [uiStore, map])
   const composed = useMemo(() => composeFeatureStyle(getFeatureStyle, featureColor), [getFeatureStyle, featureColor])
-  return <FeatureStyleProvider getFeatureStyle={composed}>{children}</FeatureStyleProvider>
+  return (
+    <SelectionStyleContext.Provider value={selectionStyle}>
+      <FeatureStyleProvider getFeatureStyle={composed}>{children}</FeatureStyleProvider>
+    </SelectionStyleContext.Provider>
+  )
 }
 
 export function FitBounds() {

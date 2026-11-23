@@ -11,7 +11,7 @@ import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine
 import { LINE_HIT_WEIGHT } from './renderer'
 import {
   AccentContext, HOVER_POLY, IDLE_LINE, IDLE_POLY, idlePin, idleStyle, litStyle, makeContextMenuHandler,
-  makeDimmedPinIcon, makePinIcon, pinColor, tintPin, useCustomStyle, type OpenFeatureCtxMenu,
+  makeDimmedPinIcon, makePinIcon, pinColor, tintPin, useCustomStyle, useStateLook, type OpenFeatureCtxMenu,
 } from './shared'
 
 /** Render shapes from a simple geometry into Leaflet elements. */
@@ -27,11 +27,13 @@ interface SimpleGeometryRendererProps {
   pinMultiSelected: boolean
   /** Idle pin colour (featureColor / getFeatureStyle). */
   pinIdle?: string
+  pinLit?: string
+  pinHover?: string
   handlers: Record<string, (...args: never[]) => void>
   visual?: boolean
 }
 
-function SimpleGeometryRenderer({ geom, delta, keyPrefix, active, selectedPart, linePathOptions, polyPathOptions, pinSelected, pinMultiSelected, pinIdle, handlers, visual = false }: SimpleGeometryRendererProps) {
+function SimpleGeometryRenderer({ geom, delta, keyPrefix, active, selectedPart, linePathOptions, polyPathOptions, pinSelected, pinMultiSelected, pinIdle, pinLit, pinHover, handlers, visual = false }: SimpleGeometryRendererProps) {
   const applyOffset = delta
     ? <T,>(coords: T): T => translateGeometryVisually(coords as never, delta[0], delta[1]) as T
     : <T,>(coords: T): T => coords
@@ -47,13 +49,13 @@ function SimpleGeometryRenderer({ geom, delta, keyPrefix, active, selectedPart, 
 
   if (geom.type === 'Point') {
     return <Marker position={toLeaflet(offset(geom.coordinates))}
-      icon={!active ? idlePin(pinIdle) : (!selectedPart ? makeDimmedPinIcon(pinIdle) : makePinIcon(pinSelected, pinMultiSelected, pinIdle))}
+      icon={!active ? idlePin(pinIdle, pinHover) : (!selectedPart ? makeDimmedPinIcon(pinIdle) : makePinIcon(pinSelected, pinMultiSelected, pinIdle, pinLit))}
       draggable={false} eventHandlers={handlers} />
   }
   if (geom.type === 'MultiPoint') {
     return <>{geom.coordinates.map((c, j) => (
       <Marker key={`${keyPrefix}-pt${j}`} position={toLeaflet(offset(c))}
-        icon={!active ? idlePin(pinIdle) : (!selectedPart ? makeDimmedPinIcon(pinIdle) : makePinIcon(pinSelected, pinMultiSelected, pinIdle))}
+        icon={!active ? idlePin(pinIdle, pinHover) : (!selectedPart ? makeDimmedPinIcon(pinIdle) : makePinIcon(pinSelected, pinMultiSelected, pinIdle, pinLit))}
         draggable={false} eventHandlers={handlers} />
     ))}</>
   }
@@ -108,6 +110,7 @@ export const GeometryCollectionLayer = memo(function GeometryCollectionLayer({ f
 
   const accent500 = useContext(AccentContext)[500]
   const custom = useCustomStyle(feature)
+  const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
   if (feature.geometry.type !== 'GeometryCollection') return null
 
   function makeHandlers(partIndex: number) {
@@ -140,18 +143,19 @@ export const GeometryCollectionLayer = memo(function GeometryCollectionLayer({ f
   const hasPartSelected = selected && selectedPartIndex != null
   const lit = isMultiSelected || selected || !!effectiveDelta
   const linePathOptions = lit
-    ? litStyle(custom, false, { color: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR, weight: selected ? 4.5 : 3.5, opacity: hovered ? 1 : 0.9 })
-    : idleStyle(IDLE_LINE, custom, hovered ? { opacity: 1 } : null)
+    ? litStyle(custom, false, { color: (isMultiSelected || selected) ? look.color : DEFAULT_FEATURE_COLOR, weight: (selected ? 4.5 : 3.5) + look.boost, opacity: hovered ? 1 : 0.9, ...look.host })
+    : idleStyle(IDLE_LINE, custom, hovered ? { opacity: 1, ...look.hover } : null)
   const polyPathOptions = lit
     ? litStyle(custom, true, {
-        color: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-        fillColor: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-        weight: selected ? 3 : 2,
+        color: (isMultiSelected || selected) ? look.color : DEFAULT_FEATURE_COLOR,
+        fillColor: (isMultiSelected || selected) ? look.fillColor : DEFAULT_FEATURE_COLOR,
+        weight: (selected ? 3 : 2) + look.boost,
         opacity: hovered ? 1 : 0.9,
         fillOpacity: selected ? 0.25 : hovered ? 0.28 : 0.15,
         className: effectiveDelta ? 'cursor-grabbing' : '',
+            ...look.host,
       })
-    : idleStyle(IDLE_POLY, custom, hovered ? HOVER_POLY : null)
+    : idleStyle(IDLE_POLY, custom, hovered ? { ...HOVER_POLY, ...look.hover } : null)
 
   return (
     <>
@@ -166,7 +170,7 @@ export const GeometryCollectionLayer = memo(function GeometryCollectionLayer({ f
         const partHighlighted = !hasPartSelected || isThisPart
         return (
           <React.Fragment key={partIdx}>
-            <SimpleGeometryRenderer geom={sub} delta={partDelta} keyPrefix={`gc-${partIdx}`} active={active} selectedPart={partHighlighted} linePathOptions={linePathOptions} polyPathOptions={polyPathOptions} pinSelected={selected} pinMultiSelected={isMultiSelected} pinIdle={pinColor(custom)} handlers={makeHandlers(partIdx)} visual={dataStore.getState().geometryMode === 'visual'} />
+            <SimpleGeometryRenderer geom={sub} delta={partDelta} keyPrefix={`gc-${partIdx}`} active={active} selectedPart={partHighlighted} linePathOptions={linePathOptions} polyPathOptions={polyPathOptions} pinSelected={selected} pinMultiSelected={isMultiSelected} pinIdle={pinColor(custom)} pinLit={look.pinLit} pinHover={look.pinHover} handlers={makeHandlers(partIdx)} visual={dataStore.getState().geometryMode === 'visual'} />
           </React.Fragment>
         )
       })}

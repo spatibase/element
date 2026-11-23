@@ -2,7 +2,7 @@ import { ElementEditor as LeafletEditor } from './leaflet/index'
 import { ElementEditor as MapLibreEditor } from './index'
 import type { ElementEditorConfig } from '@element-editor/ui'
 import { withLayout } from './index'
-import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, GeoJSONFeature, GeometryType, InitialView } from './index'
+import type { BoundsInput, FeatureCollection, FeatureCollectionInput, FeatureStyle, FeatureStyleState, GeoJSONFeature, GeometryType, InitialView } from './index'
 import { Agentation } from 'agentation'
 import { Profiler, useState, type CSSProperties } from 'react'
 import { TileLayer } from 'react-leaflet'
@@ -79,6 +79,7 @@ const config: ElementEditorConfig = {
     } }),
     ...(persistKey && { persistKey }),
     ...(persistOff && { persist: false }),
+    ...(params.get('selectionStyle') && { selectionStyle: params.get('selectionStyle') as ElementEditorConfig['selectionStyle'] }),
   }
 const readonly = params.get('readonly') === '1'
 // ?editorLayout=split|minimal (default panel); ?submit=1 passes onSubmit (shows "Apply changes").
@@ -115,7 +116,15 @@ const onSubmit = params.get('submit') === '1' ? () => {} : undefined
 // getFeatureStyle that paints features with `properties.kind === 'hot'` red. (e2e)
 const featureColor = params.get('featureColor') ?? undefined
 const hotRed = (f: GeoJSONFeature): FeatureStyle | null => (f.properties?.kind === 'hot' ? { color: '#ff0000' } : null)
-const getFeatureStyle = params.get('featureStyle') === '1' ? hotRed : undefined
+// ?featureStyle=state: 'hot' features are red, selected green and 8 px wide, hovered blue (the state argument).
+const hotState = (f: GeoJSONFeature, state?: FeatureStyleState): FeatureStyle | null => {
+  if (f.properties?.kind !== 'hot') return null
+  if (state?.selected) return { color: '#00ff00', weight: 8 }
+  if (state?.hovered) return { color: '#0000ff' }
+  return { color: '#ff0000' }
+}
+const getFeatureStyle = params.get('featureStyle') === '1' ? hotRed : params.get('featureStyle') === 'state' ? hotState : undefined
+// ?selectionStyle=accent|feature|auto sets config.selectionStyle (see `config` above). (e2e)
 // Theming (e2e): ?accentColor=<css colour>, ?style=<JSON of CSS variables for the root>,
 // ?theme=light|dark|auto, or ?theme=<JSON object> (the removed object form: ignored + dev warning).
 const accentColor = params.get('accentColor') ?? undefined

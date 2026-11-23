@@ -290,7 +290,7 @@ With an adapter, `ElementEditorControls` reads them from your `[data-elm-theme]`
 
 ### What stays out of scope
 
-- **Features on the map:** `featureColor` and `getFeatureStyle` (see [Colouring features](#colouring-features)). Selection, vertex handles and drawing previews follow the accent.
+- **Features on the map:** `featureColor` and `getFeatureStyle` (see [Colouring features](#colouring-features)). Selection and vertex handles follow the feature's own colour (see [Selected and hovered look](#selected-and-hovered-look)); drawing previews, buttons and the snap marker follow the accent.
 - **Text labels on the map** keep their own style.
 - **The map engine's own controls** (Leaflet's zoom buttons, MapLibre's navigation control) keep their look. The attribution chrome and the popup surfaces Element styles do follow the tokens.
 - **Semantic colours:** red, green and amber for errors, success and warnings, and the Measure tool's red.
@@ -345,10 +345,35 @@ const byStatus = (f: GeoJSONFeature): FeatureStyle | null => (f.properties.statu
 ```
 
 - **`featureColor`** colours polygon outlines and fills, lines and points, including features drawn later. Opacity and line weight keep their defaults. It is also a config key (`config.featureColor`); the flat prop wins, as with `accentColor`. Adapter users pass it to `<ElementEditorUIProvider featureColor>` or `config.featureColor`.
-- **`getFeatureStyle(feature)`** returns a `FeatureStyle` (`{ color, fillColor, opacity, fillOpacity, weight }`, every key optional) or `null` for the default look. `fillColor` falls back to `color`. The same function works on both drop-ins and on both adapters' `<ElementEditorControls getFeatureStyle>`. On Leaflet it may also return any Leaflet `PathOptions` (such as `dashArray`); MapLibre ignores keys it doesn't know. Leaflet point pins take `fillColor`, then `color`.
+- **`getFeatureStyle(feature, state?)`** returns a `FeatureStyle` (`{ color, fillColor, opacity, fillOpacity, weight }`, every key optional) or `null` for the default look. `fillColor` falls back to `color`. The same function works on both drop-ins and on both adapters' `<ElementEditorControls getFeatureStyle>`. On Leaflet it may also return any Leaflet `PathOptions` (such as `dashArray`); MapLibre ignores keys it doesn't know. Leaflet point pins take `fillColor`, then `color`.
 - Define `getFeatureStyle` at module level or wrap it in `useCallback`. It runs for every feature whenever the features change, and on MapLibre a new function re-sends every feature to the map.
 
-Precedence, highest first: the selected look, then `getFeatureStyle` (per key), then `featureColor`, then the default slate. A hovered feature keeps its colour on both engines and gets more opaque (MapLibre also thickens the outline and grows points a little). Text labels keep their own style.
+Precedence, highest first: the selected look, then `getFeatureStyle` (per key), then `featureColor`, then the default slate. A hovered feature gets a milder shade of its colour and more opacity (MapLibre also thickens the outline and grows points a little). Text labels keep their own style.
+
+### Selected and hovered look
+
+A selected feature is drawn in a darker shade of its own colour with a heavier stroke (+1.5 px), so a pink feature selects to a darker pink, not the accent blue. The shade is computed in OKLab (perceived lightness x 0.72 selected, x 0.88 hovered; hue and chroma kept), for any CSS colour you pass: hex, `rgb()`, `hsl()`, named, `oklch()`. A colour that can't be parsed falls back to the accent. The heavier stroke is the second cue for colours that are already dark. Vertex handles and the transform box of a selected feature take the same shade.
+
+`config.selectionStyle` picks the rule:
+
+| Value | Behaviour |
+|---|---|
+| `'auto'` (default) | A feature with its own colour (from `getFeatureStyle` or `featureColor`) uses the derived look. A feature in the default slate keeps the accent look. |
+| `'accent'` | The accent everywhere (the look up to 0.3). |
+| `'feature'` | Always derived, even from the default slate. |
+
+Which colour drives what: `--elm-accent` (the `--color-primary-*` scale) colours the chrome: buttons, active tools, the drawing bar, the snap marker and drawing previews. The feature's colour colours its selected and hovered look, its vertex handles and its transform box, in `'auto'` and `'feature'` mode.
+
+To control the selected or hovered look yourself, return a different style for that state from the second argument of `getFeatureStyle`:
+
+```tsx
+const byStatus = (f: GeoJSONFeature, { selected }: FeatureStyleState): FeatureStyle => ({
+  color: f.properties.status === 'done' ? '#16a34a' : '#00a2f0',
+  ...(selected && { weight: 6 }),
+})
+```
+
+`state` is `{ selected, hovered }`. A plain call (both false) is the base look; the selected and hovered looks are derived from it unless the state call returns a different value for a key, which then wins. A callback that ignores `state` changes nothing. Leaflet applies every key of a state style; MapLibre applies `color`, `fillColor` and `weight` for `selected`, and `color` and `fillColor` for `hovered`. Leaflet point pins use the derived shade only (a hovered pin has no state call).
 
 ---
 

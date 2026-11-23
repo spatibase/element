@@ -9,7 +9,7 @@ import { usePartDrag } from '../../hooks/usePartDrag'
 import { bindFeatureTooltip, unbindFeatureTooltip } from '../../utils/featureTooltip'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
 import { useFeatureRenderer } from './renderer'
-import { AccentContext, HOVER_POLY, IDLE_POLY, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
+import { AccentContext, HOVER_POLY, IDLE_POLY, idleStyle, litStyle, makeContextMenuHandler, useCustomStyle, useStateLook, type OpenFeatureCtxMenu } from './shared'
 
 export const MultiPolygonLayer = memo(function MultiPolygonLayer({ feature, selected, isMultiSelected, multiDragDelta, onVertexEdit, readonly, interaction, onContextMenu }: { feature: GeoJSONFeature; selected: boolean; isMultiSelected: boolean; multiDragDelta: [number, number] | null; onVertexEdit: () => void; readonly: boolean; interaction: MapInteractionMachine; onContextMenu?: OpenFeatureCtxMenu }) {
   const { dataStore, uiStore } = useGeoStore()
@@ -21,6 +21,7 @@ export const MultiPolygonLayer = memo(function MultiPolygonLayer({ feature, sele
   const [hovered, setHovered] = useState(false)
   const polyRefs = useRef<Map<number, L.Polygon>>(new Map())
   const custom = useCustomStyle(feature)
+  const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
   const renderer = useFeatureRenderer(selected || isMultiSelected, () => polyRefs.current.values())
 
   const { effectiveDelta, dragged, handleMouseDown } = usePartDrag(
@@ -54,14 +55,15 @@ export const MultiPolygonLayer = memo(function MultiPolygonLayer({ feature, sele
 
   const basePathOptions = (isMultiSelected || selected || !!effectiveDelta)
     ? litStyle(custom, true, {
-        color: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-        fillColor: (isMultiSelected || selected) ? accent500 : DEFAULT_FEATURE_COLOR,
-        weight: selected ? 3 : 2,
+        color: (isMultiSelected || selected) ? look.color : DEFAULT_FEATURE_COLOR,
+        fillColor: (isMultiSelected || selected) ? look.fillColor : DEFAULT_FEATURE_COLOR,
+        weight: (selected ? 3 : 2) + look.boost,
         opacity: hovered ? 1 : 0.9,
         fillOpacity: selected ? 0.25 : hovered ? 0.28 : 0.15,
         className: effectiveDelta ? 'cursor-grabbing' : '',
+            ...look.host,
       })
-    : idleStyle(IDLE_POLY, custom, hovered ? HOVER_POLY : null)
+    : idleStyle(IDLE_POLY, custom, hovered ? { ...HOVER_POLY, ...look.hover } : null)
   const dimmedPathOptions = { ...basePathOptions, opacity: 0.2, fillOpacity: 0.08 }
 
   return (

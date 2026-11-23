@@ -123,6 +123,12 @@ function scaleOklch(rgb: RGB, l: number, c: number): string {
   return toHex(oklabToRgb([L * l, a * c, b * c]))
 }
 
+/** OKLab lightness × `l` (chroma and hue kept), as `#rrggbb`. */
+export function oklabShift(rgb: RGB, l: number): string {
+  const [L, a, b] = rgbToOklab(rgb)
+  return toHex(oklabToRgb([L * l, a, b]))
+}
+
 /** The full 50…950 scale for an accent colour (any CSS colour; falls back to the default blue). */
 export function accentPalette(accent: string = DEFAULT_ACCENT): AccentPalette {
   const base = resolveColor(accent) ?? (parseColor(DEFAULT_ACCENT) as RGB)

@@ -9,6 +9,7 @@ import { bbox } from '@turf/bbox'
 import type { Feature, Geometry, Position } from 'geojson'
 import type { Geometry as ElementEditorGeom } from '@element-editor/core'
 import { useAccentPalette } from '@element-editor/ui'
+import { useHandleVars } from './featureLayers/shared'
 import { applyVisualTransform, getMercatorLatCorrectionRatio, toRadians, project, unproject, transformUpdates, offsetGeometry, mapPositions } from '@element-editor/core/internal'
 
 
@@ -25,14 +26,14 @@ function transformIcon(type: 'nw' | 'ne' | 'se' | 'sw' | 'n' | 'e' | 's' | 'w' |
   return L.divIcon({
     className: '',
     html: isResize
-      ? `<div class="w-3 h-3 bg-white border-2 border-primary-600 shadow-md rounded-sm ${cursorClass} hover:scale-125 transition-transform"></div>`
+      ? `<div class="w-3 h-3 bg-white border-2 shadow-md rounded-sm ${cursorClass} hover:scale-125 transition-transform" style="border-color:var(--elm-handle,var(--color-primary-600))"></div>`
       : `<div class="group relative flex items-center justify-center">
-           <div class="w-0.5 h-6 bg-primary-600"></div>
+           <div class="w-0.5 h-6" style="background:var(--elm-handle,var(--color-primary-600))"></div>
            <div
-             class="absolute -top-3 w-4 h-4 bg-white border-2 border-primary-600 shadow-md rounded-full hover:scale-125 transition-transform flex items-center justify-center"
-             style="cursor: ${rotateCursor};"
+             class="absolute -top-3 w-4 h-4 bg-white border-2 shadow-md rounded-full hover:scale-125 transition-transform flex items-center justify-center"
+             style="cursor: ${rotateCursor}; border-color:var(--elm-handle,var(--color-primary-600));"
            >
-             <div class="w-1.5 h-1.5 bg-primary-600 rounded-full"></div>
+             <div class="w-1.5 h-1.5 rounded-full" style="background:var(--elm-handle,var(--color-primary-600))"></div>
            </div>
          </div>`,
     iconSize: isResize ? [12, 12] : [16, 32],
@@ -351,12 +352,14 @@ const BOX_GRAB_TOLERANCE_PX = 8
 
 export const TransformControls = memo(function TransformControls() {
   const map = useMap()
-  const accent500 = useAccentPalette(map.getContainer())[500]
+  const accent = useAccentPalette(map.getContainer())[500]
   const { dataStore, uiStore } = useGeoStore()
   const selectedIds = useDataStore((s) => s.selectedIds)
   const features = useDataStore((s) => s.features)
   const transformActive = useUIStore((s) => s.transformActive)
   const setTransformDragging = useUIStore((s) => s.setTransformDragging)
+  const handleColor = useHandleVars(transformActive && selectedIds.length === 1 ? features.find((f) => f.id === selectedIds[0]) : undefined, map.getContainer())
+  const accent500 = handleColor ?? accent // the box outline follows the handles
 
   // Live preview during drag
   const [previewFeatures, setPreviewFeatures] = useState<Feature<Geometry>[] | null>(null)

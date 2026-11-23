@@ -16,6 +16,7 @@
  * apply to neighboring features that share the edited coordinate via the
  * `commitTopoMove` / `commitTopoDelete` helpers.
  */
+import { useHandleVars } from '../utils/stateStyle'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
 import * as maplibregl from 'maplibre-gl'
@@ -82,8 +83,8 @@ function getVertexRings(geometry: SimpleGeometry): [number, number][][] {
  * as a function on the element so we can retoggle without rebuilding markers.
  */
 function paintVertex(el: HTMLElement, selected: boolean) {
-  el.style.background = selected ? 'var(--color-primary-500)' : '#ffffff'
-  el.style.borderColor = selected ? 'var(--color-primary-700)' : 'var(--color-primary-500)'
+  el.style.background = selected ? 'var(--elm-handle,var(--color-primary-500))' : '#ffffff'
+  el.style.borderColor = selected ? 'var(--elm-handle-strong,var(--color-primary-700))' : 'var(--elm-handle,var(--color-primary-500))'
   el.dataset.elmSelected = selected ? '1' : '0'
 }
 
@@ -105,14 +106,14 @@ function makeVertexEl(selected: boolean, isMidpoint = false): HTMLElement {
     diamond.style.cssText = [
       'width:12px', 'height:12px',
       'background:#ffffff',
-      'border:2px solid var(--color-primary-500)',
+      'border:2px solid var(--elm-handle,var(--color-primary-500))',
       'box-shadow:0 1px 3px rgba(0,0,0,0.35)',
       'transform:rotate(45deg)',
       'border-radius:3px',
       'transition:all 0.1s',
     ].join(';')
     el.appendChild(diamond)
-    el.addEventListener('mouseenter', () => { diamond.style.background = 'var(--color-primary-100)' })
+    el.addEventListener('mouseenter', () => { diamond.style.background = 'var(--elm-handle-soft,var(--color-primary-100))' })
     el.addEventListener('mouseleave', () => { diamond.style.background = '#ffffff' })
     return el
   }
@@ -121,8 +122,8 @@ function makeVertexEl(selected: boolean, isMidpoint = false): HTMLElement {
   el.classList.add('elm-vertex') // same hook as the Leaflet adapter's vertex handles
   el.style.cssText = [
     'width:12px', 'height:12px',
-    `background:${selected ? 'var(--color-primary-500)' : '#ffffff'}`,
-    `border:2px solid ${selected ? 'var(--color-primary-700)' : 'var(--color-primary-500)'}`,
+    `background:${selected ? 'var(--elm-handle,var(--color-primary-500))' : '#ffffff'}`,
+    `border:2px solid ${selected ? 'var(--elm-handle-strong,var(--color-primary-700))' : 'var(--elm-handle,var(--color-primary-500))'}`,
     'border-radius:3px',
     'cursor:pointer',
     'box-shadow:0 1px 3px rgba(0,0,0,0.35)',
@@ -131,9 +132,9 @@ function makeVertexEl(selected: boolean, isMidpoint = false): HTMLElement {
   el.dataset.elmSelected = selected ? '1' : '0'
   // Hover stays grounded in current selected state, which is reflected on the
   // element via data-elm-selected (updated by paintVertex).
-  el.addEventListener('mouseenter', () => { el.style.background = 'var(--color-primary-100)' })
+  el.addEventListener('mouseenter', () => { el.style.background = 'var(--elm-handle-soft,var(--color-primary-100))' })
   el.addEventListener('mouseleave', () => {
-    el.style.background = el.dataset.elmSelected === '1' ? 'var(--color-primary-500)' : '#ffffff'
+    el.style.background = el.dataset.elmSelected === '1' ? 'var(--elm-handle,var(--color-primary-500))' : '#ffffff'
   })
   return el
 }
@@ -204,6 +205,7 @@ export default function VertexEditor({ map, feature, initialSelectedIndices }: P
   const selectedIds = useDataStore((s) => s.selectedIds)
   const selectedPartIndex = useUIStore((s) => s.selectedPartIndex)
   const markersRef = useRef<maplibregl.Marker[]>([])
+  useHandleVars(feature, map.getContainer())
 
   // A finger can't hover: every midpoint shows, and handles get a 44 px hit area
   // (the `elm-touch` class, see TOUCH_HANDLE_CSS). A mouse keeps the hovered-edge midpoint.

@@ -18,6 +18,7 @@ import { useOptionalEmit } from '@element-editor/ui/internal'
 import { DEFAULT_FEATURE_COLOR } from '@element-editor/core'
 import { warnOnce, canProcessShape, DEFAULT_FEATURE_COLOR_ON_DARK } from '@element-editor/core/internal'
 import { isDarkMapStyle } from '../utils/darkStyle'
+import { stateProps } from '../utils/stateStyle'
 import { useStyleEpoch } from '../contexts/StyleEpochContext'
 import { paintAccent, useAccentPaint, type AccentPaint } from '../utils/accentPaint'
 
@@ -29,26 +30,32 @@ const HOVERED: ExpressionSpecification = ['boolean', ['feature-state', 'hovered'
 /** Just added under the still cursor (utils/freshFeature.ts). */
 const FRESH: ExpressionSpecification = ['boolean', ['feature-state', 'fresh'], false]
 
-/** Selected → accent, else the per-feature colour (`getFeatureStyle`, then `featureColor`).
- *  Hover keeps that colour (opacity / width / radius carry the hover emphasis); only a
- *  feature with no custom colour shows the old lighter slate on hover instead of the default. */
-const stateColor = (accent: string, custom: unknown[], base: { color: string; hover: string }) => [
+/** Selected → the baked `_sel*` shade of the feature's colour (derived look, see utils/stateStyle.ts), else the accent.
+ *  Otherwise the per-feature colour (`getFeatureStyle`, then `featureColor`); hovered → its baked `_hov*` shade if any.
+ *  Opacity / width / radius carry the rest of the hover emphasis; only a feature with no custom colour
+ *  shows the old lighter slate on hover instead of the default. */
+const stateColor = (accent: string, custom: unknown[], base: { color: string; hover: string }, sel: unknown[], hov: unknown[]) => [
   'case',
-  ['boolean', ['feature-state', 'selected'], false], accent,
-  ['coalesce', ...custom, ['case', HOVERED, base.hover, base.color]],
+  ['boolean', ['feature-state', 'selected'], false], ['coalesce', ...sel, accent],
+  HOVERED, ['coalesce', ...hov, ...custom, base.hover],
+  ['coalesce', ...custom, base.color],
 ]
 const FILL_CUSTOM = [['get', '_fillColor'], ['get', '_color']]
+const FILL_SEL = [['get', '_selFillColor'], ['get', '_selColor']]
+const FILL_HOV = [['get', '_hovFillColor'], ['get', '_hovColor']]
+const LINE_SEL = [['get', '_selColor']]
+const LINE_HOV = [['get', '_hovColor']]
 
 /** The default (no featureColor / getFeatureStyle) colour and its hover, per map base: slate, lighter on a dark basemap. */
 const BASE_LIGHT = { color: DEFAULT_FEATURE_COLOR, hover: '#64748b', casing: 'rgba(255, 255, 255, 0.7)' }
 const BASE_DARK = { color: DEFAULT_FEATURE_COLOR_ON_DARK, hover: '#cbd5e1', casing: 'rgba(15, 23, 42, 0.5)' }
 
 const featurePaint = (base: { color: string; hover: string; casing: string }): AccentPaint => [
-  ['elm-features-fill', 'fill-color', (p) => stateColor(p[500], FILL_CUSTOM, base)],
+  ['elm-features-fill', 'fill-color', (p) => stateColor(p[500], FILL_CUSTOM, base, FILL_SEL, FILL_HOV)],
   ['elm-features-line-casing', 'line-color', () => base.casing],
-  ['elm-features-line', 'line-color', (p) => stateColor(p[500], [['get', '_color']], base)],
+  ['elm-features-line', 'line-color', (p) => stateColor(p[500], [['get', '_color']], base, LINE_SEL, LINE_HOV)],
   // A fresh point: one accent step darker instead of a snap ring on it.
-  ['elm-features-point', 'circle-color', (p) => ['case', FRESH, p[600], stateColor(p[500], FILL_CUSTOM, base)]],
+  ['elm-features-point', 'circle-color', (p) => ['case', FRESH, p[600], stateColor(p[500], FILL_CUSTOM, base, FILL_SEL, FILL_HOV)]],
 ]
 const ACCENT_PAINT = featurePaint(BASE_LIGHT)
 const ACCENT_PAINT_DARK = featurePaint(BASE_DARK)
@@ -58,7 +65,7 @@ const IS_LINE: ExpressionSpecification = ['in', ['geometry-type'], ['literal', [
 const IDLE_WIDTH: ExpressionSpecification = ['coalesce', ['get', '_weight'], ['case', IS_LINE, 3.5, 1.8]]
 const LINE_WIDTH: ExpressionSpecification = [
   'case',
-  ['boolean', ['feature-state', 'selected'], false], ['case', IS_LINE, 4, 2.5],
+  ['boolean', ['feature-state', 'selected'], false], ['coalesce', ['get', '_selWeight'], ['case', IS_LINE, 4, 2.5]],
   HOVERED, ['+', IDLE_WIDTH, 0.7],
   IDLE_WIDTH,
 ]
@@ -148,7 +155,7 @@ export function initFeatureLayers(map: MapLibreMap) {
     paint: {
       'circle-radius': [
         'case',
-        ['boolean', ['feature-state', 'selected'], false], 10,
+        ['boolean', ['feature-state', 'selected'], false], ['coalesce', ['get', '_selRadius'], 10],
         HOVERED, 9,
         8,
       ],
@@ -207,7 +214,7 @@ export default function FeatureLayer({ map }: Props) {
   const previewActive = useUIStore((s) => s.geometryPreview !== null)
   const bufferCreateNew = useUIStore((s) => s.bufferCreateNew)
   const getFeatureStyle = useFeatureStyle()
-  const featureColor = useElementEditorConfig().featureColor
+  const { featureColor, selectionStyle } = useElementEditorConfig()
   // Bumped when the source was (re)created on a new style: refill it and re-apply the selection.
   const styleEpoch = useStyleEpoch()
   // A dark basemap gets the lighter default colour (a new style re-inits the
@@ -222,6 +229,8 @@ export default function FeatureLayer({ map }: Props) {
     return () => { map.off('styledata', read) }
   }, [map, styleEpoch])
   const paints = darkMap ? ACCENT_PAINT_DARK : ACCENT_PAINT
+  // Only the 'feature' look derives from the default colour, which differs per basemap tone.
+  const defaultColor = selectionStyle === 'feature' && darkMap ? DEFAULT_FEATURE_COLOR_ON_DARK : DEFAULT_FEATURE_COLOR
   const palette = useAccentPaint(map, paints)
   useEffect(() => { paintAccent(map, paints, palette) }, [styleEpoch]) // eslint-disable-line react-hooks/exhaustive-deps -- the hook covers the rest
 
@@ -287,7 +296,7 @@ export default function FeatureLayer({ map }: Props) {
       // expressions above can read per-feature overrides via `['get', '_color']`
       // etc. Missing keys fall through to the defaults. `featureColor` stands in
       // for a missing `color`, so the fill (`_fillColor` → `_color`) follows it too.
-      const style = getFeatureStyle?.(f)
+      const style = getFeatureStyle?.(f, { selected: false, hovered: false }) ?? undefined
       const styleProps: Record<string, unknown> = {}
       const color = style?.color ?? featureColor
       if (color !== undefined) styleProps._color = color
@@ -297,6 +306,11 @@ export default function FeatureLayer({ map }: Props) {
         if (style.fillOpacity !== undefined) styleProps._fillOpacity = style.fillOpacity
         if (style.weight !== undefined) styleProps._weight = style.weight
       }
+      // Selected / hovered shades of this feature's colour (derived look) and the host's per-state style.
+      const baseStyle = color !== undefined || style ? { ...style, ...(color !== undefined && { color }) } : undefined
+      const lineLike = f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString'
+      const look = stateProps(f, baseStyle, getFeatureStyle, selectionStyle, defaultColor, lineLike ? 4 : 2.5)
+      if (look) Object.assign(styleProps, look)
       if (f.geometry.type === 'GeometryCollection') {
         if (f.geometry.geometries.length > 1) uniqueIds = false
         for (const sub of f.geometry.geometries) {
@@ -316,7 +330,7 @@ export default function FeatureLayer({ map }: Props) {
 
     source.setData({ type: 'FeatureCollection', features: rendered } as GeoJSON.FeatureCollection)
     setRenderedFeatures(map, rendered, uniqueIds)
-  }, [features, groups, map, previewHiddenIds, getFeatureStyle, featureColor, styleEpoch])
+  }, [features, groups, map, previewHiddenIds, getFeatureStyle, featureColor, selectionStyle, defaultColor, styleEpoch])
 
   // Sync `selected` feature state — only for ids whose selection changed.
   // MapLibre keeps feature state per id across setData, so unchanged ids

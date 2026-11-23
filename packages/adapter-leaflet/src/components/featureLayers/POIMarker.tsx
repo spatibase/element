@@ -13,7 +13,7 @@ import { useFeatureDrag } from '../../hooks/useFeatureDrag'
 import { getLastPointer, isPointerNear, isPointerOver } from '../../hooks/lastPointer'
 import { setFreshFeature, useIsFreshFeature } from '../../utils/freshFeature'
 import type { MapInteractionMachine } from '../../hooks/useMapInteractionMachine'
-import { idlePin, makePinIcon, pinColor, tintPin, useCustomStyle, type OpenFeatureCtxMenu } from './shared'
+import { idlePin, makePinIcon, pinColor, tintPin, useCustomStyle, useStateLook, type OpenFeatureCtxMenu } from './shared'
 
 export const POIMarker = memo(function POIMarker({ feature, selected, isMultiSelected, multiDragDelta, multiDuplicateDrag, readonly, interaction, onContextMenu }: { feature: GeoJSONFeature; selected: boolean; isMultiSelected: boolean; multiDragDelta: [number, number] | null; multiDuplicateDrag: boolean; readonly: boolean; interaction: MapInteractionMachine; onContextMenu?: OpenFeatureCtxMenu }) {
   const { dataStore } = useGeoStore()
@@ -24,7 +24,9 @@ export const POIMarker = memo(function POIMarker({ feature, selected, isMultiSel
   const toggleSelection = useDataStore((s) => s.toggleSelection)
   const coords = feature.geometry.coordinates as [number, number]
   const [popupOpen, setPopupOpen] = useState(false)
-  const pin = pinColor(useCustomStyle(feature))
+  const custom = useCustomStyle(feature)
+  const pin = pinColor(custom)
+  const look = useStateLook(feature, custom, selected || isMultiSelected, false)
   const [draftCoords, setDraftCoords] = useState<{ lng: string; lat: string }>({ lng: '', lat: '' })
 
   // Drag start/end re-render (ghost + visibility); mousemove moves the marker
@@ -100,7 +102,7 @@ export const POIMarker = memo(function POIMarker({ feature, selected, isMultiSel
     <Marker
       ref={(m) => { mainRef.current = (m as unknown as L.Marker | null) }}
       position={toLeaflet(displayCoords)}
-      icon={(selected || isMultiSelected || popupOpen || !!effectiveDelta) ? makePinIcon(selected, isMultiSelected, pin) : idlePin(pin)}
+      icon={(selected || isMultiSelected || popupOpen || !!effectiveDelta) ? makePinIcon(selected, isMultiSelected, pin, look.pinLit) : idlePin(pin, look.pinHover)}
       draggable={false}
       eventHandlers={{
         mouseover: (e: L.LeafletMouseEvent) => {
