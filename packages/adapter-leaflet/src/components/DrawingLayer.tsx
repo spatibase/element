@@ -1,7 +1,7 @@
 import { useMap, useMapEvents } from 'react-leaflet'
 import { useCallback, useEffect, useRef } from 'react'
 import { useUIStore, useGeoStore } from '../store/StoreContext'
-import { useEmit, useIsEventForEditor, useElementEditorConfig } from '@element-editor/ui'
+import { useEmit, useIsEventForEditor, useIsToolKeyForEditor, useElementEditorConfig } from '@element-editor/ui'
 import { useRouting } from '@element-editor/ui/internal'
 import { fetchRoute, type FetchRouteOptions } from '@element-editor/core'
 import { routingError, createClickRepeatGuard, CLICK_SLOP_PX, CLICK_TOOL_MODES } from '@element-editor/core/internal'
@@ -22,6 +22,7 @@ export default function DrawingLayer({ routingApiKey }: { routingApiKey?: string
   routeOptsRef.current = routing === false ? null : { ...routing, fetch: netFetch }
   const emit = useEmit()
   const isForThisEditor = useIsEventForEditor()
+  const isToolKey = useIsToolKeyForEditor()
   const map = useMap()
   const editingMode = useUIStore((s) => s.editingMode)
   const commitPoint = useUIStore((s) => s.commitPoint)
@@ -129,7 +130,8 @@ export default function DrawingLayer({ routingApiKey }: { routingApiKey?: string
       // for keys that belong to this editor.
       if (e.key === 'Meta' || e.key === 'Control' || e.key === 'Alt') { activateModifier(); return }
       if (e.key === 'Shift') isShiftDownRef.current = true
-      if (!isForThisEditor(e)) return
+      // Escape/Backspace/Delete also belong to us while a tool is on and focus is on a host element.
+      if (!isForThisEditor(e) && !isToolKey(e)) return
       if (e.code === 'Space') {
         const target = e.target as Element
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || (target as HTMLElement).isContentEditable) return
@@ -139,7 +141,8 @@ export default function DrawingLayer({ routingApiKey }: { routingApiKey?: string
       }
       if (e.key === 'Escape') {
         const { selectedMeasurementId, setSelectedMeasurementId } = uiStore.getState()
-        if (selectedMeasurementId) { setSelectedMeasurementId(null); return }
+        if (selectedMeasurementId) { e.preventDefault(); setSelectedMeasurementId(null); return }
+        if (uiStore.getState().editingMode !== 'none') e.preventDefault()
         cancelDrawing()
       }
       if (e.key === 'Enter') {
@@ -148,12 +151,12 @@ export default function DrawingLayer({ routingApiKey }: { routingApiKey?: string
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         const state = uiStore.getState()
-        if (state.selectedMeasurementId) { state.removeMeasurement(state.selectedMeasurementId); return }
+        if (state.selectedMeasurementId) { e.preventDefault(); state.removeMeasurement(state.selectedMeasurementId); return }
         const mode = state.editingMode
-        if (mode === 'measure') { removeLastMeasurePoint(); return }
-        if (mode === 'draw-line' || mode === 'slice-shape') { removeLastLineVertex(); return }
-        if (mode === 'draw-polygon' || mode === 'cut-hole') { removeLastPolygonVertex(); return }
-        if (mode === 'draw-route') { removeLastRouteWaypoint(); return }
+        if (mode === 'measure') { e.preventDefault(); removeLastMeasurePoint(); return }
+        if (mode === 'draw-line' || mode === 'slice-shape') { e.preventDefault(); removeLastLineVertex(); return }
+        if (mode === 'draw-polygon' || mode === 'cut-hole') { e.preventDefault(); removeLastPolygonVertex(); return }
+        if (mode === 'draw-route') { e.preventDefault(); removeLastRouteWaypoint(); return }
       }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -179,7 +182,7 @@ export default function DrawingLayer({ routingApiKey }: { routingApiKey?: string
       container.removeEventListener('mouseup', handleContainerMouseUp)
       deactivateSpacePan()
     }
-  }, [cancelDrawing, removeLastLineVertex, removeLastPolygonVertex, removeLastRouteWaypoint, removeLastMeasurePoint, uiStore, map, isForThisEditor])
+  }, [cancelDrawing, removeLastLineVertex, removeLastPolygonVertex, removeLastRouteWaypoint, removeLastMeasurePoint, uiStore, map, isForThisEditor, isToolKey])
 
   // Keep a ref so the async OSRM callback always sees the latest waypoints
   const routeWaypointsRef = useRef(routeWaypoints)

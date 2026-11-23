@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
-import { useEmit, useIsEventForEditor, useElementEditorConfig } from '@element-editor/ui'
+import { useEmit, useIsEventForEditor, useIsToolKeyForEditor, useElementEditorConfig } from '@element-editor/ui'
 import { useRouting } from '@element-editor/ui/internal'
 import { useUIStore, useGeoStore } from '../store/StoreContext'
 import { fetchRoute, type FetchRouteOptions } from '@element-editor/core'
@@ -33,6 +33,7 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
   routeOptsRef.current = routing === false ? null : { ...routing, fetch: netFetch }
   const emit = useEmit()
   const isForThisEditor = useIsEventForEditor()
+  const isToolKey = useIsToolKeyForEditor()
   const editingMode = useUIStore((s) => s.editingMode)
   const cancelDrawing = useUIStore((s) => s.cancelDrawing)
   const routeWaypoints = useUIStore((s) => s.routeWaypoints)
@@ -107,7 +108,8 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
       // Shift tracking stays page-wide (physical key state); Space pan,
       // Escape, Enter, Backspace only for keys that belong to this editor.
       if (e.key === 'Shift') isShiftDownRef.current = true
-      if (!isForThisEditor(e)) return
+      // Escape/Backspace/Delete also belong to us while a tool is on and focus is on a host element.
+      if (!isForThisEditor(e) && !isToolKey(e)) return
       if (e.code === 'Space') {
         const t = e.target as HTMLElement | null
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -117,7 +119,8 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
       }
       if (e.key === 'Escape') {
         const { selectedMeasurementId, setSelectedMeasurementId } = uiStore.getState()
-        if (selectedMeasurementId) { setSelectedMeasurementId(null); return }
+        if (selectedMeasurementId) { e.preventDefault(); setSelectedMeasurementId(null); return }
+        if (uiStore.getState().editingMode !== 'none') e.preventDefault()
         cancelDrawing()
         return
       }
@@ -127,12 +130,12 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         const ui = uiStore.getState()
-        if (ui.selectedMeasurementId) { ui.removeMeasurement(ui.selectedMeasurementId); return }
+        if (ui.selectedMeasurementId) { e.preventDefault(); ui.removeMeasurement(ui.selectedMeasurementId); return }
         const mode = ui.editingMode
-        if (mode === 'measure') { ui.removeLastMeasurePoint(); return }
-        if (mode === 'draw-line' || mode === 'slice-shape') { ui.removeLastLineVertex(); return }
-        if (mode === 'draw-polygon' || mode === 'cut-hole') { ui.removeLastPolygonVertex(); return }
-        if (mode === 'draw-route') { ui.removeLastRouteWaypoint(); return }
+        if (mode === 'measure') { e.preventDefault(); ui.removeLastMeasurePoint(); return }
+        if (mode === 'draw-line' || mode === 'slice-shape') { e.preventDefault(); ui.removeLastLineVertex(); return }
+        if (mode === 'draw-polygon' || mode === 'cut-hole') { e.preventDefault(); ui.removeLastPolygonVertex(); return }
+        if (mode === 'draw-route') { e.preventDefault(); ui.removeLastRouteWaypoint(); return }
       }
     }
     const onKeyup = (e: KeyboardEvent) => {
@@ -158,7 +161,7 @@ export default function DrawingLayer({ map, routingApiKey }: Props) {
       map.off('dragstart', onDragStart)
       map.off('dragend', onDragEnd)
     }
-  }, [cancelDrawing, uiStore, map, isForThisEditor])
+  }, [cancelDrawing, uiStore, map, isForThisEditor, isToolKey])
 
   // Cursor style
   useEffect(() => {

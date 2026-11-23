@@ -85,7 +85,7 @@ export { ElementToaster } from './components/ui/ElementToaster'
 export { EditToolbarBtn, ToolbarDivider } from './components/ui/EditToolbarBtn'
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-export { useKeyboardShortcuts, useIsEventForEditor } from './hooks/useKeyboardShortcuts'
+export { useKeyboardShortcuts, useIsEventForEditor, useIsToolKeyForEditor } from './hooks/useKeyboardShortcuts'
 export { useDataChangeSubscription } from './hooks/useDataChangeSubscription'
 export { useNominatim } from './hooks/useNominatim'
 export type { NominatimResult } from './hooks/useNominatim'
