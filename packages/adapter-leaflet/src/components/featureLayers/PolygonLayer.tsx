@@ -1,4 +1,4 @@
-import { memo, useContext, useMemo, useRef, useState } from 'react'
+import { memo, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Polygon } from 'react-leaflet'
 import type { LatLngExpression, LeafletMouseEvent } from 'leaflet'
 import { DEFAULT_FEATURE_COLOR, type GeoJSONFeature } from '@element-editor/core'
@@ -25,6 +25,8 @@ export const PolygonLayer = memo(function PolygonLayer({ feature, selected, isMu
   const modifierCursor = useModifierDragCursor(readonly)
   const custom = useCustomStyle(feature)
   const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
+  // Swapping renderers on select/deselect replaces the path, so the old path's mouseout never fires: drop the stale hover (the next mousemove over the new path sets it again).
+  useEffect(() => { setHovered(false) }, [selected, isMultiSelected])
   const renderer = useFeatureRenderer(selected || isMultiSelected, () => [mainRef.current], {
     after: () => { if (mainRef.current) modifierCursor.retarget(pathElement(mainRef.current)) },
   })

@@ -22,6 +22,7 @@ What changed in Element, release by release, and what it means for you and the p
 
 ### Fixed
 
+- **Leaflet: a feature no longer stays highlighted after you deselect it with the pointer on it.** Selecting or deselecting swaps the feature's renderer, so the old hover was never cleared; it now resets and the next pointer move sets it again.
 - **Esc exits the active drawing tool even when focus is on your own button.** A host that starts a tool from a button outside the editor kept focus there, so Esc (and Backspace/Delete for the last point) did nothing while the drawing bar still said "Exit Esc". While a tool is on, these three keys now drive it unless focus is in a text field, a modal outside the editor, or another editor. Keys the editor handles this way are `defaultPrevented` (never stopped), so your own Esc handlers can check `e.defaultPrevented`. New hook `useIsToolKeyForEditor()` in `@element-editor/ui` for custom tool key handlers.
 - **Even spacing around the bar's separator.** The hint text sat 18 px from the separator but the Finish button only 10 px; both sides are now 10 px.
 

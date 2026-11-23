@@ -1,4 +1,4 @@
-import { memo, useContext, useMemo, useRef, useState } from 'react'
+import { memo, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Polyline } from 'react-leaflet'
 import type { LatLngExpression, LeafletMouseEvent } from 'leaflet'
 import { DEFAULT_FEATURE_COLOR, type GeoJSONFeature } from '@element-editor/core'
@@ -37,6 +37,8 @@ export const LineLayer = memo(function LineLayer({ feature, selected, isMultiSel
   const modifierCursor = useModifierDragCursor(readonly)
   const custom = useCustomStyle(feature)
   const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
+  // Swapping renderers on select/deselect replaces the path, so the old path's mouseout never fires: drop the stale hover (the next mousemove over the new path sets it again).
+  useEffect(() => { setHovered(false) }, [selected, isMultiSelected])
   // On canvas the visible line is the hit target (renderer tolerance widens it);
   // on SVG it's inert and the 12 px transparent hit path takes the events.
   const renderer = useFeatureRenderer(selected || isMultiSelected, () => [mainRef.current, hitRef.current], {

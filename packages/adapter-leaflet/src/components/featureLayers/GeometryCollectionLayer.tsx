@@ -1,4 +1,4 @@
-import React, { memo, useContext, useState } from 'react'
+import React, { memo, useContext, useEffect, useState } from 'react'
 import { Marker, Polygon, Polyline } from 'react-leaflet'
 import type { LatLngExpression, LeafletMouseEvent, PathOptions } from 'leaflet'
 import { DEFAULT_FEATURE_COLOR, type GeoJSONFeature, type SimpleGeometry } from '@element-editor/core'
@@ -111,6 +111,8 @@ export const GeometryCollectionLayer = memo(function GeometryCollectionLayer({ f
   const accent500 = useContext(AccentContext)[500]
   const custom = useCustomStyle(feature)
   const look = useStateLook(feature, custom, isMultiSelected || selected, hovered)
+  // Swapping renderers on select/deselect replaces the path, so the old path's mouseout never fires: drop the stale hover (the next mousemove over the new path sets it again).
+  useEffect(() => { setHovered(false) }, [selected, isMultiSelected])
   if (feature.geometry.type !== 'GeometryCollection') return null
 
   function makeHandlers(partIndex: number) {
