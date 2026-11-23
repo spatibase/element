@@ -106,7 +106,7 @@ for (const engine of ['leaflet', 'maplibre'] as const) {
     test('the bar shows while a tool is on; Done commits exactly the tapped points', async ({ page }) => {
       await open(page, engine)
       const bar = page.locator('[data-elm-drawing-bar]')
-      await expect(bar.locator('button')).toHaveCount(0) // no tool, nothing to show
+      await expect(bar).toHaveCount(0) // no tool: no wrapper in the DOM either
       await page.getByTestId('host-draw-line').tap()
       await expect(bar.getByRole('button', { name: 'Exit' })).toBeVisible()
 
