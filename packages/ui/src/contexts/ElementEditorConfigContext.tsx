@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, useCallback, useRef, type ReactNode } from 'react'
 import { readPersisted, writePersisted } from '@element-editor/core'
 import { warnOnce } from '@element-editor/core/internal'
-import type { EditingMode, NetworkConfig } from '@element-editor/core'
+import type { EditingMode, NetworkConfig, GeoJSONFeature } from '@element-editor/core'
 
 export type DrawTool =
   | 'polygon' | 'rectangle' | 'circle' | 'line' | 'point' | 'freehand' | 'route' | 'picker'
@@ -166,6 +166,21 @@ export type ToolbarPosition =
   | 'left-center' | 'right-center'
   | 'bottom-left' | 'bottom-center' | 'bottom-right'
 
+/** The hover tooltip over a feature (`config.featureTooltip`). */
+export interface FeatureTooltipOptions {
+  /**
+   * `'cursor'` (default): follows the pointer. `'anchor'`: stays put while the pointer is on the
+   * feature and follows the map when it pans or zooms. Anchored above a point's marker, halfway
+   * along a line, and at a spot guaranteed inside an area.
+   */
+  placement?: 'cursor' | 'anchor'
+  /**
+   * The tooltip text for a feature. `null` or `''`: no tooltip for it. `undefined`: the default
+   * label (name, else area / length). Called once per hover.
+   */
+  content?: (feature: GeoJSONFeature) => string | null | undefined
+}
+
 export interface ElementEditorConfig {
   /** Color theme. Default: 'system' (follows OS preference). */
   mode?: 'light' | 'dark' | 'system'
@@ -186,6 +201,13 @@ export interface ElementEditorConfig {
    * `<ElementEditor featureColor>` wins over this. Default: undefined (slate `#475569`).
    */
   featureColor?: string
+
+  /**
+   * The tooltip shown while the pointer is over a feature. `false`: none, and Settings hides its
+   * "Show name on hover" switch. `true` / omitted: the feature's name following the pointer (the
+   * user's Settings switch still applies). An object picks the `placement` and the `content`.
+   */
+  featureTooltip?: boolean | FeatureTooltipOptions
 
   /** Which drawing tools are available. Default: 'all'. */
   tools?: DrawTool[] | 'all'
@@ -316,6 +338,7 @@ export interface ResolvedConfig {
   network: NetworkConfig
   accentColor: string | undefined
   featureColor: string | undefined
+  featureTooltip: { enabled: boolean; placement: 'cursor' | 'anchor'; content?: FeatureTooltipOptions['content'] }
   tools: DrawTool[] | 'all'
   ui: {
     hints: boolean
@@ -518,6 +541,12 @@ const SLOT_TO_POSITION: Partial<Record<LayoutSlot, ToolbarPosition>> = {
   bottomLeft: 'bottom-left', bottomCenter: 'bottom-center', bottomRight: 'bottom-right',
 }
 
+function resolveFeatureTooltip(v: ElementEditorConfig['featureTooltip']): ResolvedConfig['featureTooltip'] {
+  if (v === false) return { enabled: false, placement: 'cursor' }
+  const o = typeof v === 'object' && v ? v : {}
+  return { enabled: true, placement: o.placement === 'anchor' ? 'anchor' : 'cursor', content: o.content }
+}
+
 export function resolveConfig(config?: ElementEditorConfig): ResolvedConfig {
   const layout = resolveLayout(config?.ui?.layout ?? DEFAULT_LAYOUT)
   const toolbarSlot = LAYOUT_SLOTS.find((s) => layout[s].items.includes('toolbar'))
@@ -528,6 +557,7 @@ export function resolveConfig(config?: ElementEditorConfig): ResolvedConfig {
     network: config?.network ?? {},
     accentColor: config?.accentColor || undefined,
     featureColor: config?.featureColor || undefined,
+    featureTooltip: resolveFeatureTooltip(config?.featureTooltip),
     tools: config?.tools ?? 'all',
     ui: {
       hints: config?.ui?.hints ?? true,
@@ -635,9 +665,16 @@ export function ElementEditorConfigProvider({
   const fetchRef = useRef(config?.network?.fetch)
   fetchRef.current = config?.network?.fetch
   const hasFetch = !!config?.network?.fetch
+  // Same for `featureTooltip.content`: a stable wrapper around the latest callback.
+  const tipObj = typeof config?.featureTooltip === 'object' ? config.featureTooltip : undefined
+  const tipContentRef = useRef(tipObj?.content)
+  tipContentRef.current = tipObj?.content
+  const hasTipContent = !!tipObj?.content
+  const tipContent = useCallback<NonNullable<FeatureTooltipOptions['content']>>((f) => tipContentRef.current?.(f), [])
   const resolved = useMemo(() => {
     const base = resolveConfig(config)
     if (hasFetch) base.network = { ...base.network, fetch: (input: RequestInfo | URL, init?: RequestInit) => fetchRef.current!(input, init) }
+    if (hasTipContent) base.featureTooltip = { ...base.featureTooltip, content: tipContent }
     return {
       ...base,
       units: {
@@ -647,7 +684,7 @@ export function ElementEditorConfigProvider({
         precision: override.precision ?? base.units.precision,
       },
     }
-  }, [configKey, override, hasFetch]) // eslint-disable-line react-hooks/exhaustive-deps -- `config` is read through its content key
+  }, [configKey, override, hasFetch, hasTipContent, tipContent]) // eslint-disable-line react-hooks/exhaustive-deps -- `config` is read through its content key
 
   const unitsCtx = useMemo<UnitsContextValue>(
     () => ({ override, setUnits, resetUnits }),

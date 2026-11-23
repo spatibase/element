@@ -190,24 +190,26 @@ export default function SettingsModal() {
           </label>
         </div>
 
-        {/* Show name on hover */}
-        <div className="pt-4 border-t border-elm-border-subtle">
-          <label className="flex items-center justify-between cursor-pointer group">
-            <div className="flex flex-col gap-0.5 pr-4">
-              <span className="text-sm font-semibold text-(--elm-text,var(--color-gray-800)) dark:text-(--elm-text,var(--color-gray-100))">Show name on hover</span>
-              <span className="text-xs text-elm-text-muted">Display the feature name when hovering over shapes on the map.</span>
-            </div>
-            <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-elm-focus-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-elm-surface ${showFeatureNameOnHover ? 'bg-primary-500' : 'bg-(--elm-border-strong,var(--color-gray-200)) dark:bg-(--elm-border-strong,var(--color-gray-600))'}`}>
-              <span className={`${showFeatureNameOnHover ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={showFeatureNameOnHover}
-                onChange={(e) => setShowFeatureNameOnHover(e.target.checked)}
-              />
-            </div>
-          </label>
-        </div>
+        {/* Show name on hover (hidden when config.featureTooltip is false) */}
+        {persistScope.featureTooltip.enabled && (
+          <div className="pt-4 border-t border-elm-border-subtle">
+            <label className="flex items-center justify-between cursor-pointer group">
+              <div className="flex flex-col gap-0.5 pr-4">
+                <span className="text-sm font-semibold text-(--elm-text,var(--color-gray-800)) dark:text-(--elm-text,var(--color-gray-100))">Show name on hover</span>
+                <span className="text-xs text-elm-text-muted">Display the feature name when hovering over shapes on the map.</span>
+              </div>
+              <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-elm-focus-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-elm-surface ${showFeatureNameOnHover ? 'bg-primary-500' : 'bg-(--elm-border-strong,var(--color-gray-200)) dark:bg-(--elm-border-strong,var(--color-gray-600))'}`}>
+                <span className={`${showFeatureNameOnHover ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={showFeatureNameOnHover}
+                  onChange={(e) => setShowFeatureNameOnHover(e.target.checked)}
+                />
+              </div>
+            </label>
+          </div>
+        )}
 
         {/* Topological editing */}
         <div className="pt-4 border-t border-elm-border-subtle">

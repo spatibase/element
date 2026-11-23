@@ -114,3 +114,7 @@ export type { MapInsets } from './utils/mapInsets'
 
 // Default feature colour on a dark basemap
 export { DEFAULT_FEATURE_COLOR_ON_DARK } from './utils/accent'
+
+// Hover-tooltip anchor spot (halfway along a line, a point inside an area)
+export { tooltipAnchor } from './utils/tooltipAnchor'
+export type { TooltipAnchor } from './utils/tooltipAnchor'

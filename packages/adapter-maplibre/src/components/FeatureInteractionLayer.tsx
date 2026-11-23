@@ -14,7 +14,7 @@ import TransformControls from './TransformControls'
 import TextEditOverlay from './TextEditOverlay'
 import PreciseCoordsOverlay from './PreciseCoordsOverlay'
 import BoxSelectHandler from './BoxSelectHandler'
-import { bindFeatureTooltip, unbindFeatureTooltip, setFeatureDragActive } from '../utils/featureTooltip'
+import { bindFeatureTooltip, unbindFeatureTooltip, setFeatureDragActive, registerFeatureTooltipHost } from '../utils/featureTooltip'
 import { freshFeatureId, setFreshFeature } from '../utils/freshFeature'
 import { markModifierDragEnd } from '../utils/modifierDragFlag'
 import { isFreehandCommitConsumed } from '../utils/freehandCommitFlag'
@@ -24,7 +24,7 @@ import { getLastPointer } from '../hooks/lastPointer'
 import { rafThrottle } from '../utils/rafThrottle'
 import { paintLiveGeometries } from '../utils/liveFeatureSource'
 import { paintAccent, useAccentPaint, type AccentPaint } from '../utils/accentPaint'
-import { FeatureMapContextMenu, useEmit, type FeatureContextMenuData } from '@element-editor/ui'
+import { FeatureMapContextMenu, useEmit, useElementEditorConfig, type FeatureContextMenuData } from '@element-editor/ui'
 import { useContextMenu } from '@element-editor/ui/internal'
 
 /**
@@ -115,6 +115,12 @@ export default function FeatureInteractionLayer({ map }: Props) {
   const transformActive = useUIStore((s) => s.transformActive)
   const editingMode = useUIStore((s) => s.editingMode)
   const readonly = useUIStore((s) => s.readonly)
+
+  // The hover tooltip reads this editor's `config.featureTooltip` when it binds (two editors can differ).
+  const featureTooltip = useElementEditorConfig().featureTooltip
+  const tipRef = useRef(featureTooltip)
+  tipRef.current = featureTooltip
+  useEffect(() => registerFeatureTooltipHost(uiStore, { map, getOptions: () => tipRef.current }), [uiStore, map])
 
   // A feature deleted under a still cursor fires no mouseleave — drop its name tooltip.
   // Vertex edit shows no names at all.
@@ -270,7 +276,7 @@ export default function FeatureInteractionLayer({ map }: Props) {
       if (!drawing) setHoverState(map, id, hoveredIdRef.current)
       hoveredIdRef.current = id
       const feature = dataStore.getState().features.find((f) => f.id === id)
-      if (feature) bindFeatureTooltip(feature, uiStore, e.originalEvent)
+      if (feature) bindFeatureTooltip(feature, uiStore, e.originalEvent, [e.lngLat.lng, e.lngLat.lat])
       else unbindFeatureTooltip()
       modifierCursor.enter(map.getCanvas(), e.originalEvent, drawing ? undefined : hoverCursor(id))
     }
