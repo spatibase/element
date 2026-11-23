@@ -6,6 +6,20 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Added
+
+- **Size the drawing bar to match your own buttons.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height; its buttons follow, keeping a fixed gap to the edge, so a 40 px bar lines up with 40 px map controls. Touch targets stay at least 44 px.
+- **Undo stays reachable with hints off.** With `config.ui.hints: false` the desktop bar now shows an Undo point button (with its Backspace chip) while there is something to take back; before, the "Undo last" hint was the only way.
+
+### Changed
+
+- **No empty wrapper when no tool is on.** The adapters' `[data-elm-drawing-bar]` element is only in the DOM while a drawing tool is active, so you can read its presence as "a tool is on".
+- **Hints are separated by thin dividers** when several show at once ("Click to add points | Double-click to close | Undo last"); a divider never starts or ends a wrapped row.
+
+### Fixed
+
+- **Even spacing around the bar's separator.** The hint text sat 18 px from the separator but the Finish button only 10 px; both sides are now 10 px.
+
 ---
 
 ## [0.3.3] — 2026-11-22

@@ -9,6 +9,7 @@ export function EditToolbarBtn({
   active,
   disabled,
   tooltipSide = 'top',
+  fitBar,
   children,
 }: {
   label: string
@@ -19,6 +20,8 @@ export function EditToolbarBtn({
   active?: boolean
   disabled?: boolean
   tooltipSide?: TooltipSide
+  /** Inside the drawing bar: height follows `--elm-drawing-bar-height` (32 px at the default). */
+  fitBar?: boolean
   children: React.ReactNode
 }) {
   const cfg = useElementEditorConfig()
@@ -31,7 +34,7 @@ export function EditToolbarBtn({
         data-elm-shortcut={shortcutId}
         onClick={(e) => { onClick(); e.currentTarget.blur() }}
         disabled={disabled}
-        className={`p-1 rounded-elm-control flex items-center justify-center text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring
+        className={`${fitBar ? 'h-(--elm-bar-btn) ' : ''}p-1 rounded-elm-control flex items-center justify-center text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-elm-focus-ring
           active:scale-[0.95] disabled:cursor-not-allowed disabled:text-elm-text-disabled disabled:active:scale-100
           ${active
             ? 'bg-primary-50 dark:bg-white/10 hover:bg-primary-100 dark:hover:bg-white/15 disabled:hover:bg-primary-50 dark:disabled:hover:bg-white/10 text-primary-600 dark:text-primary-400'
