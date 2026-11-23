@@ -425,6 +425,23 @@ useEffect(() => {
 
 Returns a function that tells whether a DOM event belongs to this editor, using the same scope as `useKeyboardShortcuts`. Use it to gate your own `window` or `document` keyboard listeners that act on editor state, so a second editor or your host page doesn't trigger them. Must be called inside `GeoStoreProvider`.
 
+### `useIsToolKeyForEditor()`
+
+```ts
+import { useIsEventForEditor, useIsToolKeyForEditor } from '@element-editor/ui'
+
+const isForThisEditor = useIsEventForEditor()
+const isToolKey = useIsToolKeyForEditor()
+const onKey = (e: KeyboardEvent) => {
+  if (!isForThisEditor(e) && !isToolKey(e)) return
+  if (e.key === 'Escape') { e.preventDefault(); /* cancel the tool */ }
+}
+```
+
+A host that starts a tool from its own button keeps focus on that button, outside the editor root, where `useIsEventForEditor` rejects every key. `useIsToolKeyForEditor` covers that case: it is true for **Escape**, **Backspace** and **Delete** while this editor has an active tool (`editingMode !== 'none'`: drawing, measure, cut, slice, pick), even with focus on a host element. It is false when the key targets an input, textarea, select or contenteditable; when the target is inside an open modal (`dialog[open]` or `[aria-modal="true"]`) outside this editor; when it is inside another editor's root; or when `e.defaultPrevented` is already set (pass `{ ignoreHandled: true }` for a second listener of the same editor). If two editors have a tool on, the one whose last pointer press was inside wins, otherwise the one whose tool started most recently. Enter is deliberately not included, so Enter on a focused host button still clicks it.
+
+Keys Element handles this way call `e.preventDefault()` and never `stopPropagation()`: your own `keydown` handlers still run and can check `e.defaultPrevented` to skip their Esc behaviour. Do the same in your tool key handlers.
+
 ### Portals
 
 Any UI you render with `createPortal` outside the editor's `data-elm-theme` element (a menu, picker or modal attached to `body`) should carry a `data-elm-portal` attribute on its root. ElementEditor then applies its base styles inside it, and focus or clicks inside it still count as inside the editor, so shortcuts and Escape keep working there. Spread `useAccentStyle()` into its `style` so it uses the editor's accent colour.

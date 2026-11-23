@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+### Fixed
+
+- **Esc exits the active drawing tool even when focus is on your own button.** A host that starts a tool from a button outside the editor kept focus there, so Esc (and Backspace/Delete for the last point) did nothing while the drawing bar still said "Exit Esc". While a tool is on, these three keys now drive it unless focus is in a text field, a modal outside the editor, or another editor. Keys the editor handles this way are `defaultPrevented` (never stopped), so your own Esc handlers can check `e.defaultPrevented`. New hook `useIsToolKeyForEditor()` in `@element-editor/ui` for custom tool key handlers.
+
 ---
 
 ## [0.3.3] — 2026-11-22

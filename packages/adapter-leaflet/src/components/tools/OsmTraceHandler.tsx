@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Polygon, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { useEmit, useIsEventForEditor, useElementEditorConfig, useAccentStyle, useTheme } from '@element-editor/ui'
+import { useEmit, useIsEventForEditor, useIsToolKeyForEditor, useElementEditorConfig, useAccentStyle, useTheme } from '@element-editor/ui'
 import { useGeoStore, useUIStore } from '../../store/StoreContext'
 import {
   fetchOverpassFeatures,
@@ -71,6 +71,7 @@ export function OsmTraceHandler() {
   networkRef.current = network
   const emit = useEmit()
   const isForThisEditor = useIsEventForEditor()
+  const isToolKey = useIsToolKeyForEditor()
   const editingMode = useUIStore((s) => s.editingMode)
 
   const [candidates, setCandidates] = useState<OverpassResult[] | null>(null)
@@ -109,7 +110,7 @@ export function OsmTraceHandler() {
   // pick-shape useMapEvents handler below, which starts a fresh pick.
   useEffect(() => {
     if (!candidates && editingMode !== 'pick-shape') return
-    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape' && isForThisEditor(e)) cleanup() }
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape' && (isForThisEditor(e) || isToolKey(e, { ignoreHandled: true }))) cleanup() }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [candidates, editingMode, cleanup, isForThisEditor])

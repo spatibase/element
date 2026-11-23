@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom'
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, MapMouseEvent, MapLayerMouseEvent } from 'maplibre-gl'
 import type { MultiPolygon, Polygon } from 'geojson'
-import { useEmit, useIsEventForEditor, runGeometryWorkerOperation, useElementEditorConfig, useAccentStyle, useTheme } from '@element-editor/ui'
+import { useEmit, useIsEventForEditor, useIsToolKeyForEditor, runGeometryWorkerOperation, useElementEditorConfig, useAccentStyle, useTheme } from '@element-editor/ui'
 import { useStyleEpoch } from '../contexts/StyleEpochContext'
 import {
   fetchOverpassFeatures,
@@ -181,6 +181,7 @@ export function OsmTraceHandler({ map }: Props) {
   networkRef.current = network
   const emit = useEmit()
   const isForThisEditor = useIsEventForEditor()
+  const isToolKey = useIsToolKeyForEditor()
   const editingMode = useUIStore((s) => s.editingMode)
 
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
@@ -244,7 +245,7 @@ export function OsmTraceHandler({ map }: Props) {
   // Cancel picker on Escape, also while the lookup is still loading. Map clicks are handled by the click handler below.
   useEffect(() => {
     if (!candidates && editingMode !== 'pick-shape') return
-    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape' && isForThisEditor(e)) cleanup() }
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape' && (isForThisEditor(e) || isToolKey(e, { ignoreHandled: true }))) cleanup() }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [candidates, editingMode, cleanup, isForThisEditor])

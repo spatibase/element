@@ -49,6 +49,10 @@ interface ShortcutScope {
   root: HTMLElement
   /** Was the last pointerdown inside `root`? null = no pointerdown yet. */
   pointerInside: boolean | null
+  /** This editor's uiStore (to read `editingMode` of competing editors). */
+  uiStore: { getState: () => { editingMode: string } }
+  /** Timestamp of the last transition from no tool to a tool; 0 = no active tool. */
+  toolSince: number
 }
 
 /** One entry per editor that mounted `useKeyboardShortcuts(container)`, keyed by its uiStore. */
@@ -74,6 +78,56 @@ function isForScope(e: Event, scope: ShortcutScope | undefined): boolean {
   if (!focusNeutral) return false
   // Before any click, a lone editor still owns body-focused keys (page load → press P).
   return scope.pointerInside ?? scopes.size === 1
+}
+
+/** Keys that drive an active tool (cancel, remove last point). Enter is excluded on purpose: on a focused host button it must still click it. */
+const TOOL_KEYS = new Set(['Escape', 'Backspace', 'Delete'])
+
+function isTextTarget(el: Element | null): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+}
+
+/**
+ * Escape/Backspace/Delete while this editor has an active tool belong to it
+ * even when focus sits on a host element (e.g. the host's own "Draw line"
+ * button, which keeps focus after the click). Not when the key targets a text
+ * field, a modal outside this editor, another editor, or was already handled.
+ */
+function isToolKeyForScope(e: KeyboardEvent, scope: ShortcutScope | undefined, ignoreHandled = false): boolean {
+  if (!scope || !TOOL_KEYS.has(e.key) || (e.defaultPrevented && !ignoreHandled)) return false
+  if (scope.uiStore.getState().editingMode === 'none') return false
+  const path = e.composedPath()
+  if (path.includes(scope.root)) return true
+  const t = e.target instanceof Element ? e.target : null
+  if (isTextTarget(t) || isTextTarget(document.activeElement)) return false
+  if (t?.closest('dialog[open], [aria-modal="true"]')) return false
+  for (const other of scopes.values()) {
+    if (other !== scope && path.includes(other.root)) return false
+  }
+  // Several editors with a tool on: last pointerdown inside wins, else the newest tool.
+  for (const other of scopes.values()) {
+    if (other === scope || other.uiStore.getState().editingMode === 'none') continue
+    if (other.pointerInside === true && scope.pointerInside !== true) return false
+    if ((other.pointerInside === true) === (scope.pointerInside === true) && other.toolSince > scope.toolSince) return false
+  }
+  return true
+}
+
+/**
+ * Like `useIsEventForEditor`, for the keys that drive an active tool
+ * (Escape, Backspace, Delete): true while this editor has a tool on, even
+ * when focus is on a host element. Use `isForThisEditor(e) || isToolKey(e)` in
+ * tool key handlers and call `e.preventDefault()` when the key is handled, so
+ * host handlers can check `e.defaultPrevented`. Never `stopPropagation`.
+ * A key an earlier Element listener already handled (`defaultPrevented`) is
+ * rejected, unless `{ ignoreHandled: true }` (for a second listener of the same editor).
+ */
+export function useIsToolKeyForEditor(): (e: KeyboardEvent, opts?: { ignoreHandled?: boolean }) => boolean {
+  const { uiStore } = useGeoStore()
+  return useCallback((e: KeyboardEvent, opts?: { ignoreHandled?: boolean }) =>
+    isToolKeyForScope(e, scopes.get(uiStore), opts?.ignoreHandled), [uiStore])
 }
 
 /**
@@ -126,8 +180,15 @@ export function useKeyboardShortcuts(container?: HTMLElement | null) {
   useEffect(() => {
     if (!container) return
     const root = (container.closest('[data-elm-theme]') as HTMLElement | null) ?? container
-    const scope: ShortcutScope = { root, pointerInside: null }
+    const scope: ShortcutScope = { root, pointerInside: null, uiStore, toolSince: 0 }
     scopes.set(uiStore, scope)
+    let wasActive = uiStore.getState().editingMode !== 'none'
+    if (wasActive) scope.toolSince = performance.now()
+    const unsub = uiStore.subscribe((s: { editingMode: string }) => {
+      const active = s.editingMode !== 'none'
+      if (active && !wasActive) scope.toolSince = performance.now()
+      wasActive = active
+    })
     const onPointerDown = (e: PointerEvent) => {
       if (e.composedPath().includes(root)) scope.pointerInside = true
       // Clicks inside an Element modal portal don't move ownership.
@@ -135,6 +196,7 @@ export function useKeyboardShortcuts(container?: HTMLElement | null) {
     }
     document.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true })
     return () => {
+      unsub()
       if (scopes.get(uiStore) === scope) scopes.delete(uiStore)
       document.removeEventListener('pointerdown', onPointerDown, { capture: true })
     }
