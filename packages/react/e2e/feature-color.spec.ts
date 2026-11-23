@@ -104,6 +104,7 @@ test.describe('MapLibre', () => {
     await page.locator('.maplibregl-canvas').first().focus()
     const { cx, cy } = await drawPolygon(page, { width: 60, height: 50, x: 0.55 })
     await page.keyboard.press('Escape')
+    await page.mouse.move(5, 5) // not hovering the drawn polygon (hover is a shade)
     // The store has it at once; the map renders it a frame or two later.
     await expect.poll(async () => Object.keys(await paintColors(page, 'elm-features-fill', 'fill-color')).length).toBe(3)
     const fills = await paintColors(page, 'elm-features-fill', 'fill-color')
@@ -243,12 +244,13 @@ test.describe('Leaflet', () => {
     const f = t.dataStore.getState().features.find((f) => f.id === id)!
     const flat = (JSON.stringify(f.geometry.coordinates).match(/-?\d+(\.\d+)?(e-?\d+)?/g) ?? []).map(Number)
     const cx = (Math.min(...flat.filter((_, i) => i % 2 === 0)) + Math.max(...flat.filter((_, i) => i % 2 === 0))) / 2
+    const cy = (Math.min(...flat.filter((_, i) => i % 2 === 1)) + Math.max(...flat.filter((_, i) => i % 2 === 1))) / 2
     let w: number | undefined
     ;(t.map as LeafletMap).eachLayer((l) => {
       const p = l as Polyline
       if (!('getLatLngs' in p) || p.options.opacity === 0.001 || w !== undefined) return
       const b = p.getBounds()
-      if (Math.abs((b.getWest() + b.getEast()) / 2 - cx) < 1e-9) w = p.options.weight
+      if (Math.abs((b.getWest() + b.getEast()) / 2 - cx) < 1e-9 && Math.abs((b.getSouth() + b.getNorth()) / 2 - cy) < 1e-9) w = p.options.weight
     })
     return w
   }, id)
@@ -355,6 +357,7 @@ test.describe('Leaflet', () => {
     await page.locator('.leaflet-container').focus()
     await drawPolygon(page, { width: 60, height: 50, x: 0.55 })
     await page.keyboard.press('Escape')
+    await page.mouse.move(5, 5) // not hovering the drawn polygon (hover is a shade)
     const paths = () => page.locator('.leaflet-overlay-pane path').evaluateAll((els) =>
       els.map((el) => ({ stroke: el.getAttribute('stroke'), fill: el.getAttribute('fill'), so: el.getAttribute('stroke-opacity') }))
         .filter((p) => p.so !== '0.001')) // drop the transparent line hit paths
