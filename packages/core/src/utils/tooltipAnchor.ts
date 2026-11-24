@@ -1,8 +1,6 @@
 import area from '@turf/area'
-import along from '@turf/along'
-import length from '@turf/length'
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
-import { lineString, polygon, point } from '@turf/helpers'
+import { polygon, point } from '@turf/helpers'
 import type { Position } from 'geojson'
 import type { GeoJSONFeature, Geometry } from '../types/geojson'
 
@@ -54,9 +52,39 @@ function partDist2(part: Part, hit: Position): number {
   return Math.min(...part.rings.map((r) => ringDist2(hit, r)))
 }
 
+/** Great-circle distance in km (haversine). Enough precision to pick a tooltip spot. */
+function distKm(a: Position, b: Position): number {
+  const r = Math.PI / 180
+  const dLat = (b[1] - a[1]) * r, dLng = (b[0] - a[0]) * r
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * r) * Math.cos(b[1] * r) * Math.sin(dLng / 2) ** 2
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+function lineLength(coords: Position[]): number {
+  let d = 0
+  for (let i = 1; i < coords.length; i++) d += distKm(coords[i - 1], coords[i])
+  return d
+}
+
+/** The point halfway along a line's length (interpolated linearly inside the segment that holds it). */
+function halfway(coords: Position[]): [number, number] {
+  const target = lineLength(coords) / 2
+  let run = 0
+  for (let i = 1; i < coords.length; i++) {
+    const seg = distKm(coords[i - 1], coords[i])
+    if (run + seg >= target && seg > 0) {
+      const t = (target - run) / seg
+      const [x0, y0] = coords[i - 1], [x1, y1] = coords[i]
+      return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t]
+    }
+    run += seg
+  }
+  return [coords[0][0], coords[0][1]]
+}
+
 function partSize(part: Part): number {
   if (part.kind === 'point') return 0
-  if (part.kind === 'line') return part.coords.length > 1 ? length(lineString(part.coords)) : 0
+  if (part.kind === 'line') return lineLength(part.coords)
   return area(polygon(part.rings))
 }
 
@@ -83,9 +111,7 @@ export function tooltipAnchor(feature: Pick<GeoJSONFeature, 'geometry'>, hit?: [
   if (best.kind === 'point') return { kind: 'point', lngLat: [best.coords[0], best.coords[1]] }
   if (best.kind === 'line') {
     if (best.coords.length < 2) return { kind: 'line', lngLat: [best.coords[0][0], best.coords[0][1]] }
-    const line = lineString(best.coords)
-    const c = along(line, length(line) / 2).geometry.coordinates
-    return { kind: 'line', lngLat: [c[0], c[1]] }
+    return { kind: 'line', lngLat: halfway(best.coords) }
   }
   return { kind: 'area', lngLat: pointInside(best.rings) }
 }
