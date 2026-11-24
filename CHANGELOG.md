@@ -6,6 +6,10 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] — 2026-11-24
+
 This release is about fitting Element into your own app. Esc now works when your own button started the tool, the drawing bar can match the size of your map controls, hover labels can sit on the feature and show your text, and a selected feature keeps its own colour instead of turning blue.
 
 ### Added
