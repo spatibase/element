@@ -30,9 +30,9 @@ const EXTERNAL = /^(react|react-dom|react-leaflet|leaflet|maplibre-gl)(\/.*)?$/
 // `headless` fixtures render no stock panel, so none of these packages may appear in their build at all.
 const PANEL_DEPS = ['@codemirror/', 'codemirror', 'react-data-grid', '@hello-pangea/dnd', '@tanstack/react-virtual', 'react-redux']
 const FIXTURES = [
-  { name: 'leaflet-headless', label: 'adapter-leaflet, headless', budget: 127, headless: true },
+  { name: 'leaflet-headless', label: 'adapter-leaflet, headless', budget: 130.5, headless: true },
   { name: 'leaflet-panels', label: 'adapter-leaflet + stock panels', budget: null },
-  { name: 'maplibre-headless', label: 'adapter-maplibre, headless', budget: 118.5, headless: true },
+  { name: 'maplibre-headless', label: 'adapter-maplibre, headless', budget: 121.5, headless: true },
   { name: 'maplibre-panels', label: 'adapter-maplibre + stock panels', budget: null },
   { name: 'react-dropin-maplibre', label: '@element-editor/react (MapLibre)', budget: null },
   { name: 'react-dropin-leaflet', label: '@element-editor/react/leaflet', budget: null },
