@@ -107,9 +107,9 @@ test('anchor placement: a pin gets the tooltip above its head, and it follows a 
 
   // Pan the map by 4 px (the cursor stays on the pin): the tooltip moves with its anchor.
   await page.evaluate(() => {
-    const m = window.__elementEditorTest!.map
-    if ('panBy' in m) m.panBy([4, 0], { animate: false })
-    else m.jumpTo({ center: m.unproject([m.getContainer().clientWidth / 2 + 4, m.getContainer().clientHeight / 2]) })
+    // Leaflet and MapLibre both take panBy([x, y], { animate: false }); their typings differ, so call it untyped.
+    const m = window.__elementEditorTest!.map as unknown as { panBy: (offset: [number, number], opts: { animate: boolean }) => void }
+    m.panBy([4, 0], { animate: false })
   })
   await page.waitForTimeout(200)
   const moved = await tipBox(page)
