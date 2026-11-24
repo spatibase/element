@@ -6,25 +6,27 @@ What changed in Element, release by release, and what it means for you and the p
 
 ## [Unreleased]
 
+This release is about fitting Element into your own app. Esc now works when your own button started the tool, the drawing bar can match the size of your map controls, hover labels can sit on the feature and show your text, and a selected feature keeps its own colour instead of turning blue.
+
 ### Added
 
-- **Size the drawing bar to match your own buttons.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height; its buttons follow, keeping a fixed gap to the edge, so a 40 px bar lines up with 40 px map controls. Touch targets stay at least 44 px.
-- **Undo stays reachable with hints off.** With `config.ui.hints: false` the desktop bar now shows an Undo point button (with its Backspace chip) while there is something to take back; before, the "Undo last" hint was the only way.
-- Hover tooltips can now be pinned to the feature and say what you want: `config.featureTooltip` takes `placement: 'anchor'` (above a point, halfway along a line, a spot inside an area), a `content` callback for the text (return `null` to show nothing), or `false` to turn the tooltip off, which also hides the "Show name on hover" switch in Settings.
-- **`config.selectionStyle`** (`'auto'` | `'accent'` | `'feature'`, default `'auto'`) picks the selected and hovered look: the accent, a shade of the feature's own colour, or `'auto'` (own colour when the feature has one).
-- **`getFeatureStyle(feature, { selected, hovered })`.** The callback now gets the feature's state as a second argument, so you can fully customise the selected or hovered look (a different colour or weight). Existing callbacks keep working unchanged. New exported type `FeatureStyleState`.
+- **Size the drawing bar to match your own buttons.** `--elm-drawing-bar-height` (default `50px`) sets the bar's height and its buttons follow, so a 40 px bar lines up with 40 px map controls. Touch targets stay at least 44 px. To lift the bar only when the map is narrow, see [The drawing bar](docs/guides/custom-ui-with-adapters.md#the-drawing-bar).
+- **Undo stays reachable with hints off.** With `config.ui.hints: false` the desktop bar shows an Undo point button (with its Backspace chip) while there is a point to take back. Before, the "Undo last" hint was the only way.
+- **Hover labels can sit on the feature and say what you want.** `config.featureTooltip` takes `placement: 'anchor'` (above a point, halfway along a line, on a spot inside an area, still while the pointer rests on it) and a `content` callback for the text (return `null` to show nothing). `false` turns the label off and hides the "Show name on hover" switch in Settings. Each editor on a page can have its own setting. See [Feature tooltip](docs/reference/element-editor-react.md#feature-tooltip).
+- **Choose the selected and hovered look.** `config.selectionStyle` is `'auto'` (the default, see Changed), `'accent'` (the look before this release) or `'feature'` (always a shade of the feature's colour). See [Selected and hovered look](docs/guides/theming.md#selected-and-hovered-look).
+- **Style a feature by its state.** `getFeatureStyle(feature, { selected, hovered })` now gets the state as a second argument, so you can give a selected or hovered feature its own colour or weight. Existing callbacks keep working. New exported type `FeatureStyleState`.
 
 ### Changed
 
-- **No empty wrapper when no tool is on.** The adapters' `[data-elm-drawing-bar]` element is only in the DOM while a drawing tool is active, so you can read its presence as "a tool is on".
-- **Hints are separated by thin dividers** when several show at once ("Click to add points | Double-click to close | Undo last"); a divider never starts or ends a wrapped row.
-- **A selected or hovered feature now keeps its own colour.** Select a pink feature and it turns a darker pink with a slightly heavier outline, instead of jumping to the accent blue; its vertex handles and transform box follow the same shade. Features in the default slate still select in the accent, so nothing changes unless you set `featureColor` or `getFeatureStyle`. Set `config.selectionStyle: 'accent'` to keep the old look everywhere. Buttons, the drawing bar and the snap marker keep the accent.
+- **A selected or hovered feature keeps its own colour.** Select a pink feature and it turns a darker pink with a slightly heavier outline, instead of jumping to the accent blue. Its point handles and transform box use the same shade. Features in the default slate still select in the accent, so nothing changes unless you set `featureColor` or `getFeatureStyle`. To keep the old look everywhere, set `config.selectionStyle: 'accent'`. Buttons, the drawing bar and the snap marker keep the accent.
+- **The drawing bar is only on the page while a tool is on.** The adapters' `[data-elm-drawing-bar]` element is no longer left empty in the DOM, so you can read its presence as "a tool is on".
+- **Drawing hints are easier to scan.** When several show at once ("Click to add points", "Double-click to close", "Undo last") a thin divider separates them, and a divider never starts or ends a wrapped row.
 
 ### Fixed
 
-- **Leaflet: a feature no longer stays highlighted after you deselect it with the pointer on it.** Selecting or deselecting swaps the feature's renderer, so the old hover was never cleared; it now resets and the next pointer move sets it again.
-- **Esc exits the active drawing tool even when focus is on your own button.** A host that starts a tool from a button outside the editor kept focus there, so Esc (and Backspace/Delete for the last point) did nothing while the drawing bar still said "Exit Esc". While a tool is on, these three keys now drive it unless focus is in a text field, a modal outside the editor, or another editor. Keys the editor handles this way are `defaultPrevented` (never stopped), so your own Esc handlers can check `e.defaultPrevented`. New hook `useIsToolKeyForEditor()` in `@element-editor/ui` for custom tool key handlers.
-- **Even spacing around the bar's separator.** The hint text sat 18 px from the separator but the Finish button only 10 px; both sides are now 10 px.
+- **Esc exits the drawing tool even when focus is on your own button.** If your app starts a tool from its own button, focus stayed there and Esc (and Backspace or Delete for the last point) did nothing, while the drawing bar still said "Exit Esc". While a tool is on, these keys now reach it unless focus is in a text field, a dialog outside the editor, or another editor. Enter is left alone, so it still presses your button. The editor marks the keys it handles with `preventDefault()` and never stops them, so your own Esc handler can check `e.defaultPrevented`. Custom tool key handlers can use the new `useIsToolKeyForEditor()` from `@element-editor/ui` ([reference](docs/reference/element-editor-ui.md#useistoolkeyforeditor)).
+- **Leaflet: a feature no longer stays highlighted after you select or deselect it with the pointer on it.**
+- **Even spacing around the drawing bar's separator.** The hint text sat 18 px from it and the Finish button 10 px; both are now 10 px.
 
 ---
 
